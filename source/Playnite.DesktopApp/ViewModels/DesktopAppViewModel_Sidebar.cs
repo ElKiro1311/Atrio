@@ -247,8 +247,11 @@ namespace Playnite.DesktopApp.ViewModels
             var open = item.Opened;
             item.Opened = () =>
             {
+                var page = new Grid();
+                page.Children.Add(open());
+
                 var refresh = CreateAchievementsButton("LOCAtrioAchievementsRefresh");
-                refresh.Command = new RelayCommand<object>(_ => ShowAchievementsRefreshMenu(refresh));
+                refresh.Command = new RelayCommand<object>(_ => ShowAchievementsRefreshMenu(refresh, page));
                 var settings = CreateAchievementsButton("LOCAtrioAchievementsSettings");
                 settings.Command = new RelayCommand<object>(_ => OpenPluginSettings(Playnite.Atrio.AtrioInfo.AchievementsPluginId));
 
@@ -262,8 +265,6 @@ namespace Playnite.DesktopApp.ViewModels
                 buttons.Children.Add(refresh);
                 buttons.Children.Add(settings);
 
-                var page = new Grid();
-                page.Children.Add(open());
                 page.Children.Add(buttons);
                 return new ContentControl { Content = page, Focusable = false };
             };
@@ -283,33 +284,38 @@ namespace Playnite.DesktopApp.ViewModels
             return button;
         }
 
-        /// <summary>
-        /// Offers what the add-on puts in its own menu, which already knows about a refresh in progress:
-        /// the kinds of refresh when it is idle, and how to follow or cancel the current one when it is not.
-        /// </summary>
-        private void ShowAchievementsRefreshMenu(Button button)
+        private void ShowAchievementsRefreshMenu(Button button, Panel page)
         {
-            var refreshSection = "|" + Resources.GetString("LOCPlayAch_Button_Refresh");
-            var inProgress = new[] { "LOCPlayAch_Menu_RefreshInProgress", "LOCPlayAch_Common_View", "LOCPlayAch_Common_Cancel" }.Select(a => Resources.GetString(a)).ToList();
+            MenuItem CreateItem(string text, Action action)
+            {
+                var item = new MenuItem { Header = text };
+                item.Click += (_, __) => action();
+                return item;
+            }
+
             var menu = new ContextMenu { PlacementTarget = button, Placement = System.Windows.Controls.Primitives.PlacementMode.Bottom };
             try
             {
-                var plugin = Extensions.Plugins[Playnite.Atrio.AtrioInfo.AchievementsPluginId].Plugin;
-                foreach (var item in plugin.GetMainMenuItems(new GetMainMenuItemsArgs()))
+                var header = Atrio.AchievementsRefreshHeader.Find(page);
+                if (header == null)
                 {
-                    if (item.MenuSection?.EndsWith(refreshSection) != true && !inProgress.Contains(item.Description))
+                    menu.Items.Add(new MenuItem { Header = Resources.GetString("LOCAtrioAchievementsFirstRead"), IsEnabled = false });
+                }
+                else if (header.IsRefreshing)
+                {
+                    menu.Items.Add(CreateItem(header.CancelText, header.StartOrCancel));
+                }
+                else
+                {
+                    foreach (var mode in header.GetModes())
                     {
-                        continue;
+                        menu.Items.Add(CreateItem(mode.Value, () => header.Start(mode.Key)));
                     }
-
-                    var entry = new MenuItem { Header = item.Description, IsEnabled = item.Action != null };
-                    entry.Click += (_, __) => item.Action(new MainMenuItemActionArgs());
-                    menu.Items.Add(entry);
                 }
             }
             catch (Exception e) when (!PlayniteEnvironment.ThrowAllErrors)
             {
-                Logger.Error(e, "Failed to get the refresh options of the achievements add-on.");
+                Logger.Error(e, "Failed to read the refresh controls of the achievements add-on.");
                 return;
             }
 

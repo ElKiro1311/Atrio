@@ -345,8 +345,18 @@ namespace Playnite.DesktopApp.Atrio
                     Log($"frecuencia: tiendas {model.AppSettings.CheckForLibraryUpdates}, emuladores {model.AppSettings.CheckForEmulatedLibraryUpdates}");
                     break;
                 case "menulogros":
-                    var refreshButton = FindAll<System.Windows.Controls.Button>(model.Window.Window).First(a => a.ContextMenu != null && a.Content as string == argument);
-                    Log("opciones de actualizar: " + string.Join(" | ", refreshButton.ContextMenu.Items.Cast<System.Windows.Controls.MenuItem>().Select(a => a.Header)));
+                    var menuParts = argument.Split('|');
+                    var refreshButton = FindAll<System.Windows.Controls.Button>(model.Window.Window).First(a => a.ContextMenu != null && a.Content as string == menuParts[0]);
+                    var refreshItems = refreshButton.ContextMenu.Items.Cast<System.Windows.Controls.MenuItem>().ToList();
+                    Log("opciones de actualizar: " + string.Join(" | ", refreshItems.Select(a => a.Header)));
+                    if (menuParts.Length > 1)
+                    {
+                        refreshItems.First(a => a.Header as string == menuParts[1]).RaiseEvent(new RoutedEventArgs(System.Windows.Controls.MenuItem.ClickEvent));
+                        refreshButton.ContextMenu.IsOpen = false;
+                    }
+                    break;
+                case "ventanas":
+                    Log("ventanas abiertas: " + string.Join(" | ", Application.Current.Windows.Cast<Window>().Select(a => a.GetType().Name + (a.IsVisible ? "" : " (oculta)"))));
                     break;
                 case "estado":
                     Log($"ficha abierta: {model.AppSettings.GridViewSideBarVisible}, juego: {model.SelectedGameDetails?.Game.Game.Name ?? "ninguno"}, visibles: {model.GamesView.CollectionView.Count}");

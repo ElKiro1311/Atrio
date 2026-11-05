@@ -252,6 +252,7 @@
   "ThemeMigration_NoRevertableThemes": "No hay temas con copia para restaurar.",
   "ThemeMigration_NoThemesMessage": "Ningún tema necesita adaptarse. Aquí saldrán los temas hechos para SuccessStory.",
   "ThemeMigration_RestartRequired": "Reinicia Atrio para aplicar los cambios del tema.",
+  "Targeted_RefreshingGameWithCounts": "Leyendo logros {1}: {0}",
   "ThemeMigration_Revert": "Restaurar un tema",
   "ThemeMigration_Title": "Temas de terceros"
 }

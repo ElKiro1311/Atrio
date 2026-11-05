@@ -1382,6 +1382,7 @@ Abre un nuevo problema en la página de GitHub de Playnite con una solicitud par
     <sys:String x:Key="LOCAtrioAchievementsConnect">Conectar cuentas</sys:String>
     <sys:String x:Key="LOCAtrioAchievementsSettings">Cuentas y ajustes</sys:String>
     <sys:String x:Key="LOCAtrioAchievementsRefresh">Actualizar logros</sys:String>
+    <sys:String x:Key="LOCAtrioAchievementsFirstRead">La primera lectura se hace desde esta página</sys:String>
     <sys:String x:Key="LOCAtrioRaNotConnected">Conecta tus tiendas para ver tus logros. Para los juegos clásicos necesitas tu usuario y tu clave web de RetroAchievements.</sys:String>
     <sys:String x:Key="LOCAtrioRaConnected">RetroAchievements conectado como {0}.</sys:String>
     <sys:String x:Key="LOCAtrioStoreDownload">Descargar</sys:String>

@@ -1387,6 +1387,7 @@ Open new issue on Playnite's GitHub page with a request to fix corruption in you
     <sys:String x:Key="LOCAtrioAchievementsConnect">Connect accounts</sys:String>
     <sys:String x:Key="LOCAtrioAchievementsSettings">Accounts and settings</sys:String>
     <sys:String x:Key="LOCAtrioAchievementsRefresh">Update achievements</sys:String>
+    <sys:String x:Key="LOCAtrioAchievementsFirstRead">The first read is done from this page</sys:String>
     <sys:String x:Key="LOCAtrioRaNotConnected">Connect your stores to see your achievements. For classic games you need your RetroAchievements user and web API key.</sys:String>
     <sys:String x:Key="LOCAtrioRaConnected">RetroAchievements connected as {0}.</sys:String>
     <sys:String x:Key="LOCAtrioStoreDownload">Download</sys:String>
