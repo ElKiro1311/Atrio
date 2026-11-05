@@ -260,6 +260,7 @@ namespace Playnite.DesktopApp.ViewModels
             };
 
             var sideItems = new List<SidebarWrapperItem>();
+            SidebarWrapperItem achievementsItem = null;
             foreach (var plugin in Extensions.Plugins)
             {
                 try
@@ -267,6 +268,13 @@ namespace Playnite.DesktopApp.ViewModels
                     var items = plugin.Value.Plugin.GetSidebarItems().ToList();
                     if (items.HasItems())
                     {
+                        if (plugin.Key == Playnite.Atrio.AtrioInfo.AchievementsPluginId)
+                        {
+                            items[0].Title = Resources.GetString("LOCAtrioAchievements");
+                            achievementsItem = new SidebarWrapperItem(items[0], this);
+                            continue;
+                        }
+
                         items.ForEach(a => sideItems.Add(new SidebarWrapperItem(a, this)));
                     }
                 }
@@ -278,6 +286,11 @@ namespace Playnite.DesktopApp.ViewModels
 
             sideItems = sideItems.OrderByDescending(a => a.SideItem.Type).ThenBy(a => a.SideItem.Title).ToList();
             sideItems.Insert(0, new SidebarWrapperItem(statsItem, this));
+            if (achievementsItem != null)
+            {
+                sideItems.Insert(0, achievementsItem);
+            }
+
             storesSidebarItem = new SidebarWrapperItem(new AtrioSidebarItem(new Controls.Views.StoresView(storesModel))
             {
                 Icon = "SidebarStoresIcon",

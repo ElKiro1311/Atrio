@@ -2,6 +2,8 @@
   <PropertyGroup>
     <!-- Atrio: inherited package versions must stay as they are, add-ons bind to them. -->
     <NuGetAudit>false</NuGetAudit>
+    <Company>Atrio</Company>
+    <Product>Atrio</Product>
   </PropertyGroup>
 
   <!-- Atrio: test builds only. Adds the off-screen harness, a normal build does not have it. -->

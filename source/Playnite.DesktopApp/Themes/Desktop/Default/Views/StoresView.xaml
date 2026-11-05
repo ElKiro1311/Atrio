@@ -131,6 +131,83 @@
                                 </ItemsControl>
                             </StackPanel>
 
+                            <!-- Emulators work like one more store: card, filter and icon on the covers -->
+                            <StackPanel Margin="0,14,0,0">
+                                <DockPanel Margin="0,0,14,0">
+                                    <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Top">
+                                        <Button Style="{DynamicResource AtrioGhostButton}" Margin="0,0,8,0" Content="{DynamicResource LOCAtrioAddEmulatedGames}"
+                                                Command="{Binding AddEmulatedGamesCommand}"
+                                                Visibility="{Binding HasEmulators, Converter={StaticResource BooleanToVisibilityConverter}}" />
+                                        <Button Style="{DynamicResource AtrioGhostButton}" Content="{DynamicResource LOCAtrioAddEmulators}"
+                                                Command="{Binding AddEmulatorsCommand}" />
+                                    </StackPanel>
+                                    <StackPanel>
+                                        <TextBlock Text="{DynamicResource LOCAtrioEmulatorsTitle}" Style="{DynamicResource AtrioSectionTitle}" />
+                                        <TextBlock Text="{Binding EmulatorsIntro}" Style="{DynamicResource AtrioCaption}" FontSize="13"
+                                                   TextWrapping="Wrap" Margin="0,-6,20,12" />
+                                    </StackPanel>
+                                </DockPanel>
+
+                                <ItemsControl ItemsSource="{Binding Emulators}" Focusable="False">
+                                    <ItemsControl.ItemsPanel>
+                                        <ItemsPanelTemplate>
+                                            <WrapPanel />
+                                        </ItemsPanelTemplate>
+                                    </ItemsControl.ItemsPanel>
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <Grid Width="344" Margin="0,0,14,14">
+                                                <Border CornerRadius="{DynamicResource AtrioCardRadius}" Background="{DynamicResource AtrioCardBrush}" />
+                                                <Border CornerRadius="{DynamicResource AtrioCardRadius}" Background="{Binding CardBrush}"
+                                                        BorderThickness="1" BorderBrush="{DynamicResource AtrioBorderBrush}" Padding="18,16,16,14">
+                                                    <StackPanel>
+                                                        <DockPanel>
+                                                            <StackPanel DockPanel.Dock="Right" VerticalAlignment="Center">
+                                                                <TextBlock Text="{Binding GamesText}" FontSize="30" FontWeight="SemiBold" HorizontalAlignment="Right"
+                                                                           LineHeight="34" LineStackingStrategy="BlockLineHeight"
+                                                                           FontFamily="{DynamicResource AtrioDisplayFont}" Foreground="{DynamicResource TextBrush}" />
+                                                                <TextBlock Text="{DynamicResource LOCAtrioGamesWord}" Style="{DynamicResource AtrioCaption}" HorizontalAlignment="Right" />
+                                                            </StackPanel>
+                                                            <Image Source="{Binding Icon}" Width="44" Height="44" DockPanel.Dock="Left" Margin="0,0,14,0"
+                                                                   RenderOptions.BitmapScalingMode="Fant" />
+                                                            <StackPanel VerticalAlignment="Center">
+                                                                <TextBlock Text="{Binding Name}" Style="{DynamicResource BaseTextBlockStyle}" FontSize="17"
+                                                                           FontFamily="{DynamicResource AtrioDisplayFont}" TextTrimming="CharacterEllipsis" />
+                                                                <TextBlock Text="{Binding FolderText}" Style="{DynamicResource AtrioCaption}" TextTrimming="CharacterEllipsis"
+                                                                           ToolTip="{Binding FolderText}" />
+                                                            </StackPanel>
+                                                        </DockPanel>
+                                                        <StackPanel Orientation="Horizontal" Margin="0,14,0,0">
+                                                            <Button Style="{DynamicResource AtrioGhostButton}" Margin="0,0,6,0" Padding="11,0,11,0" MinHeight="30" FontSize="12"
+                                                                    Content="{DynamicResource LOCAtrioEmulatorGames}"
+                                                                    Command="{Binding DataContext.ShowEmulatorGamesCommand, RelativeSource={RelativeSource AncestorType={x:Type StoresView}}}"
+                                                                    CommandParameter="{Binding}" />
+                                                            <Button Style="{DynamicResource AtrioGhostButton}" Padding="11,0,11,0" MinHeight="30" FontSize="12"
+                                                                    Content="{DynamicResource LOCAtrioEmulatorConfigure}"
+                                                                    Command="{Binding DataContext.ConfigureEmulatorsCommand, RelativeSource={RelativeSource AncestorType={x:Type StoresView}}}" />
+                                                        </StackPanel>
+                                                    </StackPanel>
+                                                </Border>
+                                            </Grid>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+
+                                <!-- Achievements of the stores and of the classic games -->
+                                <Border Style="{DynamicResource AtrioCard}" Padding="18,14,16,14" Margin="0,0,14,0"
+                                        Visibility="{Binding HasAchievements, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                    <DockPanel>
+                                        <Button DockPanel.Dock="Right" Style="{DynamicResource AtrioGhostButton}" VerticalAlignment="Center" Margin="14,0,0,0"
+                                                Content="{DynamicResource LOCAtrioAchievementsConnect}" Command="{Binding ConnectAchievementsCommand}" />
+                                        <StackPanel>
+                                            <TextBlock Text="{DynamicResource LOCAtrioAchievementsCardTitle}" Style="{DynamicResource BaseTextBlockStyle}" FontSize="15"
+                                                       FontFamily="{DynamicResource AtrioDisplayFont}" />
+                                            <TextBlock Text="{Binding RetroAchievementsText}" Style="{DynamicResource AtrioCaption}" TextWrapping="Wrap" Margin="0,2,0,0" />
+                                        </StackPanel>
+                                    </DockPanel>
+                                </Border>
+                            </StackPanel>
+
                             <Grid Margin="0,20,14,0">
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="*" />

@@ -204,6 +204,7 @@ namespace Playnite.DesktopApp
         {
             if (!isFirstStart)
             {
+                Playnite.Atrio.AchievementsAccounts.PrepareDefaults(AppSettings.Language);
                 Extensions.LoadPlugins(
                     AppSettings.DisabledPlugins,
                     CmdLine.SafeStartup,

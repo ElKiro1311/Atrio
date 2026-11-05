@@ -17,7 +17,7 @@
         <StackPanel Orientation="Horizontal" HorizontalAlignment="Left" Margin="20,30,40,30">
             <Image Source="{pmrk:ThemeFile 'Images/applogo_clean.png'}" Height="48"
                    RenderOptions.BitmapScalingMode="Fant" />
-            <TextBlock Text="Playnite" FontSize="36" Style="{DynamicResource TextBlockBaseStyle}"
+            <TextBlock Text="Atrio" FontSize="36" Style="{DynamicResource TextBlockBaseStyle}"
                        Margin="20,0,0,0"/>
         </StackPanel>
     </DataTemplate>

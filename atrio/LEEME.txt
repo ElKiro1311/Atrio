@@ -22,7 +22,10 @@ Atrio es una versión modificada de Playnite, de Josef Nemec y colaboradores,
 publicada con licencia MIT: ver LICENSE.md y license.txt.
 
 Los complementos de la carpeta Extensions son obra de sus autores. Sus licencias
-están en licencias-complementos.txt.
+están en licencias-complementos.txt. Los logros usan Playnite Achievements, de Justin
+Delano, adaptado para Atrio.
+
+Atrio no incluye emuladores, juegos, BIOS ni claves.
 
 Las fuentes Poppins y Barlow se distribuyen con la licencia SIL Open Font License
 (archivos OFL-*.txt dentro de la carpeta Fonts de cada tema).

@@ -222,6 +222,10 @@ namespace Playnite.DesktopApp.Atrio
                 case "pulsa":
                     PressButton(model, argument);
                     break;
+                case "pulsadialogo":
+                    // The button opens a modal window: the script has to go on while it is open.
+                    _ = Application.Current.Dispatcher.BeginInvoke(new Action(() => PressButton(model, argument)));
+                    break;
                 case "instalados":
                     model.StoreFilter.InstalledOnly = argument == "si";
                     Log("visibles: " + model.GamesView.CollectionView.Count);
@@ -271,6 +275,26 @@ namespace Playnite.DesktopApp.Atrio
                     break;
                 case "catalogo":
                     await Task.Run(() => CheckCatalog(argument));
+                    break;
+                case "emuladores":
+                    await Task.Run(() => ImportTestEmulators(model, argument));
+                    break;
+                case "filtroemu":
+                    model.StoreFilter.ShowEmulator(model.Database.Emulators.First(a => a.Name == argument).Id);
+                    Log("visibles: " + model.GamesView.CollectionView.Count);
+                    break;
+                case "chips":
+                    model.StoreFilter.Refresh();
+                    Log("chips: " + string.Join(", ", model.StoreFilter.Items.Select(a => a.Name + " " + a.CountText)));
+                    break;
+                case "logros":
+                    await RefreshAchievements(model, argument);
+                    break;
+                case "buscarnombre":
+                    FindProductName(model);
+                    break;
+                case "logrosdemo":
+                    SeedAchievements(model, argument);
                     break;
                 case "descargar":
                     await Task.Run(() => DownloadAddon(model, argument));
@@ -339,6 +363,132 @@ namespace Playnite.DesktopApp.Atrio
             });
 
             Log($"instaladores: {good} bien, {empty} vacios, {failed} con error, {watch.ElapsedMilliseconds} ms");
+        }
+
+        /// <summary>
+        /// The two steps of the Stores page without their dialogs: finds the emulators of a folder
+        /// (emuladores/) and imports the games of roms/ with the first profile of each.
+        /// </summary>
+        private static void ImportTestEmulators(DesktopAppViewModel model, string folder)
+        {
+            var database = model.Database;
+            var token = new System.Threading.CancellationToken();
+            var found = Playnite.Emulators.EmulatorScanner.SearchForEmulators(
+                Path.Combine(folder, "emuladores"), Playnite.Emulators.Emulation.Definitions, token);
+            Log("emuladores: " + string.Join(", ", found.Select(a => a.Name)));
+            foreach (var scanned in found)
+            {
+                var emulator = EmulatorStores.CreateEmulator(scanned);
+                database.Emulators.Add(emulator);
+                var romFolder = Path.Combine(folder, "roms", scanned.Name);
+                if (!Directory.Exists(romFolder))
+                {
+                    continue;
+                }
+
+                var config = new Playnite.SDK.Models.GameScannerConfig
+                {
+                    Name = emulator.Name,
+                    EmulatorId = emulator.Id,
+                    EmulatorProfileId = emulator.AllProfiles.First().Id,
+                    Directory = romFolder
+                };
+
+                var games = new Playnite.Emulators.GameScanner(config, database).Scan(token, out var platforms, out var regions);
+                foreach (var scannedGame in games)
+                {
+                    database.Games.Add(scannedGame.ToGame());
+                }
+
+                Log($"{emulator.Name}: {games.Count} juegos");
+            }
+        }
+
+        /// <summary>Asks the achievements add-on to read one game, the same as its own menu entry.</summary>
+        private static async Task RefreshAchievements(DesktopAppViewModel model, string gameName)
+        {
+            var plugin = model.Extensions.Plugins[AtrioInfo.AchievementsPluginId].Plugin;
+            var game = model.Database.Games.First(a => a.Name.IndexOf(gameName, StringComparison.OrdinalIgnoreCase) >= 0 && a.PluginId != Guid.Empty);
+            var method = plugin.GetType().GetMethod("RequestSingleGameRefreshAsync");
+            await (Task)method.Invoke(plugin, new object[] { game.Id });
+            Log("logros pedidos para " + game.Name);
+        }
+
+        /// <summary>Looks for the name of the base app in every loaded text and in what the window shows.</summary>
+        private static void FindProductName(DesktopAppViewModel model)
+        {
+            var found = new List<string>();
+            void Walk(ResourceDictionary dictionary)
+            {
+                foreach (var key in dictionary.Keys)
+                {
+                    if (dictionary[key] is string text && text.IndexOf("playnite", StringComparison.OrdinalIgnoreCase) >= 0)
+                    {
+                        found.Add($"{key}: {text}");
+                    }
+                }
+
+                foreach (var child in dictionary.MergedDictionaries)
+                {
+                    Walk(child);
+                }
+            }
+
+            Walk(Application.Current.Resources);
+            foreach (var block in FindAll<System.Windows.Controls.TextBlock>(model.Window.Window))
+            {
+                if (block.Text?.IndexOf("playnite", StringComparison.OrdinalIgnoreCase) >= 0)
+                {
+                    found.Add("ventana: " + block.Text);
+                }
+            }
+
+            Log("textos con el nombre: " + found.Count);
+            found.Take(40).ForEach(a => Log("  " + a.Substring(0, Math.Min(150, a.Length)).Replace(Environment.NewLine, " ")));
+        }
+
+        /// <summary>Saves invented achievements for a game, to see the pages that show them without any account.</summary>
+        private static void SeedAchievements(DesktopAppViewModel model, string gameName)
+        {
+            var plugin = model.Extensions.Plugins[AtrioInfo.AchievementsPluginId].Plugin;
+            var assembly = plugin.GetType().Assembly;
+            var game = model.Database.Games.First(a => a.Name == gameName);
+            var icon = model.Database.GetFullFilePath(game.CoverImage);
+            void Set(object target, string name, object value) => target.GetType().GetProperty(name).SetValue(target, value);
+
+            var dataType = assembly.GetType("PlayniteAchievements.Models.Achievements.GameAchievementData");
+            var detailType = assembly.GetType("PlayniteAchievements.Models.Achievements.AchievementDetail");
+            var data = Activator.CreateInstance(dataType);
+            Set(data, "ProviderKey", "Steam");
+            Set(data, "GameName", game.Name);
+            Set(data, "PlayniteGameId", (Guid?)game.Id);
+            Set(data, "AppId", 1);
+            Set(data, "LastUpdatedUtc", DateTime.UtcNow);
+            Set(data, "HasAchievements", true);
+
+            var list = (IList)dataType.GetProperty("Achievements").GetValue(data);
+            var names = new[] { "Primer paso", "Explorador", "Cazador de secretos", "Sin un rasguño", "Coleccionista", "Maestro de la tormenta" };
+            for (var i = 0; i < names.Length; i++)
+            {
+                var detail = Activator.CreateInstance(detailType);
+                Set(detail, "ApiName", "demo" + i);
+                Set(detail, "DisplayName", names[i]);
+                Set(detail, "Description", "Logro inventado para la prueba.");
+                Set(detail, "UnlockedIconPath", icon);
+                Set(detail, "LockedIconPath", icon);
+                Set(detail, "GlobalPercentUnlocked", (double?)(70 - i * 12));
+                if (i < 4)
+                {
+                    Set(detail, "UnlockTimeUtc", (DateTime?)DateTime.UtcNow.AddDays(-i * 3 - 1));
+                }
+
+                list.Add(detail);
+            }
+
+            var cache = plugin.GetType().GetProperty("CacheManager").GetValue(plugin);
+            var result = cache.GetType().GetMethod("SaveGameData").Invoke(cache, new object[] { game.Id.ToString(), data });
+            cache.GetType().GetMethod("NotifyCacheInvalidated", Type.EmptyTypes).Invoke(cache, null);
+            Log($"logros de ejemplo: {list.Count} en {game.Name}: {result}");
         }
 
         /// <summary>What the download button of the Stores page does, without its dialogs.</summary>

@@ -17,15 +17,16 @@ namespace Playnite.Atrio
 
         public Game Game { get; }
         public LibraryPlugin Plugin { get; }
+        public Emulator Emulator { get; }
         public bool IsPrimary { get; }
         public bool IsUserChoice { get; }
 
         public Guid GameId => Game.Id;
         public string GameName => Game.Name;
-        public string StoreName => Plugin?.Name ?? ResourceProvider.GetString("LOCAtrioManualStore");
-        public object StoreIcon => Plugin?.LibraryIcon == null ? null : ImageSourceManager.GetImage(Plugin.LibraryIcon, true);
-        public System.Windows.Media.Brush CardBrush => StoreBranding.GetCardBrush(Plugin?.Name);
-        public System.Windows.Media.Brush ColorBrush => StoreBranding.GetBrush(Plugin?.Name);
+        public string StoreName => Plugin?.Name ?? Emulator?.Name ?? ResourceProvider.GetString("LOCAtrioManualStore");
+        public object StoreIcon => Emulator != null ? EmulatorStores.GetIcon(Emulator.Name) : Plugin?.LibraryIcon == null ? null : ImageSourceManager.GetImage(Plugin.LibraryIcon, true);
+        public System.Windows.Media.Brush CardBrush => Emulator != null ? EmulatorStores.GetCardBrush(Emulator.Name) : StoreBranding.GetCardBrush(Plugin?.Name);
+        public System.Windows.Media.Brush ColorBrush => Emulator != null ? EmulatorStores.GetBrush(Emulator.Name) : StoreBranding.GetBrush(Plugin?.Name);
         public bool IsInstalled => Game.IsInstalled;
         public bool CanInstall => !Game.IsInstalled && Game.PluginId != Guid.Empty;
         public ulong Playtime => Game.Playtime;
@@ -54,6 +55,7 @@ namespace Playnite.Atrio
         {
             Game = game;
             Plugin = plugin;
+            Emulator = plugin == null ? EmulatorStores.GetEmulator(game) : null;
             IsPrimary = isPrimary;
             IsUserChoice = isUserChoice;
         }

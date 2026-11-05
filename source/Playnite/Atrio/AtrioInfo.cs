@@ -19,6 +19,11 @@ namespace Playnite.Atrio
         public const string Version = "1.0";
         public const string ProjectUrl = "https://github.com/ElKiro1311/Atrio";
 
+        /// <summary>Playnite Achievements: reads the achievements of the stores and of RetroAchievements.</summary>
+        public static readonly Guid AchievementsPluginId = Guid.Parse("e6aad2c9-6e06-4d8d-ac55-ac3b252b5f7b");
+
+        public const string AchievementsAddonId = "PlayniteAchievements";
+
         /// <summary>Universal Steam Metadata: fills in what a store doesn't provide, with no account or key.</summary>
         public static readonly Guid DefaultMetadataProvider = Guid.Parse("f2db8fb1-4981-4dc4-b087-05c782215b72");
 

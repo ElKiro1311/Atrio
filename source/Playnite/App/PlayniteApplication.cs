@@ -545,7 +545,7 @@ namespace Playnite
                 // 0x800711C7 is actually not set in HResult, it's in exception message and replaced by .NET to generic 0x80131524
                 if ((exception is FileLoadException or DllNotFoundException && exception.Message.Contains("0x800711C7")))
                 {
-                    Dialogs.ShowErrorMessage("Failed to load dependencies needed for Playnite to continue operating properly.\n\nThis is usually caused by Windows Smart App Control blocking dlls in Playnite's install folder.");
+                    Dialogs.ShowErrorMessage("Failed to load dependencies needed for Atrio to continue operating properly.\n\nThis is usually caused by Windows Smart App Control blocking dlls in Atrio's install folder.");
                     Process.GetCurrentProcess().Kill();
                     return;
                 }
@@ -581,7 +581,7 @@ namespace Playnite
                          // This is to handle missing .NET assemblies
                          exception.Message.Contains("PublicKeyToken"))))
                 {
-                    Dialogs.ShowErrorMessage("System issue or corrupted Playnite install detected.");
+                    Dialogs.ShowErrorMessage("System issue or corrupted Atrio install detected.");
                     Process.GetCurrentProcess().Kill();
                     return;
                 }
@@ -591,7 +591,7 @@ namespace Playnite
                 // but we generally do not recommend/support storing files on cloud folders.
                 if (Diagnostic.IsHResultCloudError(exception.HResult))
                 {
-                    Dialogs.ShowErrorMessage("Cloud related file system operation failed. Might be issue with Windows or cloud sync app you are using.\n\nWe do not recommend storing Playnite files on cloud synced folders since it's been known to cause data corruption in the past.");
+                    Dialogs.ShowErrorMessage("Cloud related file system operation failed. Might be issue with Windows or cloud sync app you are using.\n\nWe do not recommend storing Atrio files on cloud synced folders since it's been known to cause data corruption in the past.");
                     Process.GetCurrentProcess().Kill();
                     return;
                 }

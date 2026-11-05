@@ -2599,10 +2599,10 @@ namespace Playnite
 #endif
             var coreFileTarget = new FileTarget()
             {
-                FileName = Path.Combine(PlaynitePaths.ConfigRootPath, "playnite.log"),
+                FileName = Path.Combine(PlaynitePaths.ConfigRootPath, "atrio.log"),
                 Layout = "${date:format=dd-MM HH\\:mm\\:ss.fff}|${level:uppercase=true:padding=-5}|${logger}:${message}${onexception:${newline}${exception:format=toString}}",
                 KeepFileOpen = false,
-                ArchiveFileName = Path.Combine(PlaynitePaths.ConfigRootPath, "playnite.{#####}.log"),
+                ArchiveFileName = Path.Combine(PlaynitePaths.ConfigRootPath, "atrio.{#####}.log"),
                 ArchiveAboveSize = 4096000,
                 ArchiveNumbering = ArchiveNumberingMode.Sequence,
                 MaxArchiveFiles = 2,

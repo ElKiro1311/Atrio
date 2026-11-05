@@ -9,10 +9,10 @@
                         <ToggleButton DockPanel.Dock="Right" Style="{DynamicResource AtrioPill}" Margin="8,0,0,0"
                                       IsChecked="{Binding InstalledOnly}"
                                       Content="{DynamicResource LOCAtrioInstalledOnly}" />
-                        <ItemsControl ItemsSource="{Binding Items}" Focusable="False" ClipToBounds="True">
+                        <ItemsControl ItemsSource="{Binding Items}" Focusable="False">
                             <ItemsControl.ItemsPanel>
                                 <ItemsPanelTemplate>
-                                    <StackPanel Orientation="Horizontal" />
+                                    <WrapPanel />
                                 </ItemsPanelTemplate>
                             </ItemsControl.ItemsPanel>
                             <ItemsControl.ItemTemplate>

@@ -62,7 +62,11 @@ namespace Playnite.Atrio
         /// <summary>Soft wash of the store color for the background of a card.</summary>
         public static Brush GetCardBrush(string storeName)
         {
-            var color = GetColor(storeName);
+            return GetCardBrush(GetColor(storeName));
+        }
+
+        public static Brush GetCardBrush(Color color)
+        {
             var brush = new LinearGradientBrush(
                 Color.FromArgb(0x40, color.R, color.G, color.B),
                 Color.FromArgb(0x08, color.R, color.G, color.B),

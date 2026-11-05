@@ -130,7 +130,7 @@ namespace Playnite
                     }
 
                     // Playnite info
-                    var playnitePath = Path.Combine(diagTemp, "playniteInfo.txt");
+                    var playnitePath = Path.Combine(diagTemp, "atrioInfo.txt");
                     var playniteInfo = new Dictionary<string, object>
                     {
                         { "Version", Updater.CurrentVersion.ToString() },
@@ -141,7 +141,7 @@ namespace Playnite
                         { "Elevated", PlayniteEnvironment.IsElevated },
                         { "DesktopApp", FileSystem.GetSHA256(PlaynitePaths.DesktopExecutablePath) },
                         { "FullscreenApp", FileSystem.GetSHA256(PlaynitePaths.FullscreenExecutablePath) },
-                        { "Playnite", FileSystem.GetSHA256(PlaynitePaths.PlayniteAssemblyPath) },
+                        { "Core", FileSystem.GetSHA256(PlaynitePaths.PlayniteAssemblyPath) },
                         { "SDK", FileSystem.GetSHA256(PlaynitePaths.PlayniteSDKAssemblyPath) }
                     };
 
@@ -177,7 +177,7 @@ namespace Playnite
                             if (Directory.Exists(crashDir))
                             {
                                 var dumps = Directory.GetFiles(crashDir).
-                                    Where(a => a.Contains("Playnite") && (DateTime.Now - new FileInfo(a).LastWriteTime).TotalHours <= 24).
+                                    Where(a => a.Contains("Atrio") && (DateTime.Now - new FileInfo(a).LastWriteTime).TotalHours <= 24).
                                     GroupBy(a => Regex.Replace(a, @"\.\d+\.dmp", "", RegexOptions.IgnoreCase));
 
                                 foreach (var dumpGroup in dumps)

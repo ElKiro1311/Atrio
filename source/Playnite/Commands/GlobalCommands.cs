@@ -86,7 +86,7 @@ namespace Playnite.Commands
 
             if (url.StartsWith("{DocsRootUrl}", StringComparison.OrdinalIgnoreCase))
             {
-                url = Url.Combine(PlayniteEnvironment.DocsRootUrl, url.Replace("{DocsRootUrl}", ""));
+                url = Playnite.Atrio.AtrioInfo.ProjectUrl;
             }
 
             url = url.Replace("{AppBranch}", PlayniteEnvironment.AppBranch);

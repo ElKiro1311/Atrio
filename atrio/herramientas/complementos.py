@@ -8,6 +8,7 @@
 Solo se incluyen complementos con una licencia que permite redistribuirlos. Los demás se descargan
 desde la página Tiendas de Atrio, cuando el usuario lo pide.
 """
+import glob
 import hashlib
 import io
 import json
@@ -17,11 +18,13 @@ import shutil
 import sys
 import urllib.request
 import zipfile
+from xml.sax.saxutils import escape
 
 AQUI = os.path.dirname(os.path.abspath(__file__))
 RAIZ = os.path.normpath(os.path.join(AQUI, '..', '..'))
 LISTA = os.path.join(RAIZ, 'atrio', 'complementos', 'lista.json')
 LICENCIAS = os.path.join(RAIZ, 'atrio', 'complementos', 'licencias')
+TRADUCCIONES = os.path.join(RAIZ, 'atrio', 'complementos', 'traducciones')
 CACHE = os.path.join(RAIZ, '.herramientas', 'complementos')
 BASE_ADDONS = 'https://codeload.github.com/JosefNemec/PlayniteAddonDatabase/zip/refs/heads/master'
 SDK = (6, 18, 0)
@@ -54,6 +57,50 @@ def paquete(item):
     return datos
 
 
+def presentar(item, carpeta):
+    """Atrio no enseña el nombre de otro programa ni llama a sus servicios.
+
+    Las licencias de licencias-complementos.txt conservan los nombres y autores originales.
+    """
+    ruta = os.path.join(carpeta, 'extension.yaml')
+    with open(ruta, encoding='utf-8-sig', newline='') as f:
+        texto = f.read()
+    texto = re.sub(r'^Author:[ \t]*Playnite[ \t]*(\r?)$', r'Author: Josef Nemec\1', texto, flags=re.M)
+    if item.get('nombre_visible'):
+        texto = re.sub(r'^Name:.*?(\r?)$', lambda m: 'Name: ' + item['nombre_visible'] + m.group(1), texto, flags=re.M)
+    with open(ruta, 'w', encoding='utf-8', newline='') as f:
+        f.write(texto)
+
+    ruta = os.path.join(carpeta, 'plugin.cfg')
+    if os.path.exists(ruta):
+        with open(ruta, encoding='utf-8-sig') as f:
+            ajustes = json.load(f)
+        for clave, valor in ajustes.items():
+            if isinstance(valor, str) and 'playnite.link' in valor:
+                ajustes[clave] = 'http://127.0.0.1:9/'
+        with open(ruta, 'w', encoding='utf-8') as f:
+            json.dump(ajustes, f, indent=2)
+
+
+def traducir(item, carpeta):
+    """Pone encima las traducciones de atrio/complementos/traducciones/<id>.<idioma>.json."""
+    for ruta in glob.glob(os.path.join(TRADUCCIONES, item['id'] + '.*.json')):
+        idioma = os.path.basename(ruta).split('.')[1]
+        archivo = os.path.join(carpeta, 'Localization', idioma + '.xaml')
+        with open(ruta, encoding='utf-8') as f:
+            textos = json.load(f)
+        with open(archivo, encoding='utf-8-sig', newline='') as f:
+            xaml = f.read()
+        hechos = 0
+        for clave, texto in textos.items():
+            patron = r'(x:Key="LOCPlayAch_' + re.escape(clave) + r'"[^>]*>).*?(</sys:String>)'
+            xaml, cuantos = re.subn(patron, lambda m: m.group(1) + escape(texto) + m.group(2), xaml, count=1, flags=re.S)
+            hechos += cuantos
+        with open(archivo, 'w', encoding='utf-8', newline='') as f:
+            f.write(xaml)
+        print('traducido', item['id'], idioma, hechos, 'de', len(textos))
+
+
 def instalar(destino):
     extensiones = os.path.join(destino, 'Extensions')
     os.makedirs(extensiones, exist_ok=True)
@@ -68,6 +115,11 @@ def instalar(destino):
             for archivo in archivos:
                 if archivo.lower().endswith('.pdb'):
                     os.remove(os.path.join(actual, archivo))
+        # Archivos del paquete cuya licencia no consta: no se redistribuyen.
+        for relativo in item.get('quitar', []):
+            os.remove(os.path.join(carpeta, *relativo.split('/')))
+        traducir(item, carpeta)
+        presentar(item, carpeta)
         print('complemento', item['nombre'], item['version'])
 
     textos = {}

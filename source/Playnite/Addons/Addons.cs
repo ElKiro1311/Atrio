@@ -66,6 +66,12 @@ namespace Playnite
             var updateList = new List<AddonUpdate>();
             foreach (var manifest in manifests)
             {
+                // Atrio ships its own adapted copy, a regular update would undo that.
+                if (manifest.Id == Playnite.Atrio.AtrioInfo.AchievementsAddonId)
+                {
+                    continue;
+                }
+
                 try
                 {
                     var addonManifest = serviceClient.GetAddon(manifest.Id);
@@ -74,6 +80,12 @@ namespace Playnite
                         continue;
                     }
                
+                    // These come with Atrio and are updated with it, there is no need to ask their site.
+                    if (addonManifest.InstallerManifestUrl?.IndexOf("playnite.link", StringComparison.OrdinalIgnoreCase) >= 0)
+                    {
+                        continue;
+                    }
+
                     var installer = addonManifest.InstallerManifest;
                     var package = installer.GetLatestCompatiblePackage();
                     var currentVersion = Version.Parse(manifest.Version);

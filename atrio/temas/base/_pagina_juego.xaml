@@ -18,6 +18,7 @@
                                     <RowDefinition Height="@@espacioHeroe@@" />
                                     <RowDefinition Height="Auto" />
                                     <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="Auto" />
                                     <RowDefinition Height="*" />
                                 </Grid.RowDefinitions>
 
@@ -141,7 +142,15 @@
                                     </ItemsControl>
                                 </StackPanel>
 
-                                <DockPanel Grid.Row="3" Margin="0,18,0,0">
+                                <!-- Achievements of this game. They only show up once there is data for it -->
+                                <StackPanel Grid.Row="3" Margin="0,14,0,0"
+                                            Visibility="{PluginSettings Plugin=PlayniteAchievements, Path=HasAchievements, Converter={StaticResource BooleanToVisibilityConverter}, FallbackValue=Collapsed}">
+                                    <TextBlock Text="{DynamicResource LOCAtrioAchievements}" Style="{DynamicResource AtrioSectionTitle}" />
+                                    <ContentControl x:Name="PlayniteAchievements_AchievementProgressBar" MaxWidth="680" HorizontalAlignment="Left" Width="680" Margin="0,0,0,10" />
+                                    <ContentControl x:Name="PlayniteAchievements_AchievementCompactUnlockedList" MaxWidth="680" HorizontalAlignment="Left" Width="680" />
+                                </StackPanel>
+
+                                <DockPanel Grid.Row="4" Margin="0,18,0,0">
                                     <!-- Facts in a card of their own -->
                                     <Border DockPanel.Dock="Right" Width="400" Margin="30,0,0,0" VerticalAlignment="Top"
                                             Style="{DynamicResource AtrioCard}" Padding="18,16,14,16">

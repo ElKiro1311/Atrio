@@ -37,7 +37,7 @@ namespace Playnite
             }
         }
 
-        public static string DocsRootUrl => PlayniteSettings.GetAppConfigValue("DocsRootUrl");
+        public static string DocsRootUrl => Atrio.AtrioInfo.ProjectUrl;
 
         public static string AppBranch => PlayniteSettings.GetAppConfigValue("AppBranch");
 

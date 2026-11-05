@@ -26,9 +26,7 @@
     </UserControl.Resources>
 
     <StackPanel Margin="20">
-        <CheckBox Content="Discord Rich Presence"
-                  IsChecked="{Binding Settings.DiscordPresenceEnabled}" />
-        <CheckBox IsChecked="{Binding Settings.ShowElevatedRightsWarning}" Margin="0,15,0,0"
+        <CheckBox IsChecked="{Binding Settings.ShowElevatedRightsWarning}"
                   Content="{DynamicResource LOCElevatedProcessWarningShowOption}"/>
         <CheckBox IsChecked="{Binding Settings.InstallSizeScanUseSizeOnDisk}" Margin="0,15,0,0"
                   Content="{DynamicResource LOCInstallSizeScanUseSizeOnDiskOption}"

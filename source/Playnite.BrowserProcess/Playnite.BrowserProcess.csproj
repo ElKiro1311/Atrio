@@ -3,6 +3,8 @@
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
     <AssemblyName>Playnite.BrowserProcess</AssemblyName>
+    <AssemblyTitle>Atrio</AssemblyTitle>
+    <Product>Atrio</Product>
     <TargetFramework>net462</TargetFramework>
     <BuiltInComInteropSupport>true</BuiltInComInteropSupport>
     <ApplicationManifest>app.manifest</ApplicationManifest>

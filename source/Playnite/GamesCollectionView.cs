@@ -101,9 +101,30 @@ namespace Playnite
             Items = null;
         }
 
+        private Guid? emulatorFilter;
+
+        /// <summary>Shows only the games of one emulator, the way the store filter does for a store.</summary>
+        public Guid? EmulatorFilter
+        {
+            get => emulatorFilter;
+            set
+            {
+                if (emulatorFilter != value)
+                {
+                    emulatorFilter = value;
+                    CollectionView.Refresh();
+                }
+            }
+        }
+
         private bool Filter(object item)
         {
             if (!(item is GamesCollectionViewEntry entry))
+            {
+                return false;
+            }
+
+            if (emulatorFilter != null && EmulatorStores.GetEmulatorId(entry.Game) != emulatorFilter)
             {
                 return false;
             }

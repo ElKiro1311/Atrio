@@ -9,7 +9,7 @@
         mc:Ignorable="d"
         Style="{DynamicResource StandardWindowStyle}"
         WindowStartupLocation="CenterOwner" ShowInTaskbar="False"
-        Title="{DynamicResource LOCAboutWindowTitle}" ResizeMode="NoResize" Height="400" Width="500"
+        Title="{DynamicResource LOCAboutWindowTitle}" ResizeMode="NoResize" Height="420" Width="660"
         AutomationProperties.AutomationId="WindowAbout" ShowMinimizeButton="False" ShowMaximizeButton="False">
 
     <controls:WindowBase.Resources>
@@ -46,18 +46,6 @@
                     <Hyperlink NavigateUri="https://github.com/ElKiro1311/Atrio"
                                Command="{x:Static pcmd:GlobalCommands.NavigateUrlCommand}" CommandParameter="{Binding NavigateUri, RelativeSource={RelativeSource Self}}">
                         <Run Text="github.com/ElKiro1311/Atrio"/>
-                    </Hyperlink>
-                </TextBlock>
-                <TextBlock Margin="0,5,0,0">
-                    <Hyperlink NavigateUri="https://playnite.link/docs/"
-                               Command="{x:Static pcmd:GlobalCommands.NavigateUrlCommand}" CommandParameter="{Binding NavigateUri, RelativeSource={RelativeSource Self}}">
-                        <Run Text="{DynamicResource LOCUserManual}"/>
-                    </Hyperlink>
-                </TextBlock>
-                <TextBlock Margin="0,5,0,0">
-                    <Hyperlink NavigateUri="https://github.com/JosefNemec/Playnite/"
-                               Command="{x:Static pcmd:GlobalCommands.NavigateUrlCommand}" CommandParameter="{Binding NavigateUri, RelativeSource={RelativeSource Self}}">
-                        <Run Text="Playnite"/>
                     </Hyperlink>
                 </TextBlock>
                 <TextBlock Margin="0,5,0,0">

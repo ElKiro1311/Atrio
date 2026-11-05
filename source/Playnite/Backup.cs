@@ -57,7 +57,7 @@ namespace Playnite
     {
         private const string backupDateFormat = "yyyy-MM-dd-HH-mm-ss";
         private const string autoBackupFilePattern = autoBackupFileName + @"\-\d{4}\-\d{2}-\d{2}-\d{2}-\d{2}-\d{2}";
-        private const string autoBackupFileName = "PlayniteBackup";
+        private const string autoBackupFileName = "AtrioBackup";
         private const string libraryEntryRoot = "library";
         private const string libraryFilesEntryRoot = "libraryfiles";
         private const string extensionsDataEntryRoot = "extensiondata";

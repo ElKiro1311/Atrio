@@ -286,5 +286,21 @@
     "licencia": "MIT",
     "codigo": "https://codeberg.org/CrowIsTaken/PlayniteExtensions/src/branch/main10",
     "archivo_licencia": "playnite-extensions.txt"
+  },
+  {
+    "nombre": "Playnite Achievements",
+    "id": "PlayniteAchievements",
+    "id_base": "PlayniteAchievements",
+    "version": "4.2.1",
+    "paquete": "https://github.com/justin-delano/PlayniteAchievements/releases/download/v4.2.1/PlayniteAchievements_4_2_1.pext",
+    "sha256": "446d9c40817c91739be469fb91f161b3f5b217bacbd95ed1f71b904508e7a813",
+    "autor": "Justin Delano",
+    "licencia": "MIT",
+    "codigo": "https://github.com/justin-delano/PlayniteAchievements",
+    "archivo_licencia": "justin-delano-achievements.txt",
+    "quitar": [
+      "Resources/Sounds/jb.mp3"
+    ],
+    "nombre_visible": "Logros"
   }
 ]

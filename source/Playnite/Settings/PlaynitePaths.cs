@@ -99,7 +99,7 @@ namespace Playnite
             AddonLicenseAgreementsFilePath = Path.Combine(ConfigRootPath, "licenseagreements.json");
             ExtensionsUserDataPath = Path.Combine(ConfigRootPath, ExtensionsDirName);
             BrowserCachePath = Path.Combine(ConfigRootPath, "browsercache");
-            LogPath = Path.Combine(ConfigRootPath, "playnite.log");
+            LogPath = Path.Combine(ConfigRootPath, "atrio.log");
             ConfigFilePath = Path.Combine(ConfigRootPath, ConfigFileName);
             FullscreenConfigFilePath = Path.Combine(ConfigRootPath, FullscreenConfigFileName);
             WindowPositionsPath = Path.Combine(ConfigRootPath, WindowPositionsFileName);

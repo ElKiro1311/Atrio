@@ -1,6 +1,7 @@
 using Playnite.Atrio;
 using Playnite.Common;
 using Playnite.SDK;
+using Playnite.SDK.Models;
 using Playnite.SDK.Plugins;
 using System;
 using System.Collections.Generic;
@@ -11,6 +12,7 @@ namespace Playnite.DesktopApp.ViewModels
     public class StoreFilterItem : ObservableObject
     {
         public Guid? PluginId { get; set; }
+        public Guid? EmulatorId { get; set; }
         public string Name { get; set; }
         public object Icon { get; set; }
         public string CountText { get; set; }
@@ -75,6 +77,13 @@ namespace Playnite.DesktopApp.ViewModels
                 return;
             }
 
+            if (item.EmulatorId != null)
+            {
+                ShowEmulator(item.IsSelected ? (Guid?)null : item.EmulatorId);
+                return;
+            }
+
+            main.GamesView.EmulatorFilter = null;
             var filter = main.AppSettings.FilterSettings;
             if (item.PluginId == null || item.IsSelected)
             {
@@ -84,6 +93,18 @@ namespace Playnite.DesktopApp.ViewModels
             {
                 filter.Library = new IdItemFilterItemProperties(item.PluginId.Value);
             }
+
+            SyncSelection();
+            UpdateCount();
+        }
+
+        /// <summary>An emulator takes the place of the store filter, so that only one of them is ever active.</summary>
+        public void ShowEmulator(Guid? emulatorId)
+        {
+            main.AppSettings.FilterSettings.Library = null;
+            main.GamesView.EmulatorFilter = emulatorId;
+            SyncSelection();
+            UpdateCount();
         }
 
         private void SyncSelection()
@@ -94,9 +115,21 @@ namespace Playnite.DesktopApp.ViewModels
             }
 
             var ids = main.AppSettings.FilterSettings.Library?.Ids;
+            var emulator = main.GamesView?.EmulatorFilter;
             foreach (var item in Items)
             {
-                item.IsSelected = item.PluginId == null ? !ids.HasItems() : ids?.Contains(item.PluginId.Value) == true;
+                if (item.EmulatorId != null)
+                {
+                    item.IsSelected = item.EmulatorId == emulator;
+                }
+                else if (item.PluginId == null)
+                {
+                    item.IsSelected = !ids.HasItems() && emulator == null;
+                }
+                else
+                {
+                    item.IsSelected = ids?.Contains(item.PluginId.Value) == true;
+                }
             }
         }
 
@@ -106,6 +139,23 @@ namespace Playnite.DesktopApp.ViewModels
             GamesCountText = count == 1 ?
                 ResourceProvider.GetString("LOCAtrioOneGame") :
                 string.Format(ResourceProvider.GetString("LOCAtrioGamesCount"), count.ToString("N0", Localization.ApplicationLanguageCultureInfo));
+        }
+
+        /// <summary>Games of each emulator, leaving out the ones with none.</summary>
+        public static Dictionary<Emulator, int> GetEmulatorCounts(Playnite.Database.IGameDatabaseMain database)
+        {
+            var counts = new Dictionary<Guid, int>();
+            foreach (var game in database.Games)
+            {
+                var id = game.Hidden ? Guid.Empty : EmulatorStores.GetEmulatorId(game);
+                if (id != Guid.Empty)
+                {
+                    counts.TryGetValue(id, out var count);
+                    counts[id] = count + 1;
+                }
+            }
+
+            return database.Emulators.Where(a => counts.ContainsKey(a.Id)).ToDictionary(a => a, a => counts[a.Id]);
         }
 
         public void Refresh()
@@ -147,6 +197,17 @@ namespace Playnite.DesktopApp.ViewModels
                         CountText = count.ToString("N0", Localization.ApplicationLanguageCultureInfo)
                     });
                 }
+            }
+
+            foreach (var emulator in GetEmulatorCounts(main.Database).OrderBy(a => a.Key.Name))
+            {
+                list.Add(new StoreFilterItem
+                {
+                    EmulatorId = emulator.Key.Id,
+                    Name = emulator.Key.Name,
+                    Icon = EmulatorStores.GetIcon(emulator.Key.Name),
+                    CountText = emulator.Value.ToString("N0", Localization.ApplicationLanguageCultureInfo)
+                });
             }
 
             Items = list;

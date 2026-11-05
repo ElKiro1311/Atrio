@@ -142,10 +142,8 @@ namespace Playnite.Scripting.PowerShell
             // - Passing CTRL-V and ENTER is not possible, because the only reliable method works globaly and can't be sent directly to window handle
             interactiveProcess.StartInfo.Arguments = $"-NoExit -Command \"" +
                 $"Write-Host \"`n" +
-                $"`tConnected to Playnite process.`n" +
+                $"`tConnected to Atrio process.`n" +
                 $"`tUse CTRL-V and ENTER to paste commands to initialize basic SDK variables.`n" +
-                $"`tMore information at:`n" +
-                $"`thttps://playnite.link/docs/master/tutorials/extensions/scriptingDebugging.html`n" +
                 $"\" -ForegroundColor Green;" +
                 $"Enter-PSHostProcess -Id {Process.GetCurrentProcess().Id};";
             interactiveProcess.EnableRaisingEvents = true;

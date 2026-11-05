@@ -2,6 +2,7 @@ using Playnite.Atrio;
 using Playnite.Common;
 using Playnite.Plugins;
 using Playnite.SDK;
+using Playnite.SDK.Models;
 using Playnite.SDK.Plugins;
 using System;
 using System.Collections.Generic;
@@ -28,6 +29,16 @@ namespace Playnite.DesktopApp.ViewModels
         public string ActionText { get; set; }
         public System.Windows.Media.Brush CardBrush { get; set; }
         public System.Windows.Media.Brush ColorBrush { get; set; }
+    }
+
+    public class EmulatorCard
+    {
+        public Emulator Emulator { get; set; }
+        public string Name { get; set; }
+        public object Icon { get; set; }
+        public string GamesText { get; set; }
+        public string FolderText { get; set; }
+        public System.Windows.Media.Brush CardBrush { get; set; }
     }
 
     public class StorePriorityItem
@@ -60,6 +71,30 @@ namespace Playnite.DesktopApp.ViewModels
         }
 
         public bool HasDisabledStores => DisabledStores?.Count > 0;
+
+        private List<EmulatorCard> emulators;
+        public List<EmulatorCard> Emulators
+        {
+            get => emulators;
+            set
+            {
+                SetValue(ref emulators, value);
+                OnPropertyChanged(nameof(HasEmulators));
+            }
+        }
+
+        public bool HasEmulators => Emulators?.Count > 0;
+
+        public string EmulatorsIntro => string.Format(ResourceProvider.GetString("LOCAtrioEmulatorsIntro"), Playnite.Emulators.Emulation.Definitions.Count);
+
+        public bool HasAchievements => main.Extensions.Plugins.ContainsKey(AtrioInfo.AchievementsPluginId);
+
+        private string retroAchievementsText;
+        public string RetroAchievementsText
+        {
+            get => retroAchievementsText;
+            set => SetValue(ref retroAchievementsText, value);
+        }
 
         public ObservableCollection<StorePriorityItem> Priority { get; } = new ObservableCollection<StorePriorityItem>();
 
@@ -104,6 +139,11 @@ namespace Playnite.DesktopApp.ViewModels
         public RelayCommand<StorePriorityItem> MoveDownCommand { get; }
         public RelayCommand<object> UpdateAllCommand { get; }
         public RelayCommand<object> OpenAddonsCommand { get; }
+        public RelayCommand<object> AddEmulatorsCommand { get; }
+        public RelayCommand<object> AddEmulatedGamesCommand { get; }
+        public RelayCommand<object> ConfigureEmulatorsCommand { get; }
+        public RelayCommand<EmulatorCard> ShowEmulatorGamesCommand { get; }
+        public RelayCommand<object> ConnectAchievementsCommand { get; }
 
         public StoresViewModel(DesktopAppViewModel main)
         {
@@ -128,6 +168,66 @@ namespace Playnite.DesktopApp.ViewModels
             MoveDownCommand = new RelayCommand<StorePriorityItem>(a => Move(a, 1));
             UpdateAllCommand = new RelayCommand<object>(_ => main.UpdateGamesCommand.Execute(null));
             OpenAddonsCommand = new RelayCommand<object>(_ => main.OpenAddonsCommand.Execute(null));
+            AddEmulatorsCommand = new RelayCommand<object>(_ => AddEmulators());
+            AddEmulatedGamesCommand = new RelayCommand<object>(_ =>
+            {
+                main.AddEmulatedGamesCommand.Execute(null);
+                Refresh();
+            });
+            ConfigureEmulatorsCommand = new RelayCommand<object>(_ =>
+            {
+                main.OpenEmulatorsCommand.Execute(null);
+                Refresh();
+            });
+            ShowEmulatorGamesCommand = new RelayCommand<EmulatorCard>(a =>
+            {
+                main.StoreFilter.ShowEmulator(a?.Emulator?.Id);
+                main.SwitchToLibraryView();
+            });
+            ConnectAchievementsCommand = new RelayCommand<object>(_ => main.OpenPluginSettings(AtrioInfo.AchievementsPluginId));
+        }
+
+        private void AddEmulators()
+        {
+            var model = new Playnite.DesktopApp.ViewModels.EmulatorImportViewModel(
+                main.Database,
+                new Playnite.DesktopApp.Windows.EmulatorImportWindowFactory(),
+                main.Dialogs,
+                main.Resources);
+            if (model.OpenView() != true || !model.SelectedEmulators.HasItems())
+            {
+                return;
+            }
+
+            foreach (var scanned in model.SelectedEmulators.Where(a => a.Profiles.Any(b => b.Import)))
+            {
+                var known = main.Database.Emulators.Any(a => a.BuiltInConfigId == scanned.Id && Paths.AreEqual(a.InstallDir, scanned.InstallDir));
+                if (!known)
+                {
+                    main.Database.Emulators.Add(EmulatorStores.CreateEmulator(scanned));
+                }
+            }
+
+            Refresh();
+        }
+
+        private List<EmulatorCard> GetEmulators()
+        {
+            var counts = StoreFilterViewModel.GetEmulatorCounts(main.Database);
+            var culture = Localization.ApplicationLanguageCultureInfo;
+            return main.Database.Emulators.OrderBy(a => a.Name).Select(a =>
+            {
+                counts.TryGetValue(a, out var games);
+                return new EmulatorCard
+                {
+                    Emulator = a,
+                    Name = a.Name,
+                    Icon = EmulatorStores.GetIcon(a.Name),
+                    GamesText = games.ToString("N0", culture),
+                    FolderText = a.InstallDir,
+                    CardBrush = EmulatorStores.GetCardBrush(a.Name)
+                };
+            }).ToList();
         }
 
         private void Enable(StoreCard card)
@@ -226,6 +326,11 @@ namespace Playnite.DesktopApp.ViewModels
 
             Stores = cards;
             DisabledStores = GetDisabledStores();
+            Emulators = GetEmulators();
+            var raUser = AchievementsAccounts.GetRetroAchievementsUser();
+            RetroAchievementsText = raUser.IsNullOrEmpty() ?
+                ResourceProvider.GetString("LOCAtrioRaNotConnected") :
+                string.Format(ResourceProvider.GetString("LOCAtrioRaConnected"), raUser);
 
             Priority.Clear();
             var unifier = GameUnifier.Current;

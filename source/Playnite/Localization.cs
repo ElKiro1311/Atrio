@@ -143,18 +143,20 @@ namespace Playnite
 
         private const string EngLocSourceFileSuffix = "LocSource.xaml";
 
+        private static readonly System.Text.RegularExpressions.Regex externalSite = new System.Text.RegularExpressions.Regex(
+            @"(https?://)?(www\.)?playnite\.link[^\s<""]*", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+
         /// <summary>
         /// Shows the product name in every UI string without having to fork all language files.
-        /// Strings owned by Atrio (LOCAtrio*) are skipped because they credit Playnite on purpose.
+        /// Add-ons go through here too: their texts talk about the app they are running in.
         /// </summary>
         private static void ApplyBranding(ResourceDictionary dict)
         {
             foreach (var key in dict.Keys.Cast<object>().ToList())
             {
-                if (dict[key] is string text && text.Contains("Playnite") &&
-                    !(key is string keyName && keyName.StartsWith("LOCAtrio", StringComparison.Ordinal)))
+                if (dict[key] is string text && text.IndexOf("playnite", StringComparison.OrdinalIgnoreCase) >= 0)
                 {
-                    dict[key] = text.Replace("Playnite", "Atrio");
+                    dict[key] = externalSite.Replace(text, Atrio.AtrioInfo.ProjectUrl).Replace("Playnite", "Atrio").Replace("playnite", "atrio");
                 }
             }
         }
@@ -245,6 +247,7 @@ namespace Playnite
                     return;
                 }
 
+                ApplyBranding(res);
                 dictionaries.Add(res);
             }
 

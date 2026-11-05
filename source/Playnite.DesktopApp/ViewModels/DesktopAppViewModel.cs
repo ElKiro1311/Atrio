@@ -487,7 +487,7 @@ namespace Playnite.DesktopApp.ViewModels
 
             try
             {
-                App.Discord = new DiscordManager(AppSettings.DiscordPresenceEnabled);
+                App.Discord = new DiscordManager(false);
             }
             catch (Exception e) when (!PlayniteEnvironment.ThrowAllErrors)
             {

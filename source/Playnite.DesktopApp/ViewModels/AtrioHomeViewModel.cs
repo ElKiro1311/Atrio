@@ -27,6 +27,7 @@ namespace Playnite.DesktopApp.ViewModels
     public class HomeStoreTile
     {
         public Guid PluginId { get; set; }
+        public Guid? EmulatorId { get; set; }
         public string Name { get; set; }
         public object Icon { get; set; }
         public string CountText { get; set; }
@@ -267,7 +268,16 @@ namespace Playnite.DesktopApp.ViewModels
                 return;
             }
 
-            main.AppSettings.FilterSettings.Library = new IdItemFilterItemProperties(tile.PluginId);
+            if (tile.EmulatorId != null)
+            {
+                main.StoreFilter.ShowEmulator(tile.EmulatorId);
+            }
+            else
+            {
+                main.GamesView.EmulatorFilter = null;
+                main.AppSettings.FilterSettings.Library = new IdItemFilterItemProperties(tile.PluginId);
+            }
+
             main.SwitchToLibraryView();
         }
 
@@ -404,6 +414,19 @@ namespace Playnite.DesktopApp.ViewModels
                     CountText = string.Format(ResourceProvider.GetString("LOCAtrioGamesCount"), counts[plugin.Id].ToString("N0", culture)),
                     CardBrush = StoreBranding.GetCardBrush(plugin.Name),
                     ColorBrush = StoreBranding.GetBrush(plugin.Name)
+                });
+            }
+
+            foreach (var emulator in StoreFilterViewModel.GetEmulatorCounts(main.Database).OrderByDescending(a => a.Value))
+            {
+                tiles.Add(new HomeStoreTile
+                {
+                    EmulatorId = emulator.Key.Id,
+                    Name = emulator.Key.Name,
+                    Icon = EmulatorStores.GetIcon(emulator.Key.Name),
+                    CountText = string.Format(ResourceProvider.GetString("LOCAtrioGamesCount"), emulator.Value.ToString("N0", culture)),
+                    CardBrush = EmulatorStores.GetCardBrush(emulator.Key.Name),
+                    ColorBrush = EmulatorStores.GetBrush(emulator.Key.Name)
                 });
             }
 

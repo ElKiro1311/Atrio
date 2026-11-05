@@ -59,6 +59,18 @@ namespace Playnite.Atrio
             }
         }
 
+        /// <summary>The add-ons were written for the app Atrio is based on, the catalog talks about Atrio.</summary>
+        private static void Present(AddonManifest addon)
+        {
+            addon.Name = Regex.Replace(addon.Name ?? string.Empty, @"\bPlaynite\b\s*", string.Empty).Trim();
+            addon.ShortDescription = addon.ShortDescription?.Replace("Playnite", "Atrio");
+            addon.Description = addon.Description?.Replace("Playnite", "Atrio");
+            if (addon.Author == "Playnite")
+            {
+                addon.Author = "Josef Nemec";
+            }
+        }
+
         private static List<AddonManifest> Read()
         {
             var result = new List<AddonManifest>();
@@ -78,6 +90,7 @@ namespace Playnite.Atrio
                         if (Serialization.TryFromYaml<AddonManifest>(reader.ReadToEnd(), out var addon) &&
                             addon != null && !string.IsNullOrEmpty(addon.AddonId))
                         {
+                            Present(addon);
                             result.Add(addon);
                         }
                     }

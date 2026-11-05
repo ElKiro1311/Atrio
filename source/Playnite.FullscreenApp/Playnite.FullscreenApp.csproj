@@ -3,7 +3,7 @@
     <OutputType>WinExe</OutputType>
     <AssemblyTitle>Atrio (pantalla completa)</AssemblyTitle>
     <Product>Atrio</Product>
-    <Copyright>Atrio, basado en Playnite © Josef Nemec</Copyright>
+    <Copyright>© Josef Nemec y colaboradores de Atrio</Copyright>
     <TargetFramework>net462</TargetFramework>
     <BuiltInComInteropSupport>true</BuiltInComInteropSupport>
     <ApplicationManifest>app.manifest</ApplicationManifest>

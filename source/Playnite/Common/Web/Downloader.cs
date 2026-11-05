@@ -55,7 +55,7 @@ namespace Playnite.Common.Web
     public class Downloader : IDownloader
     {
         private static ILogger logger = LogManager.GetLogger();
-        private static readonly string playniteUserAgent = $"Playnite 10";
+        private static readonly string playniteUserAgent = $"Atrio {Playnite.Atrio.AtrioInfo.Version}";
 
         public Downloader()
         {
