@@ -495,7 +495,7 @@ namespace Playnite.ViewModels
 
         public abstract NotificationMessage GetAddonUpdatesFoundMessage(List<AddonUpdate> updates);
 
-        private List<Game> ImportLibraryGames(LibraryPlugin plugin, CancellationToken token)
+        private List<Game> ImportLibraryGames(LibraryPlugin plugin, CancellationToken token, bool quietIfUnused = false)
         {
             var addedGames = new List<Game>();
             if (token.IsCancellationRequested)
@@ -514,10 +514,15 @@ namespace Playnite.ViewModels
             catch (Exception e) when (!PlayniteEnvironment.ThrowAllErrors)
             {
                 Logger.Error(e, $"Failed to import games from plugin: {plugin.Name}");
-                App.Notifications.Add(new NotificationMessage(
-                    $"{plugin.Id} - download",
-                    Resources.GetString(LOC.LibraryImportError).Format(plugin.Name) + $"\n{e.Message}",
-                    NotificationType.Error));
+
+                // A store with no games is one the user has not set up yet, which is not an error for them.
+                if (!quietIfUnused || Database.Games.Any(a => a.PluginId == plugin.Id))
+                {
+                    App.Notifications.Add(new NotificationMessage(
+                        $"{plugin.Id} - download",
+                        Resources.GetString(LOC.LibraryImportError).Format(plugin.Name) + $"\n{e.Message}",
+                        NotificationType.Error));
+                }
             }
 
             return addedGames;
@@ -569,7 +574,7 @@ namespace Playnite.ViewModels
                             return addedGames;
                         }
 
-                        addedGames.AddRange(ImportLibraryGames(plugin, token));
+                        addedGames.AddRange(ImportLibraryGames(plugin, token, true));
                     }
 
                     AppSettings.LastLibraryUpdateCheck = DateTimes.Now;
@@ -924,8 +929,23 @@ namespace Playnite.ViewModels
         }
 
         public abstract void OpenSettings(int settingsPageIndex);
+        /// <summary>
+        /// Picks the copy to use when the game exists in several stores.
+        /// Returns null if the user cancelled the choice.
+        /// </summary>
+        protected virtual Game ResolveGameCopy(Game game)
+        {
+            return game;
+        }
+
         public void StartGame(Game game, bool launchedFromUI)
         {
+            game = ResolveGameCopy(game);
+            if (game == null)
+            {
+                return;
+            }
+
             if (game.IsLaunching || game.IsRunning)
             {
                 if (Dialogs.ShowMessage(
@@ -945,7 +965,11 @@ namespace Playnite.ViewModels
 
         public void InstallGame(Game game)
         {
-            App.GamesEditor.InstallGame(game);
+            game = ResolveGameCopy(game);
+            if (game != null)
+            {
+                App.GamesEditor.InstallGame(game);
+            }
         }
 
         public abstract void EditGame(Game game);

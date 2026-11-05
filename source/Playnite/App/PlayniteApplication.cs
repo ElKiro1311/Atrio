@@ -1,4 +1,5 @@
-﻿using Playnite.Controllers;
+﻿using Playnite.Atrio;
+using Playnite.Controllers;
 using Playnite.Input;
 using Playnite.SDK;
 using Playnite.Plugins;
@@ -35,7 +36,8 @@ namespace Playnite
     public abstract class PlayniteApplication : ObservableObject, IPlayniteApplication
     {
         private ILogger logger = LogManager.GetLogger();
-        private const string instanceMuxet = "PlayniteInstaceMutex";
+        private static readonly string instanceMuxet = "AtrioInstanceMutex_" + AtrioInfo.InstanceId;
+        private static string PipeEndpoint => PlayniteSettings.GetAppConfigValue("PipeEndpoint") + "_" + AtrioInfo.InstanceId;
         private Mutex appMutex;
         public bool ResourcesReleased { get; private set; } = false;
         private PipeService pipeService;
@@ -132,8 +134,8 @@ namespace Playnite
             if (FileSystem.FileExists(PlaynitePaths.SafeStartupFlagFile))
             {
                 if (MessageBox.Show(
-                    "Playnite closed unexpectedly while starting. This is usually caused by 3rd party theme or extension. Do you want to start in safe mode with all 3rd party add-ons disabled?",
-                    "Startup Error",
+                    "Atrio se cerró de forma inesperada al arrancar. Suele deberse a un tema o complemento de terceros. ¿Quieres iniciar en modo seguro, con los complementos de terceros desactivados?",
+                    "Error al iniciar",
                     MessageBoxButton.YesNo,
                     MessageBoxImage.Warning) == MessageBoxResult.Yes)
                 {
@@ -162,7 +164,7 @@ namespace Playnite
                         .WaitAndRetry(3, a => TimeSpan.FromSeconds(3))
                         .Execute(() => pipeService = new PipeService());
                 pipeService.CommandExecuted += PipeService_CommandExecuted;
-                pipeServer = new PipeServer(PlayniteSettings.GetAppConfigValue("PipeEndpoint"));
+                pipeServer = new PipeServer(PipeEndpoint);
                 pipeServer.StartServer(pipeService);
             }
             catch (Exception exc) when (!PlayniteEnvironment.ThrowAllErrors)
@@ -328,7 +330,9 @@ namespace Playnite
                     if (!AppSettings.FirstTimeWizardComplete)
                     {
                         var cultName = System.Globalization.CultureInfo.CurrentUICulture.Name.Replace('-', '_');
-                        var validLang = Localization.AvailableLanguages.FirstOrDefault(a => a.Id == cultName && a.TranslatedPercentage > 75);
+                        var languages = Localization.AvailableLanguages.Where(a => a.TranslatedPercentage > 75).ToList();
+                        var validLang = languages.FirstOrDefault(a => a.Id == cultName) ??
+                            languages.FirstOrDefault(a => a.Id.StartsWith(cultName.Split('_')[0] + "_", StringComparison.Ordinal));
                         if (validLang != null)
                         {
                             AppSettings.Language = validLang.Id;
@@ -970,7 +974,7 @@ namespace Playnite
                         .WaitAndRetry(3, a => TimeSpan.FromSeconds(3))
                         .Execute(() =>
                         {
-                            var client = new PipeClient(PlayniteSettings.GetAppConfigValue("PipeEndpoint"));
+                            var client = new PipeClient(PipeEndpoint);
                             if (!CmdLine.Start.IsNullOrEmpty())
                             {
                                 client.InvokeCommand(CmdlineCommand.Start, [CmdLine.Start, CmdLine.ActionIndex?.ToString()]);
@@ -1021,7 +1025,7 @@ namespace Playnite
                 catch (Exception exc) when (!PlayniteEnvironment.ThrowAllErrors)
                 {
                     MessageBox.Show(
-                        "Playnite failed to start. Please close all other instances and try again.",
+                        "Atrio no pudo iniciarse. Cierra las demás instancias e inténtalo de nuevo.",
                         "Startup Error");
                     logger.Error(exc, "Can't process communication with other instances.");
                 }
@@ -1094,23 +1098,8 @@ namespace Playnite
                 logger.Error(exc, "Failed to register Playnite to start on boot.");
             }
 
-            try
-            {
-                SystemIntegration.RegisterPlayniteUriProtocol();
-            }
-            catch (Exception exc) when (!PlayniteEnvironment.ThrowAllErrors)
-            {
-                logger.Error(exc, "Failed to register playnite URI scheme.");
-            }
-
-            try
-            {
-                SystemIntegration.RegisterFileExtensions();
-            }
-            catch (Exception exc) when (!PlayniteEnvironment.ThrowAllErrors)
-            {
-                logger.Error(exc, "Failed to register playnite extensions.");
-            }
+            // Atrio is portable: it never touches the registry, so an installed copy of
+            // Playnite keeps owning the playnite:// scheme and the .pext/.pthm associations.
 
             return true;
         }
@@ -1381,44 +1370,19 @@ namespace Playnite
             {
                 try
                 {
-                    var showNotification = false;
-                    var updater = new Updater(this);
-                    if (updater.IsUpdateAvailable)
+                    var release = AtrioUpdates.GetNewerRelease();
+                    if (release != null)
                     {
-                        if (AppSettings.UpdateNotificationOnPatchesOnly)
-                        {
-                            showNotification = Updater.CurrentVersion.Major == updater.GetLatestVersion().Major;
-                        }
-                        else
-                        {
-                            showNotification = true;
-                        }
-                    }
-
-                    if (showNotification)
-                    {
-                        var updateTitle = ResourceProvider.GetString("LOCUpdaterWindowTitle");
-                        var updateBody = ResourceProvider.GetString("LOCUpdateIsAvailableNotificationBody");
-                        if (!Current.IsActive)
-                        {
-                            ShowWindowsNotification(updateTitle, updateBody, () =>
-                            {
-                                Restore();
-                                new UpdateViewModel(
-                                    updater,
-                                    new UpdateWindowFactory(),
-                                    new ResourceProvider(),
-                                    Dialogs,
-                                    Mode).OpenView();
-                            });
-                        }
-
-                        MainModelBase.UpdatesAvailable = true;
+                        Notifications.Add(new NotificationMessage(
+                            "AtrioUpdateAvailable",
+                            string.Format(ResourceProvider.GetString("LOCAtrioUpdateAvailable"), release.Version),
+                            NotificationType.Info,
+                            () => Commands.GlobalCommands.NavigateUrl(release.Url)));
                     }
                 }
                 catch (Exception exc)
                 {
-                    logger.Warn(exc, "Failed to process program update.");
+                    logger.Warn(exc, "Failed to check for a new version.");
                 }
 
                 AppSettings.LastProgramUpdateCheck = DateTimes.Now;
@@ -1741,7 +1705,20 @@ namespace Playnite
 
         public static bool IsProcessPlayniteProcess(Process process)
         {
-            return process.ProcessName.StartsWith("Playnite.DesktopApp") || process.ProcessName.StartsWith("Playnite.FullscreenApp");
+            if (process.ProcessName != "Atrio" && process.ProcessName != "Atrio.Fullscreen")
+            {
+                return false;
+            }
+
+            // A copy of Atrio in another folder is a different app, see AtrioInfo.InstanceId.
+            try
+            {
+                return Paths.AreEqual(Path.GetDirectoryName(process.MainModule.FileName), PlaynitePaths.ProgramPath);
+            }
+            catch (Exception e) when (e is System.ComponentModel.Win32Exception || e is InvalidOperationException)
+            {
+                return true;
+            }
         }
 
         public abstract PlayniteAPI GetApiInstance(ExtensionManifest pluginOwner);

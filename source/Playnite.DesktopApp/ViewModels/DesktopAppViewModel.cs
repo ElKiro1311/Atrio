@@ -48,6 +48,29 @@ namespace Playnite.DesktopApp.ViewModels
         private SearchViewModel currentGlobalSearch;
 
         public DesktopGamesEditor GamesEditor { get; }
+        public StoreFilterViewModel StoreFilter { get; private set; }
+        public HomeViewModel HomeModel { get; private set; }
+
+        private object ambientImage;
+
+        /// <summary>Artwork that tints the whole window, it follows the game in focus.</summary>
+        public object AmbientImage
+        {
+            get => ambientImage;
+            set
+            {
+                ambientImage = value;
+                OnPropertyChanged();
+            }
+        }
+
+        private bool ambientPending;
+
+        public void UpdateAmbient()
+        {
+            var entry = ActiveView is Controls.Views.HomeView ? HomeModel?.Hero?.Game : SelectedGame;
+            AmbientImage = entry?.AmbientImageObject;
+        }
 
         private Control activeView;
         public Control ActiveView
@@ -106,6 +129,7 @@ namespace Playnite.DesktopApp.ViewModels
                     toSelect = selectedGames[0];
                 }
 
+                ambientPending = true;
                 if (SelectedGameDetails?.Game != toSelect)
                 {
                     if (toSelect == null)
@@ -119,6 +143,11 @@ namespace Playnite.DesktopApp.ViewModels
                 }
 
                 OnPropertyChanged(nameof(SelectedGameDetails));
+                if (ambientPending)
+                {
+                    ambientPending = false;
+                    UpdateAmbient();
+                }
                 OnPropertyChanged(nameof(SelectedGame));
                 OnPropertyChanged();
                 if (!IsDisposing)
@@ -421,6 +450,12 @@ namespace Playnite.DesktopApp.ViewModels
 
             GamesView = new DesktopCollectionView(Database, AppSettings, Extensions);
             BindingOperations.EnableCollectionSynchronization(GamesView.Items, gamesLock);
+            GamesView.UnifiedGroupsRefreshing += (_, __) => selectionBeforeUnification = SelectedGame?.Id;
+            GamesView.UnifiedGroupsRefreshed += GamesView_UnifiedGroupsRefreshed;
+            if (Application.Current.TryFindResource("AtrioGridClickOpensPage") is bool clickOpensPage && clickOpensPage)
+            {
+                AppSettings.GridViewSideBarVisible = false;
+            }
 
             if (AppSettings.LastSelectedGame != Guid.Empty)
             {
@@ -482,6 +517,11 @@ namespace Playnite.DesktopApp.ViewModels
                 {
                     SelectedGameDetails = null;
                     OnPropertyChanged(nameof(SelectedGameDetails));
+                if (ambientPending)
+                {
+                    ambientPending = false;
+                    UpdateAmbient();
+                }
                 }
             }
         }
@@ -1073,7 +1113,7 @@ namespace Playnite.DesktopApp.ViewModels
             {
                 WindowState = WindowState.Minimized;
             }
-            else
+            else if (!Atrio.AtrioCaptura.IsActive)
             {
                 Window.RestoreWindow();
             }
@@ -1102,6 +1142,59 @@ namespace Playnite.DesktopApp.ViewModels
             GamesStats?.Dispose();
             AppSettings.FilterSettings.PropertyChanged -= FilterSettings_PropertyChanged;
             Window.Window.LocationChanged -= Window_LocationChanged;
+        }
+
+        private Guid? selectionBeforeUnification;
+
+        private void GamesView_UnifiedGroupsRefreshed(object sender, EventArgs e)
+        {
+            // The copy that represents a game can change (after installing it from another store,
+            // for example). The selection has to follow the game instead of getting lost.
+            if (selectionBeforeUnification is Guid gameId)
+            {
+                var target = GamesView.Unifier.GetGroup(gameId)?.Primary.Id ?? gameId;
+                if (SelectedGame?.Id != target)
+                {
+                    SelectGame(target);
+                }
+            }
+
+            selectionBeforeUnification = null;
+            StoreFilter.Refresh();
+        }
+
+        protected override Game ResolveGameCopy(Game game)
+        {
+            var unifier = GamesView?.Unifier;
+            var group = unifier?.GetGroup(game.Id);
+            if (group == null)
+            {
+                return game;
+            }
+
+            var active = group.Copies.FirstOrDefault(a => a.IsRunning || a.IsLaunching || a.IsInstalling || a.IsUninstalling);
+            if (active != null)
+            {
+                return active;
+            }
+
+            if (group.HasUserChoice)
+            {
+                return group.Primary;
+            }
+
+            var installed = group.Copies.Where(a => a.IsInstalled).ToList();
+            if (installed.Count == 1)
+            {
+                return installed[0];
+            }
+
+            if (!unifier.Settings.AskStoreOnStart)
+            {
+                return group.Primary;
+            }
+
+            return new StoreChooserViewModel(new StoreChooserWindowFactory(), group).OpenView();
         }
 
         private void Window_LocationChanged(object sender, EventArgs e)

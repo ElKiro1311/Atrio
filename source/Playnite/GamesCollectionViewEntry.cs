@@ -1,4 +1,5 @@
-﻿using Playnite.Converters;
+﻿using Playnite.Atrio;
+using Playnite.Converters;
 using Playnite.Database;
 using Playnite.Extensions.Markup;
 using Playnite.SDK;
@@ -25,6 +26,7 @@ namespace Playnite
         public static BitmapLoadProperties GridViewCoverProperties { get; private set; }
         public static BitmapLoadProperties BackgroundImageProperties { get; private set; }
         public static BitmapLoadProperties FullscreenListCoverProperties { get; private set; }
+        public static BitmapLoadProperties WideCardProperties { get; private set; }
 
         public LibraryPlugin LibraryPlugin { get; }
         public Guid Id => Game.Id;
@@ -103,6 +105,73 @@ namespace Playnite
         public string RomList => Game.Roms.HasItems() ? string.Join(", ", Game.Roms.Select(a => a.Path)) : string.Empty;
 
         public object LibraryIcon => GetImageObject(LibraryPlugin?.LibraryIcon, true);
+
+        /// <summary>Landscape picture for wide cards, decoded at the size they are shown.</summary>
+        public object WideCardImageObjectCached => GetImageObject(Game.BackgroundImage.IsNullOrEmpty() ? Game.CoverImage : Game.BackgroundImage, true, WideCardProperties);
+
+        /// <summary>Tiny version of the artwork: stretched and blurred it turns into the color wash behind the app.</summary>
+        public object AmbientImageObject
+        {
+            get
+            {
+                var source = Game.BackgroundImage.IsNullOrEmpty() ? Game.CoverImage : Game.BackgroundImage;
+                return source.IsNullOrEmpty() ? null : new BitmapLoadProperties(240, 0) { Source = source };
+            }
+        }
+
+        public string PlaytimeText => Game.Playtime == 0 ? string.Empty : new PlayTimeToStringConverter().Convert(Game.Playtime, typeof(string), null, null)?.ToString();
+
+        private List<GameCopyEntry> copies;
+
+        /// <summary>Copies of this game in every store. Holds a single item for games that are not unified.</summary>
+        public List<GameCopyEntry> Copies
+        {
+            get
+            {
+                if (copies == null)
+                {
+                    var group = GameUnifier.Current?.GetGroup(Game.Id);
+                    copies = group != null ?
+                        GameCopyEntry.FromGroup(group, GameUnifier.Current.PluginResolver) :
+                        new List<GameCopyEntry> { new GameCopyEntry(Game, LibraryPlugin, true, false) };
+                }
+
+                return copies;
+            }
+        }
+
+        public bool HasMultipleCopies => Copies.Count > 1;
+
+        private List<GameCopyEntry> storeBadges;
+
+        /// <summary>Stores that have this game, always from the most to the least relevant one.</summary>
+        public List<GameCopyEntry> StoreBadges
+        {
+            get
+            {
+                if (storeBadges == null)
+                {
+                    var unifier = GameUnifier.Current;
+                    storeBadges = Copies.
+                        Where(a => a.Plugin != null).
+                        OrderBy(a => unifier?.GetStoreRank(a.Game.PluginId, a.StoreName) ?? 0).
+                        ThenBy(a => a.StoreName, StringComparer.OrdinalIgnoreCase).
+                        ToList();
+                }
+
+                return storeBadges;
+            }
+        }
+
+        public void InvalidateCopies()
+        {
+            copies = null;
+            storeBadges = null;
+            OnPropertyChanged(nameof(Copies));
+            OnPropertyChanged(nameof(HasMultipleCopies));
+            OnPropertyChanged(nameof(StoreBadges));
+        }
+
         public object IconObject => GetImageObject(Game.Icon, false);
         public object CoverImageObject => GetImageObject(Game.CoverImage, false);
         public object DefaultIconObject => GetDefaultIcon(false);
@@ -211,7 +280,7 @@ namespace Playnite
         {
             this.settings = settings;
             LibraryPlugin = plugin;
-            Library = string.IsNullOrEmpty(plugin?.Name) ? "Playnite" : plugin.Name;
+            Library = string.IsNullOrEmpty(plugin?.Name) ? "Atrio" : plugin.Name;
             Game = game;
             if (!readOnly)
             {
@@ -231,6 +300,11 @@ namespace Playnite
                     app.DpiScale);
                 GridViewCoverProperties = new BitmapLoadProperties(
                     Convert.ToInt32(settings.GridItemWidth),
+                    0,
+                    app.DpiScale,
+                    settings.ImageScalerMode);
+                WideCardProperties = new BitmapLoadProperties(
+                    460,
                     0,
                     app.DpiScale,
                     settings.ImageScalerMode);

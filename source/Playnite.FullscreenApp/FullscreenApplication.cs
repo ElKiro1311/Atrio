@@ -192,6 +192,30 @@ namespace Playnite.FullscreenApp
 
             // This is most likely safe place to consider application to be started properly
             FileSystem.DeleteFile(PlaynitePaths.SafeStartupFlagFile);
+            await CaptureForTesting();
+        }
+
+        /// <summary>Development check: renders the window to a file and closes, nothing else.</summary>
+        private async Task CaptureForTesting()
+        {
+            var folder = Playnite.Atrio.AtrioInfo.GetTestSetting("ATRIO_CAPTURA");
+            if (string.IsNullOrEmpty(folder))
+            {
+                return;
+            }
+
+            await Task.Delay(TimeSpan.FromSeconds(9));
+            var window = MainModel.Window.Window;
+            var bitmap = new System.Windows.Media.Imaging.RenderTargetBitmap((int)window.ActualWidth, (int)window.ActualHeight, 96, 96, System.Windows.Media.PixelFormats.Pbgra32);
+            bitmap.Render(window);
+            var encoder = new System.Windows.Media.Imaging.PngBitmapEncoder();
+            encoder.Frames.Add(System.Windows.Media.Imaging.BitmapFrame.Create(bitmap));
+            using (var stream = System.IO.File.Create(System.IO.Path.Combine(folder, "pantalla-completa.png")))
+            {
+                encoder.Save(stream);
+            }
+
+            Quit();
         }
 
         public override void InitializeNative()

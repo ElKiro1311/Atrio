@@ -181,15 +181,9 @@ namespace Playnite.DesktopApp.Controls
             AddMenuChild(Items, "LOCMenuOpenFullscreen", mainModel.OpenFullScreenCommand, null, "FullscreenModeIcon");
             Items.Add(new Separator());
 
-            // Links
-            var linksItem = AddMenuChild(Items, "LOCMenuLinksTitle", null);
-            AddMenuChild(linksItem.Items, "Discord", GlobalCommands.NavigateUrlCommand, UrlConstants.Discord, "Images/discord.png");
-            AddMenuChild(linksItem.Items, "Reddit", GlobalCommands.NavigateUrlCommand, UrlConstants.Reddit, "Images/reddit.png");
-
             // Help
             var helpItem = AddMenuChild(Items, "LOCMenuHelpTitle", null);
             AddMenuChild(helpItem.Items, "LOCUserManual", GlobalCommands.NavigateUrlCommand, UrlConstants.SdkDocs);
-            AddMenuChild(helpItem.Items, "LOCMenuIssues", mainModel.ReportIssueCommand);
             AddMenuChild(helpItem.Items, "LOCSDKDocumentation", GlobalCommands.NavigateUrlCommand, UrlConstants.SdkDocs);
             helpItem.Items.Add(new Separator());
             AddMenuChild(helpItem.Items, "LOCCrashRestartPlaynite", mainModel.RestartApp);
@@ -197,12 +191,6 @@ namespace Playnite.DesktopApp.Controls
 
             // About
             AddMenuChild(Items, "LOCMenuAbout", mainModel.OpenAboutCommand, null, "AboutPlayniteIcon");
-            AddMenuChild(Items, "LOCCheckForUpdates", mainModel.CheckForUpdateCommand);
-            Items.Add(new Separator());
-
-            // Patreon
-            AddMenuChild(Items, "LOCMenuPatreonSupport", GlobalCommands.NavigateUrlCommand, UrlConstants.Patreon, "Images/patreon.png");
-            AddMenuChild(Items, "LOCMenuKofiSupport", GlobalCommands.NavigateUrlCommand, UrlConstants.Kofi, "Images/kofi.png");
             Items.Add(new Separator());
 
             // Exit

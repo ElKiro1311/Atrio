@@ -143,7 +143,7 @@ namespace Playnite
         Library,
         [Description("LOCPlatformTitle")]
         Platform,
-        [Description("Playnite")]
+        [Description("Atrio")]
         General,
         [Description("LOCNone")]
         None
@@ -153,7 +153,7 @@ namespace Playnite
     {
         [Description("LOCPlatformTitle")]
         Platform,
-        [Description("Playnite")]
+        [Description("Atrio")]
         General,
         [Description("LOCNone")]
         None
@@ -773,7 +773,7 @@ namespace Playnite
             }
         }
 
-        private bool showNamesUnderCovers = false;
+        private bool showNamesUnderCovers = true;
         public bool ShowNamesUnderCovers
         {
             get
@@ -1185,7 +1185,7 @@ namespace Playnite
             }
         }
 
-        private string theme = ThemeManager.DefaultDesktopThemeId;
+        private string theme = ThemeManager.AtrioDesktopThemeId;
         [RequiresRestart]
         public string Theme
         {
@@ -1808,7 +1808,7 @@ namespace Playnite
             }
         }
 
-        private bool showTopPanelFilterPresetsItem = true;
+        private bool showTopPanelFilterPresetsItem = false;
         public bool ShowTopPanelFilterPresetsItem
         {
             get => showTopPanelFilterPresetsItem;
@@ -1852,7 +1852,7 @@ namespace Playnite
             }
         }
 
-        private bool showTopPanelExplorerSwitch = true;
+        private bool showTopPanelExplorerSwitch = false;
         public bool ShowTopPanelExplorerSwitch
         {
             get => showTopPanelExplorerSwitch;
@@ -1863,7 +1863,7 @@ namespace Playnite
             }
         }
 
-        private bool showTopPanelSelectRandomGameButton = false;
+        private bool showTopPanelSelectRandomGameButton = true;
         public bool ShowTopPanelSelectRandomGameButton
         {
             get => showTopPanelSelectRandomGameButton;
@@ -1874,7 +1874,7 @@ namespace Playnite
             }
         }
 
-        private bool showTopPanelViewSelectRandomGameButton = true;
+        private bool showTopPanelViewSelectRandomGameButton = false;
         public bool ShowTopPanelViewSelectRandomGameButton
         {
             get => showTopPanelViewSelectRandomGameButton;
@@ -1885,7 +1885,7 @@ namespace Playnite
             }
         }
 
-        private bool showTopPanelSearchButton = true;
+        private bool showTopPanelSearchButton = false;
         public bool ShowTopPanelSearchButton
         {
             get => showTopPanelSearchButton;
@@ -2138,7 +2138,7 @@ namespace Playnite
             }
         }
 
-        private UpdateCheckFrequency checkForProgramUpdates = UpdateCheckFrequency.OnEveryStartup;
+        private UpdateCheckFrequency checkForProgramUpdates = UpdateCheckFrequency.OnceADay;
         public UpdateCheckFrequency CheckForProgramUpdates
         {
             get => checkForProgramUpdates;
@@ -2149,7 +2149,7 @@ namespace Playnite
             }
         }
 
-        private UpdateCheckFrequency checkForAddonUpdates = UpdateCheckFrequency.OnEveryStartup;
+        private UpdateCheckFrequency checkForAddonUpdates = UpdateCheckFrequency.OnceAWeek;
         public UpdateCheckFrequency CheckForAddonUpdates
         {
             get => checkForAddonUpdates;

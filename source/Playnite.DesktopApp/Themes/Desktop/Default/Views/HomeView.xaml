@@ -1,0 +1,407 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <!-- Wide card of "Keep playing": the artwork fills it and the text sits on top -->
+    <Style x:Key="AtrioWideTile" TargetType="Button">
+        <Setter Property="OverridesDefaultStyle" Value="True" />
+        <Setter Property="Cursor" Value="Hand" />
+        <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Button">
+                    <Grid x:Name="Root" Width="336" Height="189" RenderTransformOrigin="0.5,0.5">
+                        <Grid.RenderTransform>
+                            <ScaleTransform ScaleX="1" ScaleY="1" />
+                        </Grid.RenderTransform>
+                        <Border CornerRadius="{DynamicResource AtrioCardRadius}" Background="{DynamicResource AtrioCardBrush}" />
+                        <Border CornerRadius="{DynamicResource AtrioCardRadius}">
+                            <Border.Background>
+                                <ImageBrush ImageSource="{Binding WideCardImageObjectCached, IsAsync=True}" Stretch="UniformToFill" />
+                            </Border.Background>
+                        </Border>
+                        <Border CornerRadius="{DynamicResource AtrioCardRadius}">
+                            <Border.Background>
+                                <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                                    <GradientStop Color="#00000000" Offset="0.35" />
+                                    <GradientStop Color="#E6000000" Offset="1" />
+                                </LinearGradientBrush>
+                            </Border.Background>
+                        </Border>
+                        <StackPanel VerticalAlignment="Bottom" HorizontalAlignment="Left" Margin="16,0,84,13">
+                            <TextBlock Text="{Binding DisplayName}" Foreground="White" FontSize="16" FontWeight="SemiBold"
+                                       FontFamily="{DynamicResource AtrioDisplayFont}" TextTrimming="CharacterEllipsis" />
+                            <TextBlock Text="{Binding PlaytimeText}" Foreground="#CCFFFFFF" FontSize="12"
+                                       FontFamily="{DynamicResource FontFamily}" Margin="0,1,0,0" />
+                        </StackPanel>
+                        <ItemsControl ItemsSource="{Binding StoreBadges}" Style="{DynamicResource AtrioStoreBadges}" Margin="0,0,9,12" />
+                        <Border x:Name="Outline" CornerRadius="{DynamicResource AtrioCardRadius}" BorderThickness="2" BorderBrush="#1AFFFFFF" />
+                    </Grid>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="Outline" Property="BorderBrush" Value="{DynamicResource GlyphBrush}" />
+                            <Trigger.EnterActions>
+                                <BeginStoryboard>
+                                    <Storyboard>
+                                        <DoubleAnimation Storyboard.TargetName="Root" Duration="0:0:0.14" To="1.03"
+                                                         Storyboard.TargetProperty="(UIElement.RenderTransform).(ScaleTransform.ScaleX)" />
+                                        <DoubleAnimation Storyboard.TargetName="Root" Duration="0:0:0.14" To="1.03"
+                                                         Storyboard.TargetProperty="(UIElement.RenderTransform).(ScaleTransform.ScaleY)" />
+                                    </Storyboard>
+                                </BeginStoryboard>
+                            </Trigger.EnterActions>
+                            <Trigger.ExitActions>
+                                <BeginStoryboard>
+                                    <Storyboard>
+                                        <DoubleAnimation Storyboard.TargetName="Root" Duration="0:0:0.14" To="1"
+                                                         Storyboard.TargetProperty="(UIElement.RenderTransform).(ScaleTransform.ScaleX)" />
+                                        <DoubleAnimation Storyboard.TargetName="Root" Duration="0:0:0.14" To="1"
+                                                         Storyboard.TargetProperty="(UIElement.RenderTransform).(ScaleTransform.ScaleY)" />
+                                    </Storyboard>
+                                </BeginStoryboard>
+                            </Trigger.ExitActions>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- Row of the list next to the hero -->
+    <Style x:Key="AtrioFeaturedRow" TargetType="Button">
+        <Setter Property="OverridesDefaultStyle" Value="True" />
+        <Setter Property="Cursor" Value="Hand" />
+        <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Button">
+                    <Grid>
+                        <Border x:Name="Back" CornerRadius="10" Background="Transparent" />
+                        <Border x:Name="Timer" CornerRadius="10" Background="#26FFFFFF" RenderTransformOrigin="0,0.5" Visibility="Collapsed">
+                            <Border.RenderTransform>
+                                <ScaleTransform ScaleX="0" ScaleY="1" />
+                            </Border.RenderTransform>
+                        </Border>
+                        <DockPanel Margin="8,7,10,7">
+                            <Border Width="82" Height="46" CornerRadius="6" DockPanel.Dock="Left" Margin="0,0,11,0" Background="#33000000">
+                                <Border CornerRadius="6">
+                                    <Border.Background>
+                                        <ImageBrush ImageSource="{Binding Game.WideCardImageObjectCached, IsAsync=True}" Stretch="UniformToFill" />
+                                    </Border.Background>
+                                </Border>
+                            </Border>
+                            <TextBlock x:Name="Title" Text="{Binding Game.DisplayName}" VerticalAlignment="Center" TextWrapping="Wrap"
+                                       MaxHeight="40" TextTrimming="CharacterEllipsis" FontSize="13" Foreground="#D9FFFFFF"
+                                       FontFamily="{DynamicResource FontFamily}" />
+                        </DockPanel>
+                    </Grid>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="Back" Property="Background" Value="#1AFFFFFF" />
+                        </Trigger>
+                        <DataTrigger Binding="{Binding IsSelected}" Value="True">
+                            <Setter TargetName="Back" Property="Background" Value="#1FFFFFFF" />
+                            <Setter TargetName="Title" Property="Foreground" Value="White" />
+                            <Setter TargetName="Title" Property="FontWeight" Value="SemiBold" />
+                            <Setter TargetName="Timer" Property="Visibility" Value="Visible" />
+                            <DataTrigger.EnterActions>
+                                <BeginStoryboard x:Name="TimerRun">
+                                    <Storyboard>
+                                        <DoubleAnimation Storyboard.TargetName="Timer" From="0" To="1" Duration="0:0:9"
+                                                         Storyboard.TargetProperty="(UIElement.RenderTransform).(ScaleTransform.ScaleX)" />
+                                    </Storyboard>
+                                </BeginStoryboard>
+                            </DataTrigger.EnterActions>
+                            <DataTrigger.ExitActions>
+                                <StopStoryboard BeginStoryboardName="TimerRun" />
+                            </DataTrigger.ExitActions>
+                        </DataTrigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- Arrow that appears over a shelf -->
+    <Style x:Key="AtrioShelfArrow" TargetType="Button">
+        <Setter Property="OverridesDefaultStyle" Value="True" />
+        <Setter Property="Cursor" Value="Hand" />
+        <Setter Property="Width" Value="32" />
+        <Setter Property="Height" Value="32" />
+        <Setter Property="Margin" Value="6,0,0,0" />
+        <Setter Property="Focusable" Value="False" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Button">
+                    <Border x:Name="Round" CornerRadius="16" Background="{DynamicResource AtrioCardBrush}"
+                            BorderThickness="1" BorderBrush="{DynamicResource AtrioBorderBrush}">
+                        <TextBlock Text="{TemplateBinding Content}" FontFamily="{DynamicResource AtrioIconFont}" FontSize="11"
+                                   Foreground="{DynamicResource TextBrush}"
+                                   HorizontalAlignment="Center" VerticalAlignment="Center" />
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="Round" Property="BorderBrush" Value="{DynamicResource GlyphBrush}" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- Header of a shelf: the title on the left, the arrows on the right -->
+    <DataTemplate x:Key="AtrioShelfTemplate">
+        <StackPanel Margin="0,0,0,30">
+            <DockPanel Margin="0,0,44,12">
+                <StackPanel Orientation="Horizontal" DockPanel.Dock="Right">
+                    <Button Style="{DynamicResource AtrioShelfArrow}" Content="&#xE76B;"
+                            Command="ScrollBar.PageLeftCommand" CommandTarget="{Binding ElementName=Scroller}" />
+                    <Button Style="{DynamicResource AtrioShelfArrow}" Content="&#xE76C;"
+                            Command="ScrollBar.PageRightCommand" CommandTarget="{Binding ElementName=Scroller}" />
+                </StackPanel>
+                <TextBlock Text="{Binding Title}" Style="{DynamicResource AtrioSectionTitle}" Margin="0" VerticalAlignment="Center" />
+            </DockPanel>
+            <ScrollViewer x:Name="Scroller" HorizontalScrollBarVisibility="Hidden" VerticalScrollBarVisibility="Disabled"
+                          PageWheel.PassToParent="True" Focusable="False">
+                <ItemsControl ItemsSource="{Binding Items}" Focusable="False">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <StackPanel Orientation="Horizontal" />
+                        </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <Button Style="{DynamicResource AtrioGameTile}" Margin="0,0,16,0"
+                                    ToolTip="{Binding DisplayName}" CommandParameter="{Binding}"
+                                    Command="{Binding DataContext.OpenGameCommand, RelativeSource={RelativeSource AncestorType={x:Type HomeView}}}" />
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </ScrollViewer>
+        </StackPanel>
+    </DataTemplate>
+
+    <Style TargetType="{x:Type HomeView}">
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="{x:Type HomeView}">
+                    <Grid>
+                    <!-- First start without games -->
+                    <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" MaxWidth="460"
+                                Visibility="{Binding IsEmpty, Converter={StaticResource BooleanToVisibilityConverter}}">
+                        <TextBlock Text="{Binding Greeting}" Style="{DynamicResource AtrioPageTitle}" HorizontalAlignment="Center" />
+                        <TextBlock Text="{DynamicResource LOCAtrioHomeEmpty}" Style="{DynamicResource AtrioCaption}" FontSize="15"
+                                   TextWrapping="Wrap" TextAlignment="Center" Margin="0,8,0,18" />
+                        <Button Style="{DynamicResource AtrioPlayButton}" HorizontalAlignment="Center"
+                                Content="{DynamicResource LOCAtrioConnectStores}" Command="{Binding OpenStoresCommand}" />
+                    </StackPanel>
+                    <ScrollViewer x:Name="Page" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto" Focusable="False"
+                                  Visibility="{Binding IsEmpty, Converter={StaticResource InvertedBooleanToVisibilityConverter}}">
+                        <StackPanel>
+                            <Grid MinHeight="440"
+                                  Height="{Binding ActualHeight, ElementName=Page, Converter={StaticResource MathConverter}, ConverterParameter='x*0.58'}">
+                                <FadeImage Source="{Binding Hero.Game.DisplayBackgroundImageObject}" Stretch="UniformToFill"
+                                           VerticalAlignment="Stretch" HorizontalAlignment="Stretch" />
+
+                                <!-- The picture melts into the page -->
+                                <Rectangle>
+                                    <Rectangle.Fill>
+                                        <LinearGradientBrush StartPoint="0,0" EndPoint="1,0">
+                                            <GradientStop Color="#D9000000" Offset="0" />
+                                            <GradientStop Color="#59000000" Offset="0.45" />
+                                            <GradientStop Color="#00000000" Offset="0.75" />
+                                        </LinearGradientBrush>
+                                    </Rectangle.Fill>
+                                </Rectangle>
+                                <Rectangle>
+                                    <Rectangle.Fill>
+                                        <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                                            <GradientStop Color="#66000000" Offset="0" />
+                                            <GradientStop Color="#00000000" Offset="0.22" />
+                                            <GradientStop Color="#00000000" Offset="0.55" />
+                                            <GradientStop Color="{DynamicResource MainColorDark}" Offset="1" />
+                                        </LinearGradientBrush>
+                                    </Rectangle.Fill>
+                                </Rectangle>
+
+                                <StackPanel VerticalAlignment="Top" HorizontalAlignment="Left" Margin="44,30,0,0">
+                                    <TextBlock Text="{Binding Greeting}" Foreground="White" FontSize="26" FontWeight="SemiBold"
+                                               FontFamily="{DynamicResource AtrioDisplayFont}" />
+                                    <TextBlock Text="{Binding Summary}" Foreground="#BFFFFFFF" FontSize="13" Margin="1,1,0,0"
+                                               FontFamily="{DynamicResource FontFamily}" />
+                                </StackPanel>
+
+                                <StackPanel VerticalAlignment="Bottom" HorizontalAlignment="Left" Margin="44,0,380,30">
+                                    <Border HorizontalAlignment="Left" CornerRadius="5" Padding="9,3,9,3" Background="{DynamicResource GlyphBrush}">
+                                        <TextBlock Text="{Binding Hero.Label}" FontSize="11" FontWeight="Bold"
+                                                   FontFamily="{DynamicResource FontFamily}"
+                                                   Foreground="{DynamicResource AtrioPlayTextBrush}" />
+                                    </Border>
+                                    <TextBlock Text="{Binding Hero.Game.DisplayName}" FontSize="50" FontWeight="SemiBold"
+                                               TextWrapping="Wrap" MaxWidth="980" HorizontalAlignment="Left" Margin="0,8,0,2"
+                                               LineHeight="56" LineStackingStrategy="BlockLineHeight"
+                                               Foreground="White" FontFamily="{DynamicResource AtrioDisplayFont}">
+                                        <TextBlock.Effect>
+                                            <DropShadowEffect ShadowDepth="0" BlurRadius="24" Opacity="0.6" />
+                                        </TextBlock.Effect>
+                                    </TextBlock>
+                                    <DockPanel Margin="0,4,0,0" LastChildFill="False">
+                                        <TextBlock Text="{Binding Hero.Details}" FontSize="14" Foreground="#E6FFFFFF" VerticalAlignment="Center"
+                                                   FontFamily="{DynamicResource FontFamily}" />
+                                    </DockPanel>
+                                    <StackPanel Orientation="Horizontal" Margin="0,18,0,0">
+                                        <Button Style="{DynamicResource AtrioPlayButton}" Padding="30,0,30,0"
+                                                Command="{Binding StartGameCommand}" CommandParameter="{Binding Hero.Game}">
+                                            <StackPanel Orientation="Horizontal">
+                                                <TextBlock Text="&#xE768;" FontFamily="{DynamicResource AtrioIconFont}" VerticalAlignment="Center" Margin="0,0,10,0" FontSize="15" />
+                                                <TextBlock Text="{Binding Hero.ActionText}" VerticalAlignment="Center" />
+                                            </StackPanel>
+                                        </Button>
+                                        <Button Style="{DynamicResource AtrioGhostButton}" Margin="10,0,0,0" MinHeight="46" Padding="20,0,20,0"
+                                                Content="{DynamicResource LOCAtrioDetails}"
+                                                Command="{Binding OpenGameCommand}" CommandParameter="{Binding Hero.Game}" />
+                                    </StackPanel>
+                                </StackPanel>
+
+                                <!-- Five games to jump between, the hero moves through them on its own -->
+                                <Border HorizontalAlignment="Right" VerticalAlignment="Bottom" Width="316" Margin="0,0,30,30"
+                                        Padding="8" CornerRadius="14" Background="#73000000" BorderBrush="#1AFFFFFF" BorderThickness="1">
+                                    <ItemsControl ItemsSource="{Binding Featured}" Focusable="False">
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate>
+                                                <Button Style="{DynamicResource AtrioFeaturedRow}" Margin="0,1,0,1" CommandParameter="{Binding}"
+                                                        Command="{Binding DataContext.SelectFeaturedCommand, RelativeSource={RelativeSource AncestorType={x:Type HomeView}}}" />
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                </Border>
+                            </Grid>
+
+                            <StackPanel Margin="44,26,0,34">
+                                <StackPanel Margin="0,0,0,30"
+                                            Visibility="{Binding Recent, Converter={StaticResource ICollectionNullOrEmptyToVisibilityConverter}}">
+                                    <DockPanel Margin="0,0,44,12">
+                                        <StackPanel Orientation="Horizontal" DockPanel.Dock="Right">
+                                            <Button Style="{DynamicResource AtrioShelfArrow}" Content="&#xE76B;"
+                                                    Command="ScrollBar.PageLeftCommand" CommandTarget="{Binding ElementName=RecentScroller}" />
+                                            <Button Style="{DynamicResource AtrioShelfArrow}" Content="&#xE76C;"
+                                                    Command="ScrollBar.PageRightCommand" CommandTarget="{Binding ElementName=RecentScroller}" />
+                                        </StackPanel>
+                                        <TextBlock Text="{DynamicResource LOCAtrioHomeRecent}" Style="{DynamicResource AtrioSectionTitle}" Margin="0" VerticalAlignment="Center" />
+                                    </DockPanel>
+                                    <ScrollViewer x:Name="RecentScroller" HorizontalScrollBarVisibility="Hidden" VerticalScrollBarVisibility="Disabled"
+                                                  PageWheel.PassToParent="True" Focusable="False">
+                                        <ItemsControl ItemsSource="{Binding Recent}" Focusable="False">
+                                            <ItemsControl.ItemsPanel>
+                                                <ItemsPanelTemplate>
+                                                    <StackPanel Orientation="Horizontal" />
+                                                </ItemsPanelTemplate>
+                                            </ItemsControl.ItemsPanel>
+                                            <ItemsControl.ItemTemplate>
+                                                <DataTemplate>
+                                                    <Button Style="{DynamicResource AtrioWideTile}" Margin="0,4,14,4" CommandParameter="{Binding}"
+                                                            Command="{Binding DataContext.OpenGameCommand, RelativeSource={RelativeSource AncestorType={x:Type HomeView}}}" />
+                                                </DataTemplate>
+                                            </ItemsControl.ItemTemplate>
+                                        </ItemsControl>
+                                    </ScrollViewer>
+                                </StackPanel>
+
+                                <ContentControl Content="{Binding Ready}" ContentTemplate="{DynamicResource AtrioShelfTemplate}" Focusable="False"
+                                                Visibility="{Binding Ready, Converter={StaticResource NullToVisibilityConverter}}" />
+
+                                <!-- One colored tile per store -->
+                                <StackPanel Margin="0,0,44,30"
+                                            Visibility="{Binding Stores, Converter={StaticResource ICollectionNullOrEmptyToVisibilityConverter}}">
+                                    <TextBlock Text="{DynamicResource LOCAtrioHomeStores}" Style="{DynamicResource AtrioSectionTitle}" />
+                                    <ItemsControl ItemsSource="{Binding Stores}" Focusable="False">
+                                        <ItemsControl.ItemsPanel>
+                                            <ItemsPanelTemplate>
+                                                <WrapPanel />
+                                            </ItemsPanelTemplate>
+                                        </ItemsControl.ItemsPanel>
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate>
+                                                <Button Margin="0,0,12,12" Cursor="Hand" CommandParameter="{Binding}"
+                                                        Command="{Binding DataContext.OpenStoreCommand, RelativeSource={RelativeSource AncestorType={x:Type HomeView}}}">
+                                                    <Button.Template>
+                                                        <ControlTemplate TargetType="Button">
+                                                            <Grid Width="214" Height="84">
+                                                                <Border CornerRadius="{DynamicResource AtrioCardRadius}" Background="{DynamicResource AtrioCardBrush}" />
+                                                                <Border x:Name="Wash" CornerRadius="{DynamicResource AtrioCardRadius}" Background="{Binding CardBrush}"
+                                                                        BorderThickness="1" BorderBrush="{DynamicResource AtrioBorderBrush}" />
+                                                                <DockPanel Margin="14,0,12,0">
+                                                                    <Image Source="{Binding Icon}" Width="34" Height="34" DockPanel.Dock="Left" Margin="0,0,12,0"
+                                                                           VerticalAlignment="Center" RenderOptions.BitmapScalingMode="Fant" />
+                                                                    <StackPanel VerticalAlignment="Center">
+                                                                        <TextBlock Text="{Binding Name}" FontSize="15" FontWeight="SemiBold" TextTrimming="CharacterEllipsis"
+                                                                                   FontFamily="{DynamicResource AtrioDisplayFont}" Foreground="{DynamicResource TextBrush}" />
+                                                                        <TextBlock Text="{Binding CountText}" Style="{DynamicResource AtrioCaption}" />
+                                                                    </StackPanel>
+                                                                </DockPanel>
+                                                            </Grid>
+                                                            <ControlTemplate.Triggers>
+                                                                <Trigger Property="IsMouseOver" Value="True">
+                                                                    <Setter TargetName="Wash" Property="BorderBrush" Value="{Binding ColorBrush}" />
+                                                                </Trigger>
+                                                            </ControlTemplate.Triggers>
+                                                        </ControlTemplate>
+                                                    </Button.Template>
+                                                </Button>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                </StackPanel>
+
+                                <!-- Top ten, with big numbers behind the covers -->
+                                <StackPanel Margin="0,0,0,30"
+                                            Visibility="{Binding Ranked, Converter={StaticResource ICollectionNullOrEmptyToVisibilityConverter}}">
+                                    <DockPanel Margin="0,0,44,12">
+                                        <StackPanel Orientation="Horizontal" DockPanel.Dock="Right">
+                                            <Button Style="{DynamicResource AtrioShelfArrow}" Content="&#xE76B;"
+                                                    Command="ScrollBar.PageLeftCommand" CommandTarget="{Binding ElementName=RankScroller}" />
+                                            <Button Style="{DynamicResource AtrioShelfArrow}" Content="&#xE76C;"
+                                                    Command="ScrollBar.PageRightCommand" CommandTarget="{Binding ElementName=RankScroller}" />
+                                        </StackPanel>
+                                        <TextBlock Text="{DynamicResource LOCAtrioHomeMostPlayed}" Style="{DynamicResource AtrioSectionTitle}" Margin="0" VerticalAlignment="Center" />
+                                    </DockPanel>
+                                    <ScrollViewer x:Name="RankScroller" HorizontalScrollBarVisibility="Hidden" VerticalScrollBarVisibility="Disabled"
+                                                  PageWheel.PassToParent="True" Focusable="False">
+                                        <ItemsControl ItemsSource="{Binding Ranked}" Focusable="False">
+                                            <ItemsControl.ItemsPanel>
+                                                <ItemsPanelTemplate>
+                                                    <StackPanel Orientation="Horizontal" />
+                                                </ItemsPanelTemplate>
+                                            </ItemsControl.ItemsPanel>
+                                            <ItemsControl.ItemTemplate>
+                                                <DataTemplate>
+                                                    <Grid Margin="0,0,12,0">
+                                                        <TextBlock Text="{Binding Rank}" FontSize="168" FontWeight="Bold" VerticalAlignment="Bottom"
+                                                                   HorizontalAlignment="Left" FontFamily="{DynamicResource AtrioDisplayFont}"
+                                                                   Margin="-6,0,0,16" LineHeight="168" LineStackingStrategy="BlockLineHeight">
+                                                            <TextBlock.Foreground>
+                                                                <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                                                                    <GradientStop Color="{DynamicResource GlyphColor}" Offset="0" />
+                                                                    <GradientStop Color="#10FFFFFF" Offset="1" />
+                                                                </LinearGradientBrush>
+                                                            </TextBlock.Foreground>
+                                                        </TextBlock>
+                                                        <Button Style="{DynamicResource AtrioGameTile}" Margin="84,0,0,0" DataContext="{Binding Game}"
+                                                                ToolTip="{Binding DisplayName}" CommandParameter="{Binding}"
+                                                                Command="{Binding DataContext.OpenGameCommand, RelativeSource={RelativeSource AncestorType={x:Type HomeView}}}" />
+                                                    </Grid>
+                                                </DataTemplate>
+                                            </ItemsControl.ItemTemplate>
+                                        </ItemsControl>
+                                    </ScrollViewer>
+                                </StackPanel>
+
+                                <ItemsControl ItemsSource="{Binding Shelves}" ItemTemplate="{DynamicResource AtrioShelfTemplate}" Focusable="False" />
+                            </StackPanel>
+                        </StackPanel>
+                    </ScrollViewer>
+                    </Grid>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+</ResourceDictionary>

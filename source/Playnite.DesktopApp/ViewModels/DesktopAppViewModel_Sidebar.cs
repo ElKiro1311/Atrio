@@ -70,6 +70,9 @@ namespace Playnite.DesktopApp.ViewModels
 
         public object IconObject => SdkHelpers.ResolveUiItemIcon(SideItem.Icon);
 
+        /// <summary>Goes to the lower group of the sidebar in themes that have one.</summary>
+        public bool PlaceAtBottom => SideItem is AtrioSidebarItem item && item.PlaceAtBottom;
+
         private bool selected;
         public bool Selected
         {
@@ -147,6 +150,8 @@ namespace Playnite.DesktopApp.ViewModels
 
                 Selected = true;
                 model.ActiveView = view;
+                model.UpdateAmbient();
+                Controls.PageTransition.Play(view);
             }
         }
     }
@@ -173,6 +178,27 @@ namespace Playnite.DesktopApp.ViewModels
 
                 return view;
             };
+        }
+    }
+
+    public class AtrioSidebarItem : SidebarItem
+    {
+        public bool PlaceAtBottom { get; set; }
+
+        public AtrioSidebarItem(Control view, Action opened = null)
+        {
+            Type = SiderbarItemType.View;
+            Opened = () =>
+            {
+                opened?.Invoke();
+                return view;
+            };
+        }
+
+        public AtrioSidebarItem(Action activated)
+        {
+            Type = SiderbarItemType.Button;
+            Activated = activated;
         }
     }
 
@@ -205,10 +231,21 @@ namespace Playnite.DesktopApp.ViewModels
             }
         }
 
+        private SidebarWrapperItem storesSidebarItem;
+
+        public void SwitchToStoresView()
+        {
+            storesSidebarItem?.Command.Execute(null);
+        }
+
         public void LoadSideBarItems()
         {
             libraryView = new Controls.Views.Library(this);
             statsView = new Controls.LibraryStatistics(LibraryStats);
+            StoreFilter = new StoreFilterViewModel(this);
+            HomeModel = new HomeViewModel(this);
+            var storesModel = new StoresViewModel(this);
+            var themesModel = new ThemesViewModel(this);
 
             var libraryItem = new MainSidebarViewItem(libraryView, this, ApplicationView.Library)
             {
@@ -241,7 +278,38 @@ namespace Playnite.DesktopApp.ViewModels
 
             sideItems = sideItems.OrderByDescending(a => a.SideItem.Type).ThenBy(a => a.SideItem.Title).ToList();
             sideItems.Insert(0, new SidebarWrapperItem(statsItem, this));
+            storesSidebarItem = new SidebarWrapperItem(new AtrioSidebarItem(new Controls.Views.StoresView(storesModel))
+            {
+                Icon = "SidebarStoresIcon",
+                Title = Resources.GetString("LOCAtrioStores")
+            }, this);
+            sideItems.Insert(0, storesSidebarItem);
             sideItems.Insert(0, new SidebarWrapperItem(libraryItem, this));
+            sideItems.Insert(0, new SidebarWrapperItem(new AtrioSidebarItem(new Controls.Views.HomeView(HomeModel), HomeModel.Refresh)
+            {
+                Icon = "SidebarHomeIcon",
+                Title = Resources.GetString("LOCAtrioHome")
+            }, this));
+
+            sideItems.Add(new SidebarWrapperItem(new AtrioSidebarItem(new Controls.Views.ThemesView(themesModel), themesModel.Refresh)
+            {
+                Icon = "SidebarThemesIcon",
+                Title = Resources.GetString("LOCAtrioThemes"),
+                PlaceAtBottom = true
+            }, this));
+            sideItems.Add(new SidebarWrapperItem(new AtrioSidebarItem(() => OpenAddonsCommand.Execute(null))
+            {
+                Icon = "SidebarAddonsIcon",
+                Title = Resources.GetString("LOCAtrioAddons"),
+                PlaceAtBottom = true
+            }, this));
+            sideItems.Add(new SidebarWrapperItem(new AtrioSidebarItem(() => OpenSettingsCommand.Execute(null))
+            {
+                Icon = "SidebarSettingsIcon",
+                Title = Resources.GetString("LOCAtrioSettings"),
+                PlaceAtBottom = true
+            }, this));
+
             sideItems[0].Command.Execute(null);
             SidebarItems.AddRange(sideItems);
         }

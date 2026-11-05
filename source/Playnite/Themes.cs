@@ -28,6 +28,7 @@ namespace Playnite
         public static ThemeManifest DefaultTheme { get; private set; }
         public const string DefaultDesktopThemeId = "Playnite_builtin_DefaultDesktop";
         public const string DefaultFullscreenThemeId = "Playnite_builtin_DefaultFullscreen";
+        public const string AtrioDesktopThemeId = "Atrio_Noche";
         public const string DefaultThemeDirName = "Default";
         public static bool ForceLTRLayout { get; set; }
 

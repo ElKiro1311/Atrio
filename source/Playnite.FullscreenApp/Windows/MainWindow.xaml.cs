@@ -34,6 +34,13 @@ namespace Playnite.FullscreenApp.Windows
         public MainWindow() : base()
         {            
             InitializeComponent();
+            if (Playnite.Atrio.AtrioInfo.IsTestRun)
+            {
+                // Development runs must not take over the screen.
+                ShowActivated = false;
+                ShowInTaskbar = false;
+                Topmost = false;
+            }
         }
     }
 }

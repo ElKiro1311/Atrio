@@ -1020,7 +1020,7 @@ namespace Playnite
         {
             try
             {
-                var path = Environment.ExpandEnvironmentVariables(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory), Paths.GetSafePathName(game.Name) + ".url"));
+                var path = Environment.ExpandEnvironmentVariables(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory), Paths.GetSafePathName(game.Name) + ".lnk"));
                 string icon = string.Empty;
 
                 if (!game.Icon.IsNullOrEmpty())
@@ -1054,8 +1054,9 @@ namespace Playnite
                     icon = PlaynitePaths.DesktopExecutablePath;
                 }
 
+                // Atrio registers no URI scheme, so shortcuts call the executable directly.
                 var args = new CmdLineOptions() { Start = game.Id.ToString() }.ToString();
-                Programs.CreateUrlShortcut($"playnite://playnite/start/{game.Id}", icon, path);
+                Programs.CreateShortcut(PlaynitePaths.DesktopExecutablePath, args, icon, path);
             }
             catch (Exception exc) when (!PlayniteEnvironment.ThrowAllErrors)
             {

@@ -1,1 +1,1 @@
-start Playnite.DesktopApp.exe --safestartup
+start Atrio.exe --safestartup

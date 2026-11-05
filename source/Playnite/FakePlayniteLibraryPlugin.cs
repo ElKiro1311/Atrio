@@ -12,7 +12,7 @@ namespace Playnite
 {
     public class FakePlayniteLibraryPlugin : LibraryPlugin
     {
-        public override string Name => "Playnite";
+        public override string Name => "Atrio";
 
         public override Guid Id => Guid.Empty;
 

@@ -284,3 +284,10 @@ source/Playnite.FullscreenApp/Themes/Fullscreen/Default/audio/*
 source/Playnite.Deps/include/*
 source/Playnite.Deps/include_native_x86/*
 launchSettings.json
+
+# Atrio
+/.herramientas/
+/salida/
+/atrio/pruebas/unitarias/bin/
+/atrio/pruebas/unitarias/obj/
+__pycache__/

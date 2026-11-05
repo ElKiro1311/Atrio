@@ -88,6 +88,8 @@ namespace Playnite.DesktopApp
             }
 
             InstantiateApp();
+            ThemesViewModel.ApplyAccent(Playnite.Atrio.AtrioSettings.Load().AccentColor);
+            ThemesViewModel.ApplyFonts();
             AppUriHandler = MainModel.ProcessUriRequest;
             var isFirstStart = ProcessStartupWizard();
             MigrateDatabase();
@@ -238,6 +240,11 @@ namespace Playnite.DesktopApp
 
             // This is most likely safe place to consider application to be started properly
             FileSystem.DeleteFile(PlaynitePaths.SafeStartupFlagFile);
+
+            if (Atrio.AtrioCaptura.IsActive)
+            {
+                Atrio.AtrioCaptura.Run(MainModel);
+            }
         }
 
         private bool ProcessStartupWizard()
@@ -263,22 +270,12 @@ namespace Playnite.DesktopApp
             if (firstStartup)
             {
                 AppSettings.DatabasePath = defaultDbDir;
+                AppSettings.DisabledPlugins = Playnite.Atrio.AtrioInfo.OptionalAddons.ToList();
+                AppSettings.ViewSettings.GamesViewType = DesktopView.Grid;
                 AppSettings.SaveSettings();
+                OfferPlayniteImport();
                 Database.SetDatabasePath(AppSettings.DatabasePath);
                 Database.OpenDatabase();
-
-                var wizardWindow = new FirstTimeStartupWindowFactory();
-                var wizardModel = new FirstTimeStartupViewModel(
-                    wizardWindow,
-                    Dialogs,
-                    new ResourceProvider(),
-                    Extensions,
-                    ServicesClient);
-                if (wizardModel.OpenView() == true)
-                {
-                    var settings = wizardModel.Settings;
-                    AppSettings.DisabledPlugins = settings.DisabledPlugins;
-                }
 
                 AppSettings.AutoBackupEnabled = true;
                 AppSettings.LastAutoBackup = DateTime.Now.AddDays(1); // Postpone first backup to not interrupt initial user experience
@@ -292,6 +289,9 @@ namespace Playnite.DesktopApp
 
                 AppSettings.FirstTimeWizardComplete = true;
                 AppSettings.SaveSettings();
+
+                // The add-ons come bundled: from here on this is a start like any other.
+                firstStartup = false;
             }
             else
             {
@@ -299,6 +299,59 @@ namespace Playnite.DesktopApp
             }
 
             return firstStartup;
+        }
+
+        private void OfferPlayniteImport()
+        {
+            var source = Playnite.Atrio.PlayniteImporter.FindPlayniteData();
+            if (source == null || Playnite.Atrio.AtrioInfo.GetTestSetting("ATRIO_IMPORTAR") == "no")
+            {
+                return;
+            }
+
+            var import = new MessageBoxOption(ResourceProvider.GetString("LOCAtrioImportYes"), true, false);
+            var skip = new MessageBoxOption(ResourceProvider.GetString("LOCAtrioImportNo"), false, true);
+            var question = string.Format(
+                ResourceProvider.GetString("LOCAtrioImportFound"),
+                Playnite.Atrio.PlayniteImporter.CountGames(source).ToString("N0", Playnite.Localization.ApplicationLanguageCultureInfo),
+                source);
+
+            var accepted = Playnite.Atrio.AtrioInfo.GetTestSetting("ATRIO_IMPORTAR") == "si" ||
+                Dialogs.ShowMessage(question, ResourceProvider.GetString("LOCAtrioImportTitle"), MessageBoxImage.None, new List<MessageBoxOption> { import, skip }) == import;
+            if (!accepted)
+            {
+                return;
+            }
+
+            while (Playnite.Atrio.PlayniteImporter.IsPlayniteRunning())
+            {
+                var retry = new MessageBoxOption(ResourceProvider.GetString("LOCAtrioImportRetry"), true, false);
+                var cancel = new MessageBoxOption(ResourceProvider.GetString("LOCCancelLabel"), false, true);
+                if (Dialogs.ShowMessage(
+                    ResourceProvider.GetString("LOCAtrioImportRunning"),
+                    ResourceProvider.GetString("LOCAtrioImportTitle"),
+                    MessageBoxImage.Warning,
+                    new List<MessageBoxOption> { retry, cancel }) != retry)
+                {
+                    return;
+                }
+            }
+
+            var options = new GlobalProgressOptions(ResourceProvider.GetString("LOCAtrioImportProgress"), false) { IsIndeterminate = false };
+            var result = Dialogs.ActivateGlobalProgress(args =>
+            {
+                Playnite.Atrio.PlayniteImporter.Import(source, (done, total) =>
+                {
+                    args.ProgressMaxValue = total;
+                    args.CurrentProgressValue = done;
+                });
+            }, options);
+
+            if (result.Error != null)
+            {
+                logger.Error(result.Error, "Failed to import the Playnite library.");
+                Dialogs.ShowErrorMessage(string.Format(ResourceProvider.GetString("LOCAtrioImportFailed"), result.Error.Message), string.Empty);
+            }
         }
 
         public override void ShowWindowsNotification(string title, string body, Action action)

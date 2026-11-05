@@ -1,0 +1,22 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net462</TargetFramework>
+    <PlatformTarget>x86</PlatformTarget>
+    <RuntimeIdentifier>win-x86</RuntimeIdentifier>
+    <LangVersion>12</LangVersion>
+    <IsPackable>false</IsPackable>
+    <OutputType>Exe</OutputType>
+    <NuGetAudit>false</NuGetAudit>
+    <UseWpf>true</UseWpf>
+    <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
+    <AtrioApp Condition="'$(AtrioApp)'==''">..\..\..\salida\Atrio</AtrioApp>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="..\..\..\source\Tests\Playnite.Tests\GameUnifierTests.cs" Link="GameUnifierTests.cs" />
+    <PackageReference Include="NUnit" Version="3.13.2" />
+    <PackageReference Include="NUnitLite" Version="3.13.2" />
+    <Reference Include="Playnite"><HintPath>$(AtrioApp)\Playnite.dll</HintPath></Reference>
+    <Reference Include="Playnite.SDK"><HintPath>$(AtrioApp)\Playnite.SDK.dll</HintPath></Reference>
+    <Reference Include="NLog"><HintPath>$(AtrioApp)\NLog.dll</HintPath></Reference>
+  </ItemGroup>
+</Project>

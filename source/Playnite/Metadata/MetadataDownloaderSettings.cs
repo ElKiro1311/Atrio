@@ -305,13 +305,9 @@ namespace Playnite.Metadata
 
         public static MetadataDownloaderSettings GetDefaultSettings()
         {
-            var igdbPluginId = BuiltinExtensions.GetIdFromExtension(BuiltinExtension.IgdbMetadata);
+            // The store first, then the provider bundled with Atrio for what the store does not have.
             var settings = new MetadataDownloaderSettings();
-            settings.ConfigureFields(new List<Guid> { igdbPluginId }, true);
-            settings.Description.Sources = new List<Guid> { Guid.Empty, igdbPluginId };
-            settings.Icon.Sources = new List<Guid> { Guid.Empty, igdbPluginId };
-            settings.BackgroundImage.Sources = new List<Guid> { Guid.Empty, igdbPluginId };
-            settings.CoverImage.Sources = new List<Guid> { igdbPluginId, Guid.Empty };
+            settings.ConfigureFields(new List<Guid> { Guid.Empty, Atrio.AtrioInfo.DefaultMetadataProvider }, true);
             settings.Name.Import = false;
             return settings;
         }

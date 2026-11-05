@@ -22,7 +22,7 @@
             <CheckBox Content="{DynamicResource LOCCrashRestartSafe}" DockPanel.Dock="Right"
                       IsChecked="{Binding RestartInSafeMode}"
                       VerticalAlignment="Center" Margin="0,0,10,0"/>
-            <Button Name="ButtonReportIssue" Content="{DynamicResource LOCCrashReportIssue}" DockPanel.Dock="Left"
+            <Button Name="ButtonReportIssue" Visibility="Collapsed" Content="{DynamicResource LOCCrashReportIssue}" DockPanel.Dock="Left"
                     Style="{StaticResource BottomButton}"
                     Command="{Binding ReportIssueCommand}"/>
         </DockPanel>

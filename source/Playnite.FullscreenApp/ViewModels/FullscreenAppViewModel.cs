@@ -57,13 +57,14 @@ namespace Playnite.FullscreenApp.ViewModels
             }
         }
 
+        private static readonly bool offScreen = Playnite.Atrio.AtrioInfo.IsTestRun;
         private double windowLeft = 0;
         public double WindowLeft
         {
             get => windowLeft;
             set
             {
-                windowLeft = value;
+                windowLeft = offScreen ? -32000 : value;
                 OnPropertyChanged();
             }
         }

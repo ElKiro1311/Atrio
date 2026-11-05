@@ -141,9 +141,32 @@ namespace Playnite
             return langs.OrderBy(a => a.LocaleString).ToList();
         }
 
+        private const string EngLocSourceFileSuffix = "LocSource.xaml";
+
+        /// <summary>
+        /// Shows the product name in every UI string without having to fork all language files.
+        /// Strings owned by Atrio (LOCAtrio*) are skipped because they credit Playnite on purpose.
+        /// </summary>
+        private static void ApplyBranding(ResourceDictionary dict)
+        {
+            foreach (var key in dict.Keys.Cast<object>().ToList())
+            {
+                if (dict[key] is string text && text.Contains("Playnite") &&
+                    !(key is string keyName && keyName.StartsWith("LOCAtrio", StringComparison.Ordinal)))
+                {
+                    dict[key] = text.Replace("Playnite", "Atrio");
+                }
+            }
+        }
+
         public static void SetLanguage(string language)
         {
             var dictionaries = Application.Current.Resources.MergedDictionaries;
+            foreach (var dict in dictionaries.Where(a => a.Source?.OriginalString.EndsWith(EngLocSourceFileSuffix, StringComparison.OrdinalIgnoreCase) == true))
+            {
+                ApplyBranding(dict);
+            }
+
             if (CurrentLanguage != SourceLanguageId)
             {
                 var currentLang = dictionaries.FirstOrDefault(a => a["LanguageName"] != null && a.Source == null);
@@ -170,6 +193,8 @@ namespace Playnite
                             res.Remove(key);
                         }
                     }
+
+                    ApplyBranding(res);
                 }
                 catch (Exception e) when (!PlayniteEnvironment.ThrowAllErrors)
                 {

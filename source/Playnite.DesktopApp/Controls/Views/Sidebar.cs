@@ -16,10 +16,12 @@ namespace Playnite.DesktopApp.Controls.Views
 {
     [TemplatePart(Name = "PART_ElemMainMenu", Type = typeof(FrameworkElement))]
     [TemplatePart(Name = "PART_PanelSideBarItems", Type = typeof(Panel))]
+    [TemplatePart(Name = "PART_PanelSideBarBottomItems", Type = typeof(Panel))]
     public class Sidebar : Control
     {
         private readonly DesktopAppViewModel mainModel;
         private Panel PanelSideBarItems;
+        private Panel PanelSideBarBottomItems;
         private FrameworkElement ElemMainMenu;
 
         static Sidebar()
@@ -70,9 +72,11 @@ namespace Playnite.DesktopApp.Controls.Views
             }
 
             PanelSideBarItems.Children.Clear();
+            PanelSideBarBottomItems?.Children.Clear();
             foreach (var sideItem in mainModel.SidebarItems)
             {
-                PanelSideBarItems.Children.Add(new SidebarItem { DataContext = sideItem });
+                var panel = sideItem.PlaceAtBottom && PanelSideBarBottomItems != null ? PanelSideBarBottomItems : PanelSideBarItems;
+                panel.Children.Add(new SidebarItem { DataContext = sideItem });
             }
         }
 
@@ -81,6 +85,7 @@ namespace Playnite.DesktopApp.Controls.Views
             base.OnApplyTemplate();
 
             PanelSideBarItems = Template.FindName("PART_PanelSideBarItems", this) as Panel;
+            PanelSideBarBottomItems = Template.FindName("PART_PanelSideBarBottomItems", this) as Panel;
             if (PanelSideBarItems != null)
             {
                 LoadSidebarItems();

@@ -804,6 +804,7 @@ namespace Playnite.Plugins
             {
                 try
                 {
+                    logger.Debug($"Notifying OnApplicationStarted to {plugin.Description.Name}");
                     plugin.Plugin.OnApplicationStarted(new SDK.Events.OnApplicationStartedEventArgs());
                 }
                 catch (Exception e)

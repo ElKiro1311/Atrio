@@ -1,18 +1,13 @@
-﻿using Microsoft.Win32;
-using Newtonsoft.Json;
-using Playnite.Common;
+﻿using Playnite.Atrio;
 using Playnite.SDK;
-using System;
 using System.Collections.Generic;
-using System.Configuration;
-using System.IO;
-using System.Linq;
-using System.Net.Http;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Playnite.Services
 {
+    /// <summary>
+    /// Keeps the interface of the backend client, but everything is answered by the public
+    /// add-on database: Atrio does not use the servers of Playnite.
+    /// </summary>
     public class ServicesClient : BaseServicesClient
     {
         public class RecommendedAddons
@@ -23,7 +18,9 @@ namespace Playnite.Services
 
         private static ILogger logger = LogManager.GetLogger();
 
-        public ServicesClient() : this(ConfigurationManager.AppSettings["ServicesUrl"])
+        private readonly AddonCatalog catalog = new AddonCatalog();
+
+        public ServicesClient() : this(string.Empty)
         {
         }
 
@@ -33,60 +30,33 @@ namespace Playnite.Services
 
         public List<string> GetPatrons()
         {
-            return ExecuteGetRequest<List<string>>("/patreon/patrons");
-        }
-
-        public Guid UploadDiagPackage(string diagPath)
-        {
-            using (var fs = new FileStream(diagPath, FileMode.Open))
-            {
-                using (var content = new StreamContent(fs))
-                {
-                    var response = HttpClient.PostAsync(Endpoint + "/playnite/diag", content).GetAwaiter().GetResult();
-                    var strResult = response.Content.ReadAsStringAsync().GetAwaiter().GetResult();
-                    var result = JsonConvert.DeserializeObject<ServicesResponse<Guid>>(strResult);
-                    if (!string.IsNullOrEmpty(result.Error))
-                    {
-                        logger.Error("Service request error by proxy: " + result.Error);
-                        throw new Exception(result.Error);
-                    }
-
-                    return result.Data;
-                }
-            }
+            return new List<string>();
         }
 
         public List<AddonManifest> GetAllAddons(AddonType type, string searchTerm)
         {
-            return ExecuteGetRequest<List<AddonManifest>>($"/addons?type={type}&searchTerm={searchTerm}".UrlEncode());
+            return catalog.Search(type, searchTerm);
         }
 
         public AddonManifest GetAddon(string addonId)
         {
-            return ExecuteGetRequest<List<AddonManifest>>($"/addons?addonId={addonId}".UrlEncode()).FirstOrDefault();
+            return catalog.GetAddon(addonId);
         }
 
         public AddonInstallerManifest GetAddonInstaller(string addonId)
         {
-            return ExecuteGetRequest<AddonInstallerManifest>($"/addons/installer?addonId={addonId}".UrlEncode());
+            return catalog.GetInstaller(addonId);
         }
 
         public string[] GetAddonBlacklist()
         {
-            return ExecuteGetRequest<string[]>("/addons/blacklist") ?? new string[0];
+            return catalog.GetBlocklist();
         }
 
         public RecommendedAddons GetDefaultExtensions()
         {
-            var stringData = ExecuteGetRequest<string>("/addons/defaultextensions");
-            if (stringData.IsNullOrEmpty())
-            {
-                return new RecommendedAddons();
-            }
-            else
-            {
-                return Serialization.FromJson<RecommendedAddons>(stringData);
-            }
+            // The store add-ons come with the app, there is nothing to recommend.
+            return new RecommendedAddons();
         }
     }
 }

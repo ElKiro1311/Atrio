@@ -26,7 +26,15 @@ namespace Playnite.DesktopApp.ViewModels
         {
             get
             {
-                return "Playnite " + Updater.CurrentVersion.ToString(2);
+                return "Atrio " + Playnite.Atrio.AtrioInfo.Version;
+            }
+        }
+
+        public string BasedOnInfo
+        {
+            get
+            {
+                return string.Format(ResourceProvider.GetString("LOCAtrioBasedOn"), Updater.CurrentVersion.ToString(2));
             }
         }
 

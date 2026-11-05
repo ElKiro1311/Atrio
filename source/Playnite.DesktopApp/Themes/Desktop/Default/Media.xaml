@@ -34,6 +34,11 @@
     <TextBlock x:Key="ClearTextIcon" Text="&#xef00;" FontFamily="{DynamicResource FontIcoFont}"/>
     <TextBlock x:Key="SearchTextIcon" Text="&#xed11;" FontFamily="{DynamicResource FontIcoFont}" />
 
+    <TextBlock x:Key="SidebarHomeIcon" Text="&#xE80F;" FontFamily="Segoe MDL2 Assets" />
+    <TextBlock x:Key="SidebarStoresIcon" Text="&#xE719;" FontFamily="Segoe MDL2 Assets" />
+    <TextBlock x:Key="SidebarThemesIcon" Text="&#xE790;" FontFamily="Segoe MDL2 Assets" />
+    <TextBlock x:Key="SidebarAddonsIcon" Text="&#xEA86;" FontFamily="Segoe MDL2 Assets" />
+    <TextBlock x:Key="SidebarSettingsIcon" Text="&#xE713;" FontFamily="Segoe MDL2 Assets" />
     <TextBlock x:Key="SidebarLibraryIcon" Text="&#xef65;" FontFamily="{DynamicResource FontIcoFont}"  FontWeight="ExtraLight"/>
     <TextBlock x:Key="SidebarStatisticsIcon" Text="&#xe983;" FontFamily="{DynamicResource FontIcoFont}"  FontWeight="ExtraLight"/>
 

@@ -45,7 +45,7 @@ namespace Playnite
         public static void SetBootupStateRegistration(bool runOnBootup, bool startClosed)
         {
             var startupPath = Environment.GetFolderPath(Environment.SpecialFolder.Startup, Environment.SpecialFolderOption.Create);
-            var shortcutPath = Path.Combine(startupPath, "Playnite.lnk");
+            var shortcutPath = Path.Combine(startupPath, "Atrio.lnk");
             if (runOnBootup)
             {
                 var args = new CmdLineOptions()

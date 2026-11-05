@@ -1,8 +1,9 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
-    <AssemblyTitle>Playnite Desktop Application</AssemblyTitle>
-    <Copyright>Copyright © Josef Nemec 2026</Copyright>
+    <AssemblyTitle>Atrio</AssemblyTitle>
+    <Product>Atrio</Product>
+    <Copyright>Atrio, basado en Playnite © Josef Nemec</Copyright>
     <TargetFramework>net462</TargetFramework>
     <BuiltInComInteropSupport>true</BuiltInComInteropSupport>
     <ApplicationManifest>app.manifest</ApplicationManifest>
@@ -67,8 +68,4 @@
     <PackageReference Include="System.ValueTuple" version="4.5.0" />
     <PackageReference Include="VirtualizingWrapPanel" version="2.5.4" />
   </ItemGroup>
-
-  <PropertyGroup>
-    <PostBuildEvent>SETX PLAYNITE_SLN $(SolutionDir)</PostBuildEvent>
-  </PropertyGroup>
 </Project>

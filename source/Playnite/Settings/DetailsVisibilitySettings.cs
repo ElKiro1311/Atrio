@@ -68,7 +68,7 @@ namespace Playnite
             }
         }
 
-        private bool lastPlayed = false;
+        private bool lastPlayed = true;
         public bool LastPlayed
         {
             get

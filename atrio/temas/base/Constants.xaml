@@ -1,0 +1,71 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:sys="clr-namespace:System;assembly=mscorlib">
+
+    <sys:Double x:Key="FontSizeSmall">12</sys:Double>
+    <sys:Double x:Key="FontSize">14</sys:Double>
+    <sys:Double x:Key="FontSizeLarge">15</sys:Double>
+    <sys:Double x:Key="FontSizeLarger">20</sys:Double>
+    <sys:Double x:Key="FontSizeLargest">30</sys:Double>
+    <FontFamily x:Key="FontFamily">@@fuente@@</FontFamily>
+    <FontFamily x:Key="MonospaceFontFamily">Consolas</FontFamily>
+    <Thickness x:Key="PopupBorderThickness">1</Thickness>
+    <Thickness x:Key="ControlBorderThickness">1</Thickness>
+    <sys:Double x:Key="EllipseBorderThickness">1</sys:Double>
+    <CornerRadius x:Key="ControlCornerRadius">@@radio@@</CornerRadius>
+    <Thickness x:Key="SidebarItemPadding">8</Thickness>
+
+    <Color x:Key="BlackColor">#FF000000</Color>
+    <Color x:Key="WhiteColor">#FFFFFFFF</Color>
+    <Color x:Key="TextColor">@@texto@@</Color>
+    <Color x:Key="TextColorDarker">@@textoTenue@@</Color>
+    <Color x:Key="TextColorDark">@@textoSobreAcento@@</Color>
+    <Color x:Key="MainColor">@@superficie@@</Color>
+    <Color x:Key="MainColorDark">@@fondo@@</Color>
+    <Color x:Key="HoverColor">@@superficieHover@@</Color>
+    <Color x:Key="GlyphColor">@@acento@@</Color>
+    <Color x:Key="HighlightGlyphColor">@@acentoSuave@@</Color>
+    <Color x:Key="PopupBackgroundColor">@@popup@@</Color>
+    <Color x:Key="PopupBorderColor">@@borde@@</Color>
+    <Color x:Key="BackgroundToneColor">@@superficie@@</Color>
+    <Color x:Key="GridItemBackgroundColor">@@tarjeta@@</Color>
+    <Color x:Key="PanelSeparatorColor">@@separador@@</Color>
+    <Color x:Key="WindowPanelSeparatorColor">@@separador@@</Color>
+    <Color x:Key="DataChangeNotifColor">#ffa500</Color>
+
+    <SolidColorBrush x:Key="ControlBackgroundBrush" Color="Transparent" />
+    <SolidColorBrush x:Key="TextBrush" Color="{DynamicResource TextColor}" />
+    <SolidColorBrush x:Key="TextBrushDarker" Color="{DynamicResource TextColorDarker}" />
+    <SolidColorBrush x:Key="TextBrushDark" Color="{DynamicResource TextColorDark}" />
+    <SolidColorBrush x:Key="NormalBrush" Color="{DynamicResource MainColor}" />
+    <SolidColorBrush x:Key="NormalBrushDark" Color="{DynamicResource MainColorDark}" />
+    <SolidColorBrush x:Key="NormalBorderBrush" Color="@@borde@@" />
+    <SolidColorBrush x:Key="HoverBrush" Color="{DynamicResource HighlightGlyphColor}" />
+    <SolidColorBrush x:Key="GlyphBrush" Color="{DynamicResource GlyphColor}" />
+    <SolidColorBrush x:Key="HighlightGlyphBrush" Color="{DynamicResource HighlightGlyphColor}" />
+    <SolidColorBrush x:Key="PopupBorderBrush" Color="{DynamicResource PopupBorderColor}" />
+    <SolidColorBrush x:Key="TooltipBackgroundBrush" Color="{DynamicResource PopupBackgroundColor}" />
+    <SolidColorBrush x:Key="ButtonBackgroundBrush" Color="{DynamicResource MainColor}" />
+    <SolidColorBrush x:Key="GridItemBackgroundBrush" Color="{DynamicResource GridItemBackgroundColor}" />
+    <SolidColorBrush x:Key="PanelSeparatorBrush" Color="{DynamicResource PanelSeparatorColor}" />
+    <SolidColorBrush x:Key="WindowPanelSeparatorBrush" Color="{DynamicResource WindowPanelSeparatorColor}" />
+    <SolidColorBrush x:Key="PopupBackgroundBrush" Color="{DynamicResource PopupBackgroundColor}" />
+    <SolidColorBrush x:Key="CheckBoxCheckMarkBkBrush" Color="{DynamicResource MainColorDark}" />
+    <SolidColorBrush x:Key="DataChangeNotifBrush" Color="{DynamicResource DataChangeNotifColor}" />
+
+    <SolidColorBrush x:Key="PositiveRatingBrush" Color="#6EE7A0" />
+    <SolidColorBrush x:Key="NegativeRatingBrush" Color="#FF7B7B" />
+    <SolidColorBrush x:Key="MixedRatingBrush" Color="#FFE08A" />
+
+    <SolidColorBrush x:Key="WarningBrush" Color="#FF7B7B" />
+
+    <LinearGradientBrush x:Key="ExpanderBackgroundBrush" StartPoint="0,0.5" EndPoint="1,0.5">
+        <GradientStop Color="{DynamicResource MainColor}" Offset="0" />
+        <GradientStop Color="#00000000" Offset="0.9" />
+    </LinearGradientBrush>
+
+    <LinearGradientBrush x:Key="WindowBackgourndBrush" StartPoint="0.5,0" EndPoint="0.5,1">
+        <GradientStop Color="@@fondoSuperior@@" Offset="0" />
+        <GradientStop Color="{DynamicResource MainColorDark}" Offset="@@corteFondo@@" />
+    </LinearGradientBrush>
+</ResourceDictionary>

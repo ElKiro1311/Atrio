@@ -1,0 +1,183 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <Style TargetType="{x:Type StoresView}">
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="{x:Type StoresView}">
+                    <ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto" Focusable="False">
+                        <StackPanel Margin="34,30,34,32">
+                            <DockPanel Margin="0,0,0,22">
+                                <Button DockPanel.Dock="Right" Style="{DynamicResource AtrioGhostButton}" VerticalAlignment="Bottom"
+                                        Margin="0,0,110,4" Command="{Binding UpdateAllCommand}">
+                                    <StackPanel Orientation="Horizontal">
+                                        <TextBlock Text="&#xE72C;" FontFamily="{DynamicResource AtrioIconFont}" VerticalAlignment="Center" Margin="0,0,8,0" />
+                                        <TextBlock Text="{DynamicResource LOCAtrioSyncAll}" VerticalAlignment="Center" />
+                                    </StackPanel>
+                                </Button>
+                                <StackPanel>
+                                    <TextBlock Text="{DynamicResource LOCAtrioStoresTitle}" Style="{DynamicResource AtrioPageTitle}" />
+                                    <TextBlock Text="{DynamicResource LOCAtrioStoresSubtitle}" Style="{DynamicResource AtrioCaption}"
+                                               FontSize="14" Margin="0,2,0,0" TextWrapping="Wrap" />
+                                </StackPanel>
+                            </DockPanel>
+
+                            <!-- How the library is shared between the stores -->
+                            <Border Style="{DynamicResource AtrioCard}" Padding="18,14,18,14" Margin="0,0,14,18">
+                                <StackPanel>
+                                    <TextBlock Text="{DynamicResource LOCAtrioStoreShare}" Style="{DynamicResource BaseTextBlockStyle}" FontSize="13"
+                                               Foreground="{DynamicResource TextBrushDarker}" Margin="0,0,0,10" />
+                                    <Border CornerRadius="6" Height="12" ClipToBounds="True" RoundedClip.Radius="6">
+                                        <ItemsControl ItemsSource="{Binding Stores}" Focusable="False">
+                                            <ItemsControl.ItemsPanel>
+                                                <ItemsPanelTemplate>
+                                                    <ProportionalPanel />
+                                                </ItemsPanelTemplate>
+                                            </ItemsControl.ItemsPanel>
+                                            <ItemsControl.ItemContainerStyle>
+                                                <Style TargetType="ContentPresenter">
+                                                    <Setter Property="ProportionalPanel.Weight" Value="{Binding GamesCount}" />
+                                                </Style>
+                                            </ItemsControl.ItemContainerStyle>
+                                            <ItemsControl.ItemTemplate>
+                                                <DataTemplate>
+                                                    <Border Background="{Binding ColorBrush}" ToolTip="{Binding Name}" Margin="0,0,2,0" />
+                                                </DataTemplate>
+                                            </ItemsControl.ItemTemplate>
+                                        </ItemsControl>
+                                    </Border>
+                                </StackPanel>
+                            </Border>
+
+                            <ItemsControl ItemsSource="{Binding Stores}" Focusable="False">
+                                <ItemsControl.ItemsPanel>
+                                    <ItemsPanelTemplate>
+                                        <WrapPanel />
+                                    </ItemsPanelTemplate>
+                                </ItemsControl.ItemsPanel>
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <Grid Width="344" Margin="0,0,14,14">
+                                            <Border CornerRadius="{DynamicResource AtrioCardRadius}" Background="{DynamicResource AtrioCardBrush}" />
+                                            <Border CornerRadius="{DynamicResource AtrioCardRadius}" Background="{Binding CardBrush}"
+                                                    BorderThickness="1" BorderBrush="{DynamicResource AtrioBorderBrush}" Padding="18,16,16,14">
+                                                <StackPanel>
+                                                    <DockPanel>
+                                                        <!-- Number on the right, as the first thing to read -->
+                                                        <StackPanel DockPanel.Dock="Right" VerticalAlignment="Center">
+                                                            <TextBlock Text="{Binding GamesText}" FontSize="30" FontWeight="SemiBold" HorizontalAlignment="Right"
+                                                                       LineHeight="34" LineStackingStrategy="BlockLineHeight"
+                                                                       FontFamily="{DynamicResource AtrioDisplayFont}" Foreground="{DynamicResource TextBrush}" />
+                                                            <TextBlock Text="{DynamicResource LOCAtrioGamesWord}" Style="{DynamicResource AtrioCaption}" HorizontalAlignment="Right" />
+                                                        </StackPanel>
+                                                        <Image Source="{Binding Icon}" Width="44" Height="44" DockPanel.Dock="Left" Margin="0,0,14,0"
+                                                               RenderOptions.BitmapScalingMode="Fant" />
+                                                        <StackPanel VerticalAlignment="Center">
+                                                            <TextBlock Text="{Binding Name}" Style="{DynamicResource BaseTextBlockStyle}" FontSize="17" FontWeight="SemiBold"
+                                                                       FontFamily="{DynamicResource AtrioDisplayFont}" TextTrimming="CharacterEllipsis" />
+                                                            <TextBlock Text="{Binding InstalledText}" Style="{DynamicResource AtrioCaption}" />
+                                                        </StackPanel>
+                                                    </DockPanel>
+                                                    <DockPanel Margin="0,14,0,0">
+                                                        <TextBlock Text="{Binding ClientText}" DockPanel.Dock="Right" VerticalAlignment="Center" Style="{DynamicResource AtrioCaption}" Margin="8,0,0,0" />
+                                                        <StackPanel Orientation="Horizontal">
+                                                            <Button Style="{DynamicResource AtrioGhostButton}" Margin="0,0,6,0" Padding="11,0,11,0" MinHeight="30" FontSize="12"
+                                                                    Content="{DynamicResource LOCAtrioAccount}"
+                                                                    Command="{Binding DataContext.ConfigureCommand, RelativeSource={RelativeSource AncestorType={x:Type StoresView}}}"
+                                                                    CommandParameter="{Binding}" />
+                                                            <Button Style="{DynamicResource AtrioGhostButton}" Margin="0,0,6,0" Padding="11,0,11,0" MinHeight="30" FontSize="12"
+                                                                    Content="{DynamicResource LOCAtrioSync}"
+                                                                    Command="{Binding DataContext.UpdateLibraryCommand, RelativeSource={RelativeSource AncestorType={x:Type StoresView}}}"
+                                                                    CommandParameter="{Binding}" />
+                                                            <Button Style="{DynamicResource AtrioGhostButton}" Padding="11,0,11,0" MinHeight="30" FontSize="12"
+                                                                    Content="{DynamicResource LOCAtrioOpenClientShort}"
+                                                                    Visibility="{Binding ClientInstalled, Converter={StaticResource BooleanToVisibilityConverter}}"
+                                                                    Command="{Binding DataContext.OpenClientCommand, RelativeSource={RelativeSource AncestorType={x:Type StoresView}}}"
+                                                                    CommandParameter="{Binding}" />
+                                                        </StackPanel>
+                                                    </DockPanel>
+                                                </StackPanel>
+                                            </Border>
+                                        </Grid>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+
+                            <StackPanel Margin="0,14,0,0"
+                                        Visibility="{Binding HasDisabledStores, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                <TextBlock Text="{DynamicResource LOCAtrioMoreStores}" Style="{DynamicResource AtrioSectionTitle}" />
+                                <ItemsControl ItemsSource="{Binding DisabledStores}" Focusable="False">
+                                    <ItemsControl.ItemsPanel>
+                                        <ItemsPanelTemplate>
+                                            <WrapPanel />
+                                        </ItemsPanelTemplate>
+                                    </ItemsControl.ItemsPanel>
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <Border Style="{DynamicResource AtrioCard}" Width="264" Padding="12,9,10,9" Margin="0,0,10,10">
+                                                <DockPanel>
+                                                    <Button DockPanel.Dock="Right" Style="{DynamicResource AtrioGhostButton}" MinHeight="28" FontSize="12" Padding="10,0,10,0"
+                                                            Content="{Binding ActionText}" Margin="8,0,0,0"
+                                                            Command="{Binding DataContext.EnableCommand, RelativeSource={RelativeSource AncestorType={x:Type StoresView}}}"
+                                                            CommandParameter="{Binding}" />
+                                                    <Image Source="{Binding Icon}" Width="26" Height="26" DockPanel.Dock="Left" Margin="0,0,10,0"
+                                                           RenderOptions.BitmapScalingMode="Fant" />
+                                                    <TextBlock Text="{Binding Name}" Style="{DynamicResource BaseTextBlockStyle}"
+                                                               VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+                                                </DockPanel>
+                                            </Border>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </StackPanel>
+
+                            <Grid Margin="0,20,14,0">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="16" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+
+                                <Border Style="{DynamicResource AtrioCard}" Padding="20,18,20,20" VerticalAlignment="Top">
+                                    <StackPanel>
+                                        <TextBlock Text="{DynamicResource LOCAtrioUnifyTitle}" Style="{DynamicResource AtrioSectionTitle}" />
+                                        <TextBlock Text="{Binding UnifySummary}" Style="{DynamicResource AtrioCaption}" FontSize="13" TextWrapping="Wrap" Margin="0,-6,0,14" />
+                                        <CheckBox Content="{DynamicResource LOCAtrioUnifyToggle}" IsChecked="{Binding UnifyDuplicates}" />
+                                        <CheckBox Content="{DynamicResource LOCAtrioAskToggle}" IsChecked="{Binding AskStoreOnStart}" Margin="0,10,0,0" />
+                                    </StackPanel>
+                                </Border>
+
+                                <Border Grid.Column="2" Style="{DynamicResource AtrioCard}" Padding="20,18,16,14">
+                                    <StackPanel>
+                                        <TextBlock Text="{DynamicResource LOCAtrioPriorityTitle}" Style="{DynamicResource AtrioSectionTitle}" />
+                                        <TextBlock Text="{DynamicResource LOCAtrioPriorityHint}" Style="{DynamicResource AtrioCaption}" FontSize="13"
+                                                   TextWrapping="Wrap" Margin="0,-6,0,12" />
+                                        <ItemsControl ItemsSource="{Binding Priority}" Focusable="False">
+                                            <ItemsControl.ItemTemplate>
+                                                <DataTemplate>
+                                                    <DockPanel Margin="0,0,0,5">
+                                                        <Button DockPanel.Dock="Right" Style="{DynamicResource AtrioShelfArrow}" Width="28" Height="28" Margin="4,0,0,0"
+                                                                Content="&#xE70D;"
+                                                                Command="{Binding DataContext.MoveDownCommand, RelativeSource={RelativeSource AncestorType={x:Type StoresView}}}"
+                                                                CommandParameter="{Binding}" />
+                                                        <Button DockPanel.Dock="Right" Style="{DynamicResource AtrioShelfArrow}" Width="28" Height="28"
+                                                                Content="&#xE70E;"
+                                                                Command="{Binding DataContext.MoveUpCommand, RelativeSource={RelativeSource AncestorType={x:Type StoresView}}}"
+                                                                CommandParameter="{Binding}" />
+                                                        <Image Source="{Binding Icon}" Width="20" Height="20" DockPanel.Dock="Left" Margin="0,0,10,0"
+                                                               RenderOptions.BitmapScalingMode="Fant" />
+                                                        <TextBlock Text="{Binding Name}" VerticalAlignment="Center" Style="{DynamicResource BaseTextBlockStyle}" />
+                                                    </DockPanel>
+                                                </DataTemplate>
+                                            </ItemsControl.ItemTemplate>
+                                        </ItemsControl>
+                                    </StackPanel>
+                                </Border>
+                            </Grid>
+                        </StackPanel>
+                    </ScrollViewer>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+</ResourceDictionary>

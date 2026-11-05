@@ -1,4 +1,5 @@
-﻿using Playnite.Commands;
+﻿using Playnite.Atrio;
+using Playnite.Commands;
 using Playnite.Common;
 using Playnite.DesktopApp.Markup;
 using Playnite.DesktopApp.ViewModels;
@@ -143,6 +144,8 @@ namespace Playnite.DesktopApp.Controls
                     Items.Add(new Separator());
                 }
             }
+
+            AddStoreItems(game);
 
             // Custom Actions
             var customAdded = false;
@@ -324,8 +327,57 @@ namespace Playnite.DesktopApp.Controls
             }
         }
 
+        private void AddStoreItems(Game game)
+        {
+            var group = GameUnifier.Current?.GetGroup(game.Id);
+            if (group == null)
+            {
+                return;
+            }
+
+            var copies = GameCopyEntry.FromGroup(group, GameUnifier.Current.PluginResolver);
+            var startItem = new MenuItem { Header = ResourceProvider.GetString("LOCAtrioMenuStartFrom") };
+            var defaultItem = new MenuItem { Header = ResourceProvider.GetString("LOCAtrioMenuDefaultStore") };
+            var splitItem = new MenuItem { Header = ResourceProvider.GetString("LOCAtrioMenuSplit") };
+            foreach (var copy in copies)
+            {
+                var start = new MenuItem { Header = $"{copy.StoreName} ({copy.StatusText})" };
+                start.Click += (_, __) =>
+                {
+                    if (copy.IsInstalled)
+                    {
+                        model.GamesEditor.PlayGame(copy.Game, true);
+                    }
+                    else
+                    {
+                        model.GamesEditor.InstallGame(copy.Game);
+                    }
+                };
+                startItem.Items.Add(start);
+
+                var preferred = new MenuItem { Header = copy.StoreName, IsChecked = copy.IsUserChoice };
+                preferred.Click += (_, __) => GameUnifier.Current.SetPreferredCopy(copy.Game);
+                defaultItem.Items.Add(preferred);
+
+                var split = new MenuItem { Header = copy.StoreName };
+                split.Click += (_, __) => GameUnifier.Current.SplitCopy(copy.Game);
+                splitItem.Items.Add(split);
+            }
+
+            Items.Add(startItem);
+            Items.Add(defaultItem);
+            Items.Add(splitItem);
+            Items.Add(new Separator());
+        }
+
         private void InitializeItems(List<Game> games)
         {
+            // Atrio: lets the user join games the automatic matching didn't catch.
+            var mergeItem = new MenuItem { Header = ResourceProvider.GetString("LOCAtrioMenuMerge") };
+            mergeItem.Click += (_, __) => GameUnifier.Current.MergeGames(games);
+            Items.Add(mergeItem);
+            Items.Add(new Separator());
+
             // Create Desktop Shortcut
             var shortcutItem = new MenuItem()
             {

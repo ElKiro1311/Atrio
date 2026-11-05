@@ -1,0 +1,19 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:sys="clr-namespace:System;assembly=mscorlib">
+
+    <SolidColorBrush x:Key="AtrioCardBrush" Color="@@tarjeta@@" />
+    <SolidColorBrush x:Key="AtrioCardHoverBrush" Color="@@superficieHover@@" />
+    <SolidColorBrush x:Key="AtrioBorderBrush" Color="@@separador@@" />
+    <SolidColorBrush x:Key="AtrioSidebarBrush" Color="@@panel@@" />
+    <LinearGradientBrush x:Key="AtrioPlayBrush" StartPoint="0,0" EndPoint="1,0">
+        <GradientStop Color="@@jugar@@" Offset="0" />
+        <GradientStop Color="@@jugar2@@" Offset="1" />
+    </LinearGradientBrush>
+    <SolidColorBrush x:Key="AtrioPlayHoverBrush" Color="@@jugarHover@@" />
+    <SolidColorBrush x:Key="AtrioPlayTextBrush" Color="@@textoJugar@@" />
+    <CornerRadius x:Key="AtrioCardRadius">@@radioTarjeta@@</CornerRadius>
+    <sys:Double x:Key="AtrioCoverRadius">@@radioPortada@@</sys:Double>
+    <sys:Double x:Key="AtrioSidebarWidth">@@anchoBarra@@</sys:Double>
+    <sys:Boolean x:Key="AtrioGridClickOpensPage">True</sys:Boolean>
+</ResourceDictionary>

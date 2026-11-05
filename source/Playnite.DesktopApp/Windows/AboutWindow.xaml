@@ -33,6 +33,8 @@
 
             <StackPanel Grid.Column="1" Margin="30,0,30,0">
                 <TextBlock Text="{Binding VersionInfo}" />
+                <TextBlock Text="{Binding BasedOnInfo}" Margin="0,5,0,0" TextWrapping="Wrap" MaxWidth="300" />
+                <TextBlock Text="{DynamicResource LOCAtrioDisclaimer}" Margin="0,5,0,0" TextWrapping="Wrap" MaxWidth="300" />
                 <TextBlock Text="{Binding SDKVersion}" Margin="0,5,0,0" />
                 <TextBlock Text="{Binding ThemeApiVersion}" Margin="0,5,0,0" />
                 <TextBlock Text="{DynamicResource LOCPortableInstallation}" Margin="0,5,0,0"
@@ -41,9 +43,9 @@
 
             <StackPanel Grid.Column="2">
                 <TextBlock>
-                    <Hyperlink NavigateUri="https://www.playnite.link"
+                    <Hyperlink NavigateUri="https://github.com/ElKiro1311/Atrio"
                                Command="{x:Static pcmd:GlobalCommands.NavigateUrlCommand}" CommandParameter="{Binding NavigateUri, RelativeSource={RelativeSource Self}}">
-                        <Run Text="https://www.playnite.link"/>
+                        <Run Text="github.com/ElKiro1311/Atrio"/>
                     </Hyperlink>
                 </TextBlock>
                 <TextBlock Margin="0,5,0,0">
@@ -55,7 +57,7 @@
                 <TextBlock Margin="0,5,0,0">
                     <Hyperlink NavigateUri="https://github.com/JosefNemec/Playnite/"
                                Command="{x:Static pcmd:GlobalCommands.NavigateUrlCommand}" CommandParameter="{Binding NavigateUri, RelativeSource={RelativeSource Self}}">
-                        <Run Text="{DynamicResource LOCAboutSourceLink}"/>
+                        <Run Text="Playnite"/>
                     </Hyperlink>
                 </TextBlock>
                 <TextBlock Margin="0,5,0,0">
@@ -76,7 +78,7 @@
         </GridEx>
 
         <TabControl TabIndex="2" DockPanel.Dock="Top">
-            <TabItem Header="{DynamicResource LOCSpecialThanks}">
+            <TabItem Header="{DynamicResource LOCSpecialThanks}" Visibility="Collapsed">
                 <DockPanel>
                     <TextBlock DockPanel.Dock="Top" Text="{DynamicResource LOCPatreonDevelopMessage}"
                                HorizontalAlignment="Center" Margin="0,5,0,5" TextWrapping="Wrap" />
@@ -92,7 +94,7 @@
                 </DockPanel>
             </TabItem>
 
-            <TabItem Header="{DynamicResource LOCContributorsLabel}">
+            <TabItem Header="{DynamicResource LOCContributorsLabel}" IsSelected="True">
                 <DockPanel>
                     <TextBlock DockPanel.Dock="Top" Text="{DynamicResource LOCAboutContributorsMessage}"
                                HorizontalAlignment="Center" Margin="0,5,0,5" />

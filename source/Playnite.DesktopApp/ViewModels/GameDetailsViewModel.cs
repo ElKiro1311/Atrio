@@ -1,4 +1,5 @@
 ﻿using Playnite;
+using Playnite.Atrio;
 using Playnite.SDK;
 using Playnite.SDK.Models;
 using Playnite.Settings;
@@ -20,6 +21,38 @@ namespace Playnite.DesktopApp.ViewModels
         private IDialogsFactory dialogs;
         private DesktopGamesEditor editor;
         private PlayniteSettings settings;
+
+        /// <summary>Year, developer and genres in one line, shown right above the title.</summary>
+        public string MetaLine
+        {
+            get
+            {
+                if (Game == null)
+                {
+                    return string.Empty;
+                }
+
+                var parts = new List<string>();
+                if (Game.ReleaseYear != null)
+                {
+                    parts.Add(Game.ReleaseYear.ToString());
+                }
+
+                var developers = Game.Game.Developers?.Take(1).Select(a => a.Name).ToList();
+                if (developers.HasItems())
+                {
+                    parts.Add(developers[0]);
+                }
+
+                var genres = Game.Game.Genres?.Take(2).Select(a => a.Name).ToList();
+                if (genres.HasItems())
+                {
+                    parts.Add(string.Join(", ", genres));
+                }
+
+                return string.Join("  ·  ", parts);
+            }
+        }
 
         public bool IsRunning
         {
@@ -307,6 +340,9 @@ namespace Playnite.DesktopApp.ViewModels
         public RelayCommand<object> CheckExecutionCommand { get; }
         public RelayCommand<object> EditGameCommand { get; }
         public RelayCommand<object> ContextActionCommand { get; }
+        public RelayCommand<GameCopyEntry> StartCopyCommand { get; }
+        public RelayCommand<GameCopyEntry> PreferCopyCommand { get; }
+        public RelayCommand<GameCopyEntry> SplitCopyCommand { get; }
 
         public GameDetailsViewModel(GamesCollectionViewEntry game, PlayniteSettings settings)
         {
@@ -345,6 +381,21 @@ namespace Playnite.DesktopApp.ViewModels
             SetVersionFilterCommand = new RelayCommand<string>((filter) => SetVersionFilter(filter));
             SetCompletionStatusFilterCommand = new RelayCommand<DatabaseObject>((a) => SetFilter(a, GameField.CompletionStatus));
             PlayCommand = new RelayCommand<DatabaseObject>((a) => Play());
+            StartCopyCommand = new RelayCommand<GameCopyEntry>(StartCopy);
+            PreferCopyCommand = new RelayCommand<GameCopyEntry>(a =>
+            {
+                if (a != null)
+                {
+                    GameUnifier.Current.SetPreferredCopy(a.Game);
+                }
+            });
+            SplitCopyCommand = new RelayCommand<GameCopyEntry>(a =>
+            {
+                if (a != null)
+                {
+                    GameUnifier.Current.SplitCopy(a.Game);
+                }
+            });
             InstallCommand = new RelayCommand<object>((a) => Install());
             CheckSetupCommand = new RelayCommand<object>((a) => CheckSetup());
             CheckExecutionCommand = new RelayCommand<object>((a) => CheckExecution());
@@ -498,12 +549,29 @@ namespace Playnite.DesktopApp.ViewModels
 
         public void Play()
         {
-            editor.PlayGame(game.Game, true);
+            DesktopApplication.Current.MainModel.StartGame(game.Game, true);
         }
 
         public void Install()
         {
-            editor.InstallGame(game.Game);
+            DesktopApplication.Current.MainModel.InstallGame(game.Game);
+        }
+
+        private void StartCopy(GameCopyEntry copy)
+        {
+            if (copy == null)
+            {
+                return;
+            }
+
+            if (copy.IsInstalled)
+            {
+                editor.PlayGame(copy.Game, true);
+            }
+            else
+            {
+                editor.InstallGame(copy.Game);
+            }
         }
 
         public void EditGame()

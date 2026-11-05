@@ -1,4 +1,13 @@
 <Project>
+  <PropertyGroup>
+    <!-- Atrio: inherited package versions must stay as they are, add-ons bind to them. -->
+    <NuGetAudit>false</NuGetAudit>
+  </PropertyGroup>
+
+  <!-- Atrio: test builds only. Adds the off-screen harness, a normal build does not have it. -->
+  <PropertyGroup Condition="'$(AtrioBanco)'=='true'">
+    <DefineConstants>$(DefineConstants);ATRIO_BANCO</DefineConstants>
+  </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)'=='Debug'">
     <TreatWarningsAsErrors>False</TreatWarningsAsErrors>

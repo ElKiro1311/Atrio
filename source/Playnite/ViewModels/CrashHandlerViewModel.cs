@@ -235,43 +235,8 @@ namespace Playnite.ViewModels
                     return;
                 }
 
-                var mode = PlayniteApplication.Current.Mode;
-                if (PlayniteEnvironment.InOfflineMode && mode == ApplicationMode.Desktop)
-                {
-                    Explorer.NavigateToFileSystemEntry(diagPath);
-                    return;
-                }
-
-                var uploadedId = Guid.Empty;
-                var uploadResult = GlobalProgress.ActivateProgress((_) =>
-                    uploadedId = new ServicesClient().UploadDiagPackage(diagPath),
-                    new GlobalProgressOptions("LOCDiagUploading"));
-                if (uploadedId == Guid.Empty)
-                {
-                    Explorer.NavigateToFileSystemEntry(diagPath);
-                    return;
-                }
-
-                if (uploadResult.Result == true)
-                {
-                    if (mode == ApplicationMode.Desktop)
-                    {
-                        dialogs.ShowSelectableString(ResourceProvider.GetString("LOCDiagPackageCreationSuccess"), "", uploadedId.ToString());
-                    }
-                    else
-                    {
-                        dialogs.ShowMessage(ResourceProvider.GetString("LOCDiagPackageSentSuccess"));
-                    }
-                }
-                else
-                {
-                    logger.Error(uploadResult.Error, "Failed to upload diag package.");
-                    dialogs.ShowErrorMessage(ResourceProvider.GetString("LOCDiagPackageUploadError"), "");
-                    if (mode == ApplicationMode.Desktop)
-                    {
-                        Explorer.NavigateToFileSystemEntry(diagPath);
-                    }
-                }
+                // Atrio has nowhere to send it to: the user decides who gets the file.
+                Explorer.NavigateToFileSystemEntry(diagPath);
             }
             catch (Exception e) when (!PlayniteEnvironment.ThrowAllErrors)
             {

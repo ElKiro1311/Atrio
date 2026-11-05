@@ -1,0 +1,31 @@
+ATRIO
+=====
+
+Un solo sitio para los juegos de todas tus tiendas. Es portátil: no se instala,
+no escribe en el registro y guarda todo dentro de esta carpeta. Para llevártelo,
+copia la carpeta. Para quitarlo, bórrala.
+
+Abre Atrio.exe para empezar.
+
+
+Primer arranque
+---------------
+Si tienes Playnite, Atrio te ofrece copiar tu biblioteca, tus imágenes y tus sesiones
+de las tiendas. Playnite no se toca y los dos pueden convivir.
+
+Windows puede avisar de que no reconoce el programa porque no está firmado.
+
+
+Créditos y licencias
+--------------------
+Atrio es una versión modificada de Playnite, de Josef Nemec y colaboradores,
+publicada con licencia MIT: ver LICENSE.md y license.txt.
+
+Los complementos de la carpeta Extensions son obra de sus autores. Sus licencias
+están en licencias-complementos.txt.
+
+Las fuentes Poppins y Barlow se distribuyen con la licencia SIL Open Font License
+(archivos OFL-*.txt dentro de la carpeta Fonts de cada tema).
+
+Atrio no está afiliado a Playnite, Valve, Epic Games ni a ninguna otra tienda.
+Los nombres y logotipos son de sus dueños.

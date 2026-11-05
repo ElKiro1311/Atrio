@@ -1,0 +1,272 @@
+                    <ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto"
+                                  Style="{DynamicResource DetailsScrollViewer}" x:Name="PART_ScrollViewHost">
+                        <Grid>
+                            <FadeImage x:Name="PART_ImageBackground" Stretch="UniformToFill" Height="@@alturaHeroe@@"
+                                       HorizontalAlignment="Stretch" VerticalAlignment="Top" />
+                            <Rectangle Height="@@alturaHeroe@@" VerticalAlignment="Top" IsHitTestVisible="False">
+                                <Rectangle.Fill>
+                                    <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                                        <GradientStop Color="#33000000" Offset="0" />
+                                        <GradientStop Color="#00000000" Offset="0.3" />
+                                        <GradientStop Color="{DynamicResource MainColorDark}" Offset="1" />
+                                    </LinearGradientBrush>
+                                </Rectangle.Fill>
+                            </Rectangle>
+
+                            <Grid Margin="40,0,40,32">
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="@@espacioHeroe@@" />
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="*" />
+                                </Grid.RowDefinitions>
+
+                                <!-- Cover overlapping the art, everything else to its right -->
+                                <Border Grid.Row="1" Background="@@fondoBanda@@" Padding="@@rellenoBanda@@" CornerRadius="{DynamicResource AtrioCardRadius}">
+                                <DockPanel>
+                                    <Grid DockPanel.Dock="Left" Width="222" Height="296" Margin="0,0,34,0" VerticalAlignment="Bottom" Visibility="@@visiblePortada@@">
+                                        <Border CornerRadius="{DynamicResource AtrioCardRadius}" Background="#40000000">
+                                            <Border.Effect>
+                                                <DropShadowEffect ShadowDepth="10" BlurRadius="36" Opacity="0.65" />
+                                            </Border.Effect>
+                                        </Border>
+                                        <Image Name="PART_ImageCover" Stretch="UniformToFill" StretchDirection="Both"
+                                               HorizontalAlignment="Center" VerticalAlignment="Center"
+                                               RenderOptions.BitmapScalingMode="Fant"
+                                               RoundedClip.Radius="{DynamicResource AtrioCoverRadius}" />
+                                    </Grid>
+
+                                    <!-- Numbers on the far right, at the height of the title -->
+                                    <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Bottom" Margin="24,0,0,4">
+                                        <StackPanel Margin="0,0,30,0">
+                                            <TextBlock Name="PART_TextPlayTime" FontSize="20" FontWeight="SemiBold" Foreground="{DynamicResource TextBrush}"
+                                                       FontFamily="{DynamicResource AtrioDisplayFont}" HorizontalAlignment="Right" />
+                                            <TextBlock Name="PART_ElemPlayTime" Text="{DynamicResource LOCAtrioPlaytime}" Style="{DynamicResource AtrioCaption}"
+                                                       HorizontalAlignment="Right" />
+                                        </StackPanel>
+                                        <StackPanel>
+                                            <TextBlock Name="PART_TextLastActivity" FontSize="20" FontWeight="SemiBold" Foreground="{DynamicResource TextBrush}"
+                                                       FontFamily="{DynamicResource AtrioDisplayFont}" HorizontalAlignment="Right" />
+                                            <TextBlock Name="PART_ElemLastPlayed" Text="{DynamicResource LOCAtrioLastPlayed}" Style="{DynamicResource AtrioCaption}"
+                                                       HorizontalAlignment="Right" />
+                                        </StackPanel>
+                                    </StackPanel>
+
+                                    <StackPanel VerticalAlignment="Bottom">
+                                        <DockPanel>
+                                            <Image Name="PART_ImageIcon" MaxHeight="30" MaxWidth="30" DockPanel.Dock="Left"
+                                                   Margin="0,0,10,0" VerticalAlignment="Center" RenderOptions.BitmapScalingMode="Fant" />
+                                            <TextBlock Text="{Binding MetaLine}" Foreground="#D9FFFFFF" FontSize="13" VerticalAlignment="Center"
+                                                       FontFamily="{DynamicResource FontFamily}" TextTrimming="CharacterEllipsis" />
+                                        </DockPanel>
+                                        <TextBlock Name="PART_TextDisplayName" FontFamily="{DynamicResource AtrioDisplayFont}"
+                                                   FontSize="42" FontWeight="SemiBold" TextWrapping="Wrap" Margin="0,4,0,0"
+                                                   LineHeight="48" LineStackingStrategy="BlockLineHeight"
+                                                   Foreground="White">
+                                            <TextBlock.Effect>
+                                                <DropShadowEffect ShadowDepth="0" BlurRadius="20" Opacity="0.65" />
+                                            </TextBlock.Effect>
+                                        </TextBlock>
+
+                                        <WrapPanel Margin="0,16,0,0">
+                                            <Button Name="PART_ButtonPlayAction" MinWidth="188" Style="{DynamicResource AtrioPlayButton}" />
+                                            <Button Name="PART_ButtonContextAction" MinWidth="188" Style="{DynamicResource AtrioPlayButton}" />
+                                            <Button Name="PART_ButtonMoreActions" Style="{DynamicResource AtrioGhostButton}"
+                                                    Content="{DynamicResource LOCMoreAction}" MinHeight="46" Margin="10,0,0,0" />
+                                            <Button x:Name="PART_ButtonEditGame" Style="{DynamicResource AtrioGhostButton}"
+                                                    MinHeight="46" Margin="10,0,0,0" Focusable="False"
+                                                    ToolTip="{DynamicResource LOCEditGame}"
+                                                    Content="&#xE70F;" FontFamily="{DynamicResource AtrioIconFont}" />
+                                        </WrapPanel>
+                                    </StackPanel>
+                                </DockPanel>
+                                </Border>
+
+                                <!-- Every store that has this game, each one with its own button -->
+                                <StackPanel Grid.Row="2" Margin="0,28,0,0">
+                                    <TextBlock Text="{DynamicResource LOCAtrioPickStore}" Style="{DynamicResource AtrioSectionTitle}" />
+                                    <ItemsControl ItemsSource="{Binding Game.Copies}" Focusable="False">
+                                        <ItemsControl.ItemsPanel>
+                                            <ItemsPanelTemplate>
+                                                <WrapPanel />
+                                            </ItemsPanelTemplate>
+                                        </ItemsControl.ItemsPanel>
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate>
+                                                <Grid Width="332" Margin="0,0,12,12">
+                                                    <Border x:Name="Base" CornerRadius="{DynamicResource AtrioCardRadius}" Background="{DynamicResource AtrioCardBrush}" />
+                                                    <Border x:Name="Card" CornerRadius="{DynamicResource AtrioCardRadius}" Background="{Binding CardBrush}"
+                                                            BorderThickness="1" BorderBrush="{DynamicResource AtrioBorderBrush}" Padding="14,11,12,11">
+                                                        <DockPanel>
+                                                            <Image Source="{Binding StoreIcon}" Width="34" Height="34" DockPanel.Dock="Left" Margin="0,0,13,0"
+                                                                   VerticalAlignment="Center" RenderOptions.BitmapScalingMode="Fant" />
+                                                            <Button x:Name="Action" DockPanel.Dock="Right" Style="{DynamicResource AtrioPlayButton}" MinHeight="36" FontSize="13"
+                                                                    Padding="18,0,18,0" Margin="10,0,0,0" VerticalAlignment="Center" Content="{Binding ActionText}"
+                                                                    Command="{Binding DataContext.StartCopyCommand, RelativeSource={RelativeSource AncestorType={x:Type GameOverview}}}"
+                                                                    CommandParameter="{Binding}" />
+                                                            <StackPanel VerticalAlignment="Center">
+                                                                <TextBlock Text="{Binding StoreName}" Style="{DynamicResource BaseTextBlockStyle}" FontWeight="SemiBold" FontSize="15"
+                                                                           FontFamily="{DynamicResource AtrioDisplayFont}" TextTrimming="CharacterEllipsis" />
+                                                                <StackPanel Orientation="Horizontal">
+                                                                    <TextBlock Text="{Binding StatusText}" Style="{DynamicResource AtrioCaption}" />
+                                                                    <TextBlock Text="{Binding PlaytimeText, StringFormat=' · {0}'}" Style="{DynamicResource AtrioCaption}"
+                                                                               Visibility="{Binding PlaytimeText, Converter={StaticResource StringNullOrEmptyToVisibilityConverter}}" />
+                                                                </StackPanel>
+                                                                <StackPanel Orientation="Horizontal" Margin="0,3,0,0"
+                                                                            Visibility="{Binding DataContext.Game.HasMultipleCopies, RelativeSource={RelativeSource AncestorType={x:Type GameOverview}}, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                                                    <TextBlock x:Name="IsDefault" Text="{DynamicResource LOCAtrioDefaultStore}" Visibility="Collapsed"
+                                                                               Style="{DynamicResource AtrioCaption}" Foreground="{DynamicResource GlyphBrush}" />
+                                                                    <Button x:Name="MakeDefault" Style="{DynamicResource AtrioLinkButton}"
+                                                                            Content="{DynamicResource LOCAtrioUseAsDefault}"
+                                                                            Command="{Binding DataContext.PreferCopyCommand, RelativeSource={RelativeSource AncestorType={x:Type GameOverview}}}"
+                                                                            CommandParameter="{Binding}" />
+                                                                    <Button Style="{DynamicResource AtrioLinkButton}" Margin="12,0,0,0"
+                                                                            Content="{DynamicResource LOCAtrioSplitCopy}"
+                                                                            Command="{Binding DataContext.SplitCopyCommand, RelativeSource={RelativeSource AncestorType={x:Type GameOverview}}}"
+                                                                            CommandParameter="{Binding}" />
+                                                                </StackPanel>
+                                                            </StackPanel>
+                                                        </DockPanel>
+                                                    </Border>
+                                                </Grid>
+                                                <DataTemplate.Triggers>
+                                                    <DataTrigger Binding="{Binding IsUserChoice}" Value="True">
+                                                        <Setter TargetName="IsDefault" Property="Visibility" Value="Visible" />
+                                                        <Setter TargetName="MakeDefault" Property="Visibility" Value="Collapsed" />
+                                                        <Setter TargetName="Card" Property="BorderBrush" Value="{DynamicResource GlyphBrush}" />
+                                                    </DataTrigger>
+                                                </DataTemplate.Triggers>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                </StackPanel>
+
+                                <DockPanel Grid.Row="3" Margin="0,18,0,0">
+                                    <!-- Facts in a card of their own -->
+                                    <Border DockPanel.Dock="Right" Width="400" Margin="30,0,0,0" VerticalAlignment="Top"
+                                            Style="{DynamicResource AtrioCard}" Padding="18,16,14,16">
+                                        <StackPanel>
+                                            <StackPanel.Resources>
+                                                <Style TargetType="ItemsControl">
+                                                    <Setter Property="VerticalAlignment" Value="Center" />
+                                                    <Setter Property="ItemsPanel">
+                                                        <Setter.Value>
+                                                            <ItemsPanelTemplate>
+                                                                <WrapPanel />
+                                                            </ItemsPanelTemplate>
+                                                        </Setter.Value>
+                                                    </Setter>
+                                                </Style>
+                                                <Style TargetType="Label" BasedOn="{StaticResource {x:Type Label}}">
+                                                    <Setter Property="Margin" Value="0,5,12,5" />
+                                                    <Setter Property="VerticalAlignment" Value="Top" />
+                                                    <Setter Property="Foreground" Value="{DynamicResource TextBrushDarker}" />
+                                                    <Setter Property="FontSize" Value="13" />
+                                                </Style>
+                                                <Style TargetType="Button" BasedOn="{StaticResource PropertyItemButton}" />
+                                            </StackPanel.Resources>
+
+                                            <TextBlock Text="{DynamicResource LOCAtrioDetails}" Style="{DynamicResource AtrioSectionTitle}" />
+                                            <GridEx ColumnCount="2" StarColumns="1" RowCount="25" AutoLayoutColumns="2">
+                                                <Grid.Resources>
+                                                    <Style TargetType="TextBlock" BasedOn="{StaticResource BaseTextBlockStyle}" />
+                                                </Grid.Resources>
+
+                                                <Label Name="PART_ElemGenres" Content="{DynamicResource LOCGenreLabel}" />
+                                                <ItemsControl Name="PART_ItemsGenres" />
+
+                                                <Label Name="PART_ElemDevelopers" Content="{DynamicResource LOCDeveloperLabel}" />
+                                                <ItemsControl Name="PART_ItemsDevelopers" />
+
+                                                <Label Name="PART_ElemPublishers" Content="{DynamicResource LOCPublisherLabel}" />
+                                                <ItemsControl Name="PART_ItemsPublishers" />
+
+                                                <Label Name="PART_ElemReleaseDate" Content="{DynamicResource LOCGameReleaseDateTitle}" />
+                                                <Button Name="PART_ButtonReleaseDate" VerticalAlignment="Center" />
+
+                                                <Label Name="PART_ElemFeatures" Content="{DynamicResource LOCFeaturesLabel}" />
+                                                <ItemsControl Name="PART_ItemsFeatures" />
+
+                                                <Label Name="PART_ElemPlatform" Content="{DynamicResource LOCPlatformTitle}" />
+                                                <ItemsControl Name="PART_ItemsPlatforms" />
+
+                                                <Label Name="PART_ElemLibrary" Content="{DynamicResource LOCGameProviderTitle}" />
+                                                <Button Name="PART_ButtonLibrary" VerticalAlignment="Center" />
+
+                                                <Label Name="PART_ElemInstallSize" Content="{DynamicResource LOCInstallSizeLabel}" />
+                                                <TextBlock Name="PART_TextInstallSize" VerticalAlignment="Center" TextWrapping="Wrap" />
+
+                                                <Label Name="PART_ElemInstallDirectory" Content="{DynamicResource LOCGameInstallDirTitle}" />
+                                                <Button Name="PART_ButtonInstallDirectory" VerticalAlignment="Center" />
+
+                                                <Label Name="PART_ElemAdded" Content="{DynamicResource LOCDateAddedLabel}" />
+                                                <TextBlock Name="PART_TextAdded" VerticalAlignment="Center" TextWrapping="Wrap" />
+
+                                                <Label Name="PART_ElemRecentActivity" Content="{DynamicResource LOCRecentActivityLabel}" />
+                                                <TextBlock Name="PART_TextRecentActivity" VerticalAlignment="Center" TextWrapping="Wrap" />
+
+                                                <Label Name="PART_ElemCompletionStatus" Content="{DynamicResource LOCCompletionStatus}" />
+                                                <Button Name="PART_ButtonCompletionStatus" VerticalAlignment="Center" />
+
+                                                <Label Name="PART_ElemCategories" Content="{DynamicResource LOCGameCategoriesTitle}" />
+                                                <ItemsControl Name="PART_ItemsCategories" />
+
+                                                <Label Name="PART_ElemTags" Content="{DynamicResource LOCTagsLabel}" />
+                                                <ItemsControl Name="PART_ItemsTags" />
+
+                                                <Label Name="PART_ElemAgeRating" Content="{DynamicResource LOCAgeRatingLabel}" />
+                                                <ItemsControl Name="PART_ItemsAgeRatings" />
+
+                                                <Label Name="PART_ElemSeries" Content="{DynamicResource LOCSeriesLabel}" />
+                                                <ItemsControl Name="PART_ItemsSeries" />
+
+                                                <Label Name="PART_ElemSource" Content="{DynamicResource LOCSourceLabel}" />
+                                                <Button Name="PART_ButtonSource" VerticalAlignment="Center" />
+
+                                                <Label Name="PART_ElemRegion" Content="{DynamicResource LOCRegionLabel}" />
+                                                <ItemsControl Name="PART_ItemsRegions" />
+
+                                                <Label Name="PART_ElemVersion" Content="{DynamicResource LOCVersionLabel}" />
+                                                <Button Name="PART_ButtonVersion" VerticalAlignment="Center" />
+
+                                                <Label Name="PART_ElemCommunityScore" Content="{DynamicResource LOCCommunityScore}" />
+                                                <TextBlock Name="PART_TextCommunityScore" VerticalAlignment="Center"
+                                                           Style="{DynamicResource TextBlockGameScore}" />
+
+                                                <Label Name="PART_ElemCriticScore" Content="{DynamicResource LOCCriticScore}" />
+                                                <TextBlock Name="PART_TextCriticScore" VerticalAlignment="Center"
+                                                           Style="{DynamicResource TextBlockGameScore}" />
+
+                                                <Label Name="PART_ElemUserScore" Content="{DynamicResource LOCUserScore}" />
+                                                <TextBlock Name="PART_TextUserScore" VerticalAlignment="Center"
+                                                           Style="{DynamicResource TextBlockGameScore}" />
+
+                                                <Label Name="PART_ElemLinks" Content="{DynamicResource LOCLinksLabel}" />
+                                                <ItemsControl Name="PART_ItemsLinks" />
+                                            </GridEx>
+                                        </StackPanel>
+                                    </Border>
+
+                                    <StackPanel>
+                                        <StackPanel Name="PART_ElemNotes" Margin="0,0,0,18">
+                                            <TextBlock Text="{DynamicResource LOCNotesLabel}" Style="{DynamicResource AtrioSectionTitle}" />
+                                            <TextBox Name="PART_TextNotes" IsReadOnly="True" BorderThickness="0" Background="Transparent"
+                                                     AcceptsReturn="True" TextWrapping="Wrap" Margin="-1,0,-1,5" Padding="0" />
+                                        </StackPanel>
+
+                                        <StackPanel Name="PART_ElemDescription">
+                                            <TextBlock Text="{DynamicResource LOCAtrioAbout}" Style="{DynamicResource AtrioSectionTitle}" />
+                                            <HtmlTextView Name="PART_HtmlDescription"
+                                                          HtmlFontSize="{DynamicResource FontSize}"
+                                                          HtmlFontFamily="{DynamicResource FontFamily}"
+                                                          HtmlForeground="{DynamicResource TextColor}"
+                                                          LinkForeground="{DynamicResource GlyphColor}"
+                                                          ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                                                          ScrollViewer.VerticalScrollBarVisibility="Disabled"
+                                                          pbeh:FocusBahaviors.BlockBringIntoViewRequest="True" />
+                                        </StackPanel>
+                                    </StackPanel>
+                                </DockPanel>
+                            </Grid>
+                        </Grid>
+                    </ScrollViewer>

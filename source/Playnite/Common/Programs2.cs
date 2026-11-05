@@ -129,10 +129,16 @@ namespace Playnite.Common
             throw new NotSupportedException("Only exe, bat and lnk files are supported.");
         }
 
+        // Atrio: late-bound so the build doesn't need TlbImp/AxImp from the Windows SDK.
+        private static object CreateWshShell()
+        {
+            return Activator.CreateInstance(Type.GetTypeFromProgID("WScript.Shell"));
+        }
+
         public static void CreateShortcut(string executablePath, string arguments, string iconPath, string shortcutPath)
         {
-            var shell = new IWshRuntimeLibrary.WshShell();
-            var link = (IWshRuntimeLibrary.IWshShortcut)shell.CreateShortcut(shortcutPath);
+            dynamic shell = CreateWshShell();
+            dynamic link = shell.CreateShortcut(shortcutPath);
             link.TargetPath = executablePath;
             link.WorkingDirectory = Path.GetDirectoryName(executablePath);
             link.Arguments = arguments;
@@ -142,15 +148,17 @@ namespace Playnite.Common
 
         public static Program GetLnkShortcutData(string lnkPath)
         {
-            var shell = new IWshRuntimeLibrary.WshShell();
-            var link = (IWshRuntimeLibrary.IWshShortcut)shell.CreateShortcut(lnkPath);
+            dynamic shell = CreateWshShell();
+            dynamic link = shell.CreateShortcut(lnkPath);
+            string targetPath = link.TargetPath;
+            string iconLocation = link.IconLocation;
             return new Program()
             {
-                Path = link.TargetPath,
-                Icon = link.IconLocation == ",0" ? link.TargetPath : link.IconLocation,
-                Arguments = link.Arguments,
-                WorkDir = link.WorkingDirectory,
-                Name = link.FullName,
+                Path = targetPath,
+                Icon = iconLocation == ",0" ? targetPath : iconLocation,
+                Arguments = (string)link.Arguments,
+                WorkDir = (string)link.WorkingDirectory,
+                Name = (string)link.FullName,
                 AppId = lnkPath.MD5()
             };
         }
@@ -175,7 +183,7 @@ namespace Playnite.Common
                     @"\windows\",
                 };
 
-                var shell = new IWshRuntimeLibrary.WshShell();
+                dynamic shell = CreateWshShell();
                 var apps = new List<Program>();
                 var shortucts = new SafeFileEnumerator(path, "*.lnk", SearchOption.AllDirectories);
 
@@ -196,8 +204,8 @@ namespace Playnite.Common
                         continue;
                     }
 
-                    var link = (IWshRuntimeLibrary.IWshShortcut)shell.CreateShortcut(shortcut.FullName);
-                    var target = link.TargetPath;
+                    dynamic link = shell.CreateShortcut(shortcut.FullName);
+                    string target = link.TargetPath;
 
                     if (pathExceptions.FirstOrDefault(a => target.IndexOf(a, StringComparison.OrdinalIgnoreCase) >= 0) != null)
                     {
@@ -225,9 +233,9 @@ namespace Playnite.Common
                     var app = new Program()
                     {
                         Path = lnkImportMode == LnkImportMode.Direct ? shortcut.FullName : target,
-                        Icon = link.IconLocation,
+                        Icon = (string)link.IconLocation,
                         Name = Path.GetFileNameWithoutExtension(shortcut.Name),
-                        WorkDir = link.WorkingDirectory,
+                        WorkDir = (string)link.WorkingDirectory,
                         AppId = path.MD5()
                     };
 

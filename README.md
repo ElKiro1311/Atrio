@@ -1,105 +1,71 @@
+# Atrio
 
-# <img src="https://playnite.link/applogo.png" width="32">  Playnite [![Crowdin](https://badges.crowdin.net/playnite/localized.svg)](https://crowdin.com/project/playnite)
-An open source video game library manager and launcher with support for 3rd party libraries like Steam, Epic, GOG, EA App, Battle.net and [others](https://playnite.link/addons.html). Includes game emulation support, providing one unified interface for your games.
+Un solo sitio para los juegos de todas tus tiendas. Atrio es un lanzador portátil para Windows basado en [Playnite](https://github.com/JosefNemec/Playnite): no se instala, no escribe en el registro y guarda todo dentro de su carpeta.
 
-Screenshots are available at the [Homepage](http://playnite.link/)
+*A portable game launcher for Windows based on Playnite. It brings every store together, merges duplicates and lets you choose where to play each game.*
 
-*If you find Playnite useful please consider supporting the lead developer [Josef Nemec](https://github.com/JosefNemec) on [Patreon](https://www.patreon.com/playnite).*
+![Biblioteca de Atrio con juegos inventados](atrio/capturas/biblioteca.jpg)
 
-Features
----------
+> Las imágenes usan una biblioteca de ejemplo con juegos que no existen, generada por `atrio/demo/generar.py`.
 
-See the [Homepage](http://playnite.link/) for the list of features.
+## Qué aporta
 
-Download
----------
+- **Un juego, una entrada.** Si tienes el mismo juego en varias tiendas aparece una sola vez, con el icono de cada tienda en la portada.
+- **Tú eliges desde dónde jugar.** La ficha del juego muestra cada copia, con su botón de jugar o instalar. También puedes fijar una tienda por defecto o separar una copia que no sea el mismo juego.
+- **Tiendas listas desde el primer arranque.** Steam, Epic, GOG, Xbox, Battle.net, EA, Ubisoft, Rockstar, Riot, Amazon, Humble e itch.io vienen activas. Otras once se activan con un clic y cuatro más se descargan desde la página Tiendas.
+- **Interfaz nueva.** Inicio con portada que rota, botones con texto, color ambiental de cada juego y un menú de temas con vista previa, además de color de acento al momento.
+- **Compatible con Playnite.** Atrio carga los complementos y temas de Playnite 10 y puede copiar tu biblioteca sin tocar la original.
 
-Grab the latest installer or portable package from the [download](https://playnite.link/download.html) page. Playnite will automatically notify you about a new version upon release.
+## Empezar
 
-Requirements: Windows 10 or 11
+1. Descarga el `.zip` de la última versión en [Releases](https://github.com/ElKiro1311/Atrio/releases).
+2. Descomprímelo en una carpeta donde tengas permiso de escritura, por ejemplo `D:\Atrio`. Evita `Archivos de programa`.
+3. Abre `Atrio.exe`.
 
-FAQ, Known Issues, user manual
----------
-Can be found [here](https://api.playnite.link/docs/)
+Requisitos: Windows 10 o 11. El programa no está firmado, así que Windows puede avisar la primera vez.
 
-Questions, issues etc.
----------
-If you find a bug please file an [issue](https://github.com/JosefNemec/Playnite/issues) and if relevant (crashes, broken features) please attach a diagnostics package, which can be created from inside the "About Playnite..." submenu.
+Si tienes Playnite, ciérralo antes del primer arranque y Atrio te ofrecerá copiar tu biblioteca, tus imágenes y tus sesiones.
 
-Biggest community around Playnite currently gathers on our [Discord server](https://playnite.link/discord) and [Reddit](https://www.reddit.com/r/playnite/).
+## Compilar
 
-Privacy Statement
----------
-Playnite itself doesn't store any user information and you generally don't need to provide any information to import installed games. All game library data is stored locally on your PC.
+Hace falta Windows, Python 3 y conexión a internet. Si no tienes .NET SDK, el script baja uno a `.herramientas\` sin instalar nada.
 
-Account connection process depends on how a library plugin is implemented, but is usually done via official login web forms and only the web session cookies or tokens are stored, the same way when you login to those services via the web browser.
-
-Add-ons
----------
-Playnite can be extended with plugins (written in .NET languages), PowerShell scripts and user interface themes.
-
-See the [extensions portal](https://api.playnite.link/docs/tutorials/index.html) for more information about how to make these addons.
-
-Translations
----------
-
-We use Crowdin to manage localization, please join our project if you want to submit translations:
-
-https://crowdin.com/project/playnite
-
-Proofreading changes to original English strings can be submitted by creating pull request for [LocSource.xaml](https://github.com/JosefNemec/Playnite/blob/devel/source/Playnite/Localization/LocSource.xaml) file.
-
-Code Contributions
----------
-
-Pull requests are generally on pause because majority of code base is being rewritten for Playnite 11. Smaller "safe" changes for P10 might get accepted based on what they and if they come with test coverage. If you plan to work on bigger changes, please discuss it first in related issue or on Discord, thank you.
-
-Please ask in the related issue first before starting implementing something to make sure that nobody else is already working on it. If an issue doesn't exist for your feature/bug fix, create one first.
-
-Regarding code styling, there are only a few major rules:
-
-- private fields and properties should use camelCase (without underscore)
-- all methods (private and public) should use PascalCase
-- use spaces instead of tabs with 4 spaces width
-- add empty line between code block end `}` and additional expression
-- always encapsulate the code body after *if, for, foreach, while* etc. with curly braces:
-
-```csharp
-if (true)
-{
-    DoSomething();
-}
-
-DoSomethingElse();
+```powershell
+powershell -ExecutionPolicy Bypass -File atrio\herramientas\compilar.ps1
 ```
 
-instead of
+El resultado queda en `salida\Atrio`. Con `-Zip` crea además el paquete para publicar. Con `-Banco` añade el banco de pruebas fuera de pantalla, descrito en `source\Playnite.DesktopApp\Atrio\AtrioCaptura.cs`.
 
-```csharp
-if (true)
-    DoSomething();
-DoSomethingElse();
-```
+Para regenerar el logo, la biblioteca de ejemplo o las vistas previas hacen falta Pillow y PyYAML: `python -m pip install --target .herramientas\py pillow pyyaml`.
 
-Branches
----------
-* `master` - default branch representing state of currently released build.
-* `devel` - development branch containing latest changes. All pull requests should be made against `devel` branch.
-* `devel*` - development branches for specific features/versions.
+| Carpeta | Contenido |
+|---|---|
+| `source/` | El código. Lo propio de Atrio está en las carpetas `Atrio` y en los archivos `Atrio*` |
+| `atrio/temas/` | Temas: `base/`, una carpeta por variante, `variantes.py` (colores), `fuentes/`, `vistas/` |
+| `atrio/complementos/` | Lista fijada de complementos con su versión, huella y licencia |
+| `atrio/herramientas/` | Scripts de compilación |
+| `atrio/demo/` | Generador de la biblioteca de ejemplo |
+| `atrio/pruebas/` | Banco de pruebas y pruebas unitarias |
 
-Roadmap
----------
+## Lo que Atrio no hace
 
-Playnite is currently being rewritten from scratch for next major version release 11. The work is being done in private repository until beta release, after which the code will be release in this repository under the same license as current version 10 release. There is no list of planned changes and new features for version 11.
+Atrio no incluye juegos, ROM, BIOS ni claves, ni ayuda a conseguirlos. Tampoco salta ningún DRM: cada juego se abre con su tienda.
 
-Development
----------
+Para no depender de un tercero, Atrio no usa los servidores de Playnite. El buscador de complementos lee la [base pública de complementos](https://github.com/JosefNemec/PlayniteAddonDatabase). Dos excepciones quedan fuera de nuestro control:
 
-See the [wiki](https://github.com/JosefNemec/Playnite/wiki/Building) for info about building and setting up the development environment.
+- Los complementos oficiales se actualizan desde `playnite.link`, que es donde los publican sus autores.
+- El complemento oficial de Steam llama a un servicio de Playnite solo como plan B, si Steam no le da la lista de juegos.
 
-Others
----------
+El proveedor de metadatos IGDB no viene incluido porque depende de ese servicio. Quien lo quiera puede instalarlo desde Complementos.
 
-This program uses free code signing provided by [SignPath.io](https://signpath.io?utm_source=foundation&utm_medium=github&utm_campaign=playnite), and a free code signing certificate by the [SignPath Foundation](https://signpath.org?utm_source=foundation&utm_medium=github&utm_campaign=playnite)
+## Créditos y licencias
 
-[![Capture](https://user-images.githubusercontent.com/3874087/128503363-9c39f8cd-9900-4a8b-83f2-81359d4fc731.PNG)](https://about.signpath.io?utm_source=foundation&utm_medium=github&utm_campaign=playnite)
+Atrio es una versión modificada de [Playnite](https://github.com/JosefNemec/Playnite), de Josef Nemec y colaboradores, y se publica con la misma licencia [MIT](LICENSE.md). Las dependencias de Playnite aparecen en [`source/Playnite/license.txt`](source/Playnite/license.txt).
+
+Los complementos incluidos son obra de sus autores: cada uno figura en [`atrio/complementos/lista.json`](atrio/complementos/lista.json) con su licencia, y el paquete lleva el texto de todas en `licencias-complementos.txt`. Solo se incluyen los que permiten redistribuirlos.
+
+Las fuentes Poppins y Barlow usan la [SIL Open Font License](atrio/temas/fuentes).
+
+Atrio no está afiliado a Playnite, Valve, Epic Games, Microsoft ni a ninguna otra tienda. Los nombres y logotipos son de sus dueños y se usan solo para identificar cada tienda.
+
+Consulta también la [política de seguridad](SECURITY.md).

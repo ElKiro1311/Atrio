@@ -43,6 +43,16 @@ namespace Playnite.DesktopApp
                 }
             }
 
+            if (!Playnite.Atrio.AtrioInfo.CanWriteUserData())
+            {
+                MessageBox.Show(
+                    "Atrio guarda sus datos en su propia carpeta y aquí no tiene permiso para escribir. Muévelo a otra, por ejemplo D:\\Atrio.\r\rAtrio keeps its data in its own folder and cannot write here. Move it somewhere else, such as D:\\Atrio.",
+                    "Atrio",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Error);
+                return;
+            }
+
             FileSystem.CreateDirectory(PlaynitePaths.JitProfilesPath);
             ProfileOptimization.SetProfileRoot(PlaynitePaths.JitProfilesPath);
             ProfileOptimization.StartProfile("desktop");
@@ -60,7 +70,7 @@ namespace Playnite.DesktopApp
             if (PlaynitePaths.ProgramPath.Contains(@"temp\rar$", StringComparison.OrdinalIgnoreCase))
             {
                 MessageBox.Show(
-                    "Playnite is not allowed to run from temporary extracted archive.\rInstall/Extract application properly before starting it.",
+                    "Atrio no puede ejecutarse desde un archivo comprimido temporal.\rExtrae la carpeta completa antes de iniciarlo.",
                     "Startup Error",
                     MessageBoxButton.OK,
                     MessageBoxImage.Error);
@@ -69,7 +79,7 @@ namespace Playnite.DesktopApp
             else if (PlaynitePaths.ProgramPath.Contains("#"))
             {
                 MessageBox.Show(
-                    "Playnite is unable to run from current directory due to illegal character '#' in the path. Please use different directory.",
+                    "Atrio no puede ejecutarse desde esta carpeta porque la ruta contiene el carácter '#'. Usa otra carpeta.",
                     "Startup Error",
                     MessageBoxButton.OK,
                     MessageBoxImage.Error);

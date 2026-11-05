@@ -21,7 +21,11 @@ namespace Playnite.DesktopApp.Windows
         public MainWindow() : base()
         {
             InitializeComponent();
-            if (PlayniteApplication.Current.AppSettings != null)
+            if (Atrio.AtrioCaptura.IsActive)
+            {
+                Atrio.AtrioCaptura.PrepareWindow(this);
+            }
+            else if (PlayniteApplication.Current.AppSettings != null)
             {
                 positionManager = new WindowPositionHandler(this, "Main_V2", PlayniteApplication.Current.AppSettings.WindowPositions);
             }

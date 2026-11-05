@@ -13,6 +13,7 @@ using Playnite.SDK;
 using Playnite.Settings;
 using Playnite.Plugins;
 using Playnite.SDK.Plugins;
+using Playnite.Atrio;
 
 namespace Playnite
 {
@@ -26,6 +27,7 @@ namespace Playnite
         public IGameDatabaseMain Database { get; private set; }
         public RangeObservableCollection<GamesCollectionViewEntry> Items { get; private set; }
         public bool IgnoreViewConfigChanges { get; set; } = false;
+        public GameUnifier Unifier { get; }
 
         private ListCollectionView collectionView;
         public ListCollectionView CollectionView
@@ -48,11 +50,54 @@ namespace Playnite
             filterSettings.FilterChanged += FilterSettings_FilterChanged;
             CollectionView = (ListCollectionView)CollectionViewSource.GetDefaultView(Items);
             CollectionView.Filter = Filter;
+
+            Unifier = GameUnifier.Current ?? (GameUnifier.Current = new GameUnifier(AtrioSettings.Load()));
+            Unifier.Attach(() => Database.Games, PlayniteApplication.Current?.SyncContext);
+            Unifier.PluginResolver = GetLibraryPlugin;
+            Unifier.GroupsChanged += Unifier_GroupsChanged;
+            Database.Games.ItemCollectionChanged += Games_ItemCollectionChanged;
+            Database.Games.ItemUpdated += Games_ItemUpdated;
         }
+
+        private void Games_ItemCollectionChanged(object sender, ItemCollectionChangedEventArgs<Game> e)
+        {
+            Unifier.ScheduleRebuild();
+        }
+
+        private void Games_ItemUpdated(object sender, ItemUpdatedEventArgs<Game> e)
+        {
+            Unifier.ScheduleRebuild();
+        }
+
+        private void Unifier_GroupsChanged(object sender, EventArgs e)
+        {
+            if (Items == null)
+            {
+                return;
+            }
+
+            foreach (var item in Items)
+            {
+                item.InvalidateCopies();
+            }
+
+            UnifiedGroupsRefreshing?.Invoke(this, EventArgs.Empty);
+            CollectionView.Refresh();
+            UnifiedGroupsRefreshed?.Invoke(this, EventArgs.Empty);
+        }
+
+        /// <summary>Raised right before the list of visible games changes because of unification.</summary>
+        public event EventHandler UnifiedGroupsRefreshing;
+
+        /// <summary>Raised after the list of visible games changed because of unification.</summary>
+        public event EventHandler UnifiedGroupsRefreshed;
 
         public virtual void Dispose()
         {
             filterSettings.FilterChanged -= FilterSettings_FilterChanged;
+            Unifier.GroupsChanged -= Unifier_GroupsChanged;
+            Database.Games.ItemCollectionChanged -= Games_ItemCollectionChanged;
+            Database.Games.ItemUpdated -= Games_ItemUpdated;
             Items = null;
         }
 
@@ -61,6 +106,30 @@ namespace Playnite
             if (!(item is GamesCollectionViewEntry entry))
             {
                 return false;
+            }
+
+            if (Unifier.Settings.UnifyDuplicates)
+            {
+                Unifier.EnsureBuilt();
+                var group = Unifier.GetGroup(entry.Id);
+                if (group != null)
+                {
+                    if (group.Primary.Id != entry.Id)
+                    {
+                        return false;
+                    }
+
+                    // The game has to show up in the filters of every store that sells it.
+                    foreach (var copy in group.Copies)
+                    {
+                        if (Database.GetGameMatchesFilter(copy, filterSettings, settings.FuzzyMatchingInNameFilter))
+                        {
+                            return true;
+                        }
+                    }
+
+                    return false;
+                }
             }
 
             return Database.GetGameMatchesFilter(entry.Game, filterSettings, settings.FuzzyMatchingInNameFilter);

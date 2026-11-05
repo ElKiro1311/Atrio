@@ -1,0 +1,541 @@
+#if ATRIO_BANCO
+using Playnite.Atrio;
+using Playnite.DesktopApp.ViewModels;
+using Playnite.SDK;
+using System;
+using System.Collections;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using System.Reflection;
+using System.Text;
+using System.Threading.Tasks;
+using System.Windows;
+using System.Windows.Input;
+using System.Windows.Interop;
+using System.Windows.Media;
+using System.Windows.Media.Imaging;
+
+namespace Playnite.DesktopApp.Atrio
+{
+    /// <summary>
+    /// Development harness. With the ATRIO_CAPTURA variable set, the app runs off-screen and
+    /// follows a script (guion.txt in that folder), rendering its own windows to PNG files.
+    /// Nothing is shown on the desktop and nothing outside of the app's windows is captured.
+    /// </summary>
+    public static class AtrioCaptura
+    {
+        private static readonly ILogger logger = LogManager.GetLogger();
+
+        public static string Folder => AtrioInfo.GetTestSetting("ATRIO_CAPTURA");
+        public static bool IsActive => !string.IsNullOrEmpty(Folder);
+
+        /// <summary>If the script doesn't get to start, leaves a trace of what is on screen. It runs on its own thread.</summary>
+        public static void StartWatchdog()
+        {
+            var thread = new System.Threading.Thread(() =>
+            {
+                System.Threading.Thread.Sleep(TimeSpan.FromSeconds(18));
+                if (File.Exists(Path.Combine(Folder, "guion.log")))
+                {
+                    return;
+                }
+
+                var process = System.Diagnostics.Process.GetCurrentProcess().Id;
+                var titles = new List<string>();
+                EnumWindows((handle, _) =>
+                {
+                    GetWindowThreadProcessId(handle, out var owner);
+                    if (owner == process && IsWindowVisible(handle))
+                    {
+                        var text = new StringBuilder(256);
+                        GetWindowText(handle, text, 256);
+                        titles.Add(text.ToString());
+                    }
+
+                    return true;
+                }, IntPtr.Zero);
+                File.WriteAllLines(Path.Combine(Folder, "ventanas.log"), titles);
+            })
+            { IsBackground = true };
+            thread.Start();
+        }
+
+        private delegate bool EnumWindowsProc(IntPtr handle, IntPtr parameter);
+
+        [System.Runtime.InteropServices.DllImport("user32.dll")]
+        private static extern bool EnumWindows(EnumWindowsProc callback, IntPtr parameter);
+
+        [System.Runtime.InteropServices.DllImport("user32.dll")]
+        private static extern uint GetWindowThreadProcessId(IntPtr handle, out int processId);
+
+        [System.Runtime.InteropServices.DllImport("user32.dll")]
+        private static extern bool IsWindowVisible(IntPtr handle);
+
+        [System.Runtime.InteropServices.DllImport("user32.dll", CharSet = System.Runtime.InteropServices.CharSet.Unicode)]
+        private static extern int GetWindowText(IntPtr handle, StringBuilder text, int length);
+
+        public static void PrepareWindow(Window window)
+        {
+            StartWatchdog();
+            window.WindowStartupLocation = WindowStartupLocation.Manual;
+            window.Left = -32000;
+            window.Top = -32000;
+            window.Width = GetSize("ATRIO_CAPTURA_ANCHO", 1720);
+            window.Height = GetSize("ATRIO_CAPTURA_ALTO", 1000);
+            window.ShowActivated = false;
+            window.ShowInTaskbar = false;
+        }
+
+        private static int GetSize(string variable, int fallback)
+        {
+            return int.TryParse(Environment.GetEnvironmentVariable(variable), out var value) ? value : fallback;
+        }
+
+        private static void Log(string message)
+        {
+            File.AppendAllText(Path.Combine(Folder, "guion.log"), $"{DateTime.Now:HH:mm:ss} {message}{Environment.NewLine}");
+        }
+
+        public static async void Run(DesktopAppViewModel model)
+        {
+            try
+            {
+                foreach (var rawLine in File.ReadAllLines(Path.Combine(Folder, "guion.txt")))
+                {
+                    var line = rawLine.Trim();
+                    if (line.Length == 0 || line.StartsWith("#"))
+                    {
+                        continue;
+                    }
+
+                    Log("> " + line);
+                    var parts = line.Split(new char[] { ' ' }, 2);
+                    var argument = parts.Length > 1 ? parts[1].Trim() : string.Empty;
+                    try
+                    {
+                        if (parts[0] == "salir")
+                        {
+                            break;
+                        }
+
+                        await Execute(model, parts[0], argument);
+                    }
+                    catch (Exception e)
+                    {
+                        Log("ERROR " + e);
+                    }
+
+                    await Task.Delay(100);
+                }
+            }
+            catch (Exception e)
+            {
+                Log("FATAL " + e);
+            }
+
+            Log("fin");
+            PlayniteApplication.Current.Quit();
+        }
+
+        private static async Task Execute(DesktopAppViewModel model, string command, string argument)
+        {
+            switch (command)
+            {
+                case "espera":
+                    await Task.Delay(int.Parse(argument));
+                    break;
+                case "captura":
+                    Render(model.Window.Window, argument);
+                    break;
+                case "dialogo":
+                    var dialog = Application.Current.Windows.Cast<Window>().LastOrDefault(a => a != model.Window.Window && a.IsVisible);
+                    if (dialog == null)
+                    {
+                        Log("sin dialogo");
+                    }
+                    else
+                    {
+                        Render(dialog, argument);
+                    }
+
+                    break;
+                case "cerrardialogo":
+                    Application.Current.Windows.Cast<Window>().Where(a => a != model.Window.Window && a.IsVisible).ToList().ForEach(a => a.Close());
+                    break;
+                case "emergente":
+                    RenderPopups(argument);
+                    break;
+                case "vista":
+                    model.AppSettings.ViewSettings.GamesViewType = (DesktopView)Enum.Parse(typeof(DesktopView), argument);
+                    break;
+                case "juego":
+                    var entry = model.GamesView.Items.FirstOrDefault(a => a.Name == argument) ??
+                                model.GamesView.Items.FirstOrDefault(a => a.Name.IndexOf(argument, StringComparison.OrdinalIgnoreCase) >= 0);
+                    if (entry == null)
+                    {
+                        Log("juego no encontrado");
+                    }
+                    else
+                    {
+                        model.SelectGame(entry.Id);
+                    }
+
+                    break;
+                case "barra":
+                    var item = model.SidebarItems.FirstOrDefault(a => a.Title == argument);
+                    if (item == null)
+                    {
+                        Log("barra: " + string.Join(", ", model.SidebarItems.Select(a => a.Title)));
+                    }
+                    else
+                    {
+                        item.Command.Execute(null);
+                    }
+
+                    break;
+                case "filtro":
+                    model.AppSettings.FilterSettings.Name = argument;
+                    break;
+                case "tienda":
+                    model.StoreFilter.Refresh();
+                    var store = model.StoreFilter.Items.FirstOrDefault(a => a.Name == argument);
+                    model.StoreFilter.SelectCommand.Execute(store);
+                    break;
+                case "preguntar":
+                    // Shows the store selector of a game with several copies. Only used with games that
+                    // are not installed anywhere and always closed without choosing, so nothing starts.
+                    var group = GameUnifier.Current.GetAllGroups().FirstOrDefault(a => a.Primary.Name == argument);
+                    if (group == null || group.Copies.Any(a => a.IsInstalled))
+                    {
+                        Log("no sirve para preguntar");
+                    }
+                    else
+                    {
+                        _ = Application.Current.Dispatcher.BeginInvoke(new Action(() => model.StartGame(group.Primary, true)));
+                    }
+
+                    break;
+                case "clicportada":
+                    ClickFirstCover(model);
+                    break;
+                case "pulsa":
+                    PressButton(model, argument);
+                    break;
+                case "instalados":
+                    model.StoreFilter.InstalledOnly = argument == "si";
+                    Log("visibles: " + model.GamesView.CollectionView.Count);
+                    break;
+                case "menu":
+                    LogGameMenu(model);
+                    break;
+                case "tema":
+                    if (model.AppSettings.Theme == argument)
+                    {
+                        Log("tema aplicado tras reiniciar: " + argument);
+                    }
+                    else
+                    {
+                        var themes = new ThemesViewModel(model);
+                        themes.Refresh();
+                        themes.Apply(themes.Families.SelectMany(a => a.Themes).First(a => a.Id == argument));
+                    }
+
+                    break;
+                case "web":
+                    // Same component that shows the login page of every store.
+                    using (var view = PlayniteApplication.Current.PlayniteApiGlobal.WebViews.CreateOffscreenView())
+                    {
+                        view.NavigateAndWait("data:text/html,<html><body>navegador-ok</body></html>");
+                        Log("navegador: " + view.GetPageText());
+                    }
+
+                    break;
+                case "ajustes":
+                    _ = Application.Current.Dispatcher.BeginInvoke(new Action(() => model.OpenSettingsCommand.Execute(null)));
+                    break;
+                case "acerca":
+                    _ = Application.Current.Dispatcher.BeginInvoke(new Action(() => model.OpenAboutCommand.Execute(null)));
+                    break;
+                case "acento":
+                    ThemesViewModel.ApplyAccent(argument);
+                    break;
+                case "ajuste":
+                    SetProperty(model.AppSettings, argument);
+                    break;
+                case "ejecuta":
+                    Invoke(model, argument);
+                    break;
+                case "informe":
+                    WriteReport(model, argument);
+                    break;
+                case "catalogo":
+                    await Task.Run(() => CheckCatalog(argument));
+                    break;
+                case "avisos":
+                    Log("avisos: " + model.App.Notifications.Messages.Count);
+                    foreach (var message in model.App.Notifications.Messages)
+                    {
+                        Log($"  [{message.Type}] {message.Text}");
+                    }
+
+                    break;
+                case "demo":
+                    LoadDemo(model, argument);
+                    break;
+                default:
+                    Log("orden desconocida");
+                    break;
+            }
+        }
+
+        /// <summary>Reads the add-on database the way the add-on browser does, and tries every installer manifest.</summary>
+        private static void CheckCatalog(string limit)
+        {
+            var client = new Playnite.Services.ServicesClient();
+            var watch = System.Diagnostics.Stopwatch.StartNew();
+            var all = new List<AddonManifest>();
+            foreach (AddonType type in Enum.GetValues(typeof(AddonType)))
+            {
+                var found = client.GetAllAddons(type, null);
+                all.AddRange(found);
+                Log($"{type}: {found.Count}");
+            }
+
+            Log($"catalogo cargado en {watch.ElapsedMilliseconds} ms");
+            Log("busqueda steam: " + client.GetAllAddons(AddonType.GameLibrary, "steam").Count);
+            Log("bloqueados: " + client.GetAddonBlacklist().Length);
+
+            var max = int.TryParse(limit, out var value) ? value : all.Count;
+            var good = 0;
+            var empty = 0;
+            var failed = 0;
+            System.Threading.Tasks.Parallel.ForEach(all.Take(max), new System.Threading.Tasks.ParallelOptions { MaxDegreeOfParallelism = 6 }, addon =>
+            {
+                try
+                {
+                    var installer = client.GetAddonInstaller(addon.AddonId);
+                    if (installer?.Packages?.Count > 0)
+                    {
+                        System.Threading.Interlocked.Increment(ref good);
+                    }
+                    else
+                    {
+                        System.Threading.Interlocked.Increment(ref empty);
+                        Log($"SIN PAQUETES {addon.Name}");
+                    }
+                }
+                catch (Exception e)
+                {
+                    System.Threading.Interlocked.Increment(ref failed);
+                    Log($"FALLO {addon.Name}: {e.GetType().Name} {e.Message}");
+                }
+            });
+
+            Log($"instaladores: {good} bien, {empty} vacios, {failed} con error, {watch.ElapsedMilliseconds} ms");
+        }
+
+        private class DemoGame
+        {
+            public string Name { get; set; }
+            public string GameId { get; set; }
+            public string Store { get; set; }
+            public string Cover { get; set; }
+            public string Background { get; set; }
+            public string Developer { get; set; }
+            public string Genre { get; set; }
+            public string Description { get; set; }
+            public bool Installed { get; set; }
+            public ulong Playtime { get; set; }
+            public int Year { get; set; }
+            public int DaysAgo { get; set; }
+        }
+
+        /// <summary>Fills an empty library with the invented games of atrio/demo, used for screenshots.</summary>
+        private static void LoadDemo(DesktopAppViewModel model, string folder)
+        {
+            var database = model.Database;
+            var items = Playnite.SDK.Data.Serialization.FromJsonFile<List<DemoGame>>(Path.Combine(folder, "demo.json"));
+            var platform = database.Platforms.FirstOrDefault(a => a.SpecificationId == "pc_windows") ?? database.Platforms.Add("PC (Windows)");
+            var token = new System.Threading.CancellationToken();
+            using (database.BufferedUpdate())
+            {
+                foreach (var item in items)
+                {
+                    var game = new Playnite.SDK.Models.Game(item.Name)
+                    {
+                        GameId = item.GameId,
+                        PluginId = Guid.Parse(item.Store),
+                        IsInstalled = item.Installed,
+                        Playtime = item.Playtime,
+                        Description = item.Description,
+                        ReleaseDate = new Playnite.SDK.Models.ReleaseDate(item.Year),
+                        PlatformIds = new List<Guid> { platform.Id },
+                        DeveloperIds = new List<Guid> { database.Companies.Add(item.Developer).Id },
+                        GenreIds = new List<Guid> { database.Genres.Add(item.Genre).Id },
+                        Added = DateTime.Now.AddDays(-item.DaysAgo - 30)
+                    };
+
+                    if (item.DaysAgo > 0)
+                    {
+                        game.LastActivity = DateTime.Now.AddDays(-item.DaysAgo);
+                    }
+
+                    database.Games.Add(game);
+                    game.CoverImage = database.AddFile(Path.Combine(folder, item.Cover), game.Id, true, token);
+                    game.BackgroundImage = database.AddFile(Path.Combine(folder, item.Background), game.Id, true, token);
+                    database.Games.Update(game);
+                }
+            }
+
+            GameUnifier.Current.RebuildAndNotify();
+            Log($"demo: {items.Count} entradas");
+        }
+
+        private static IEnumerable<T> FindAll<T>(DependencyObject parent) where T : DependencyObject
+        {
+            for (var i = 0; i < VisualTreeHelper.GetChildrenCount(parent); i++)
+            {
+                var child = VisualTreeHelper.GetChild(parent, i);
+                if (child is T match)
+                {
+                    yield return match;
+                }
+
+                foreach (var nested in FindAll<T>(child))
+                {
+                    yield return nested;
+                }
+            }
+        }
+
+        private static void ClickFirstCover(DesktopAppViewModel model)
+        {
+            var item = FindAll<System.Windows.Controls.ListBoxItem>(model.Window.Window).FirstOrDefault(a => a.IsVisible);
+            var cover = item == null ? null : FindAll<System.Windows.Controls.Image>(item).FirstOrDefault();
+            if (cover == null)
+            {
+                Log("sin portada");
+                return;
+            }
+
+            cover.RaiseEvent(new MouseButtonEventArgs(Mouse.PrimaryDevice, 0, MouseButton.Left) { RoutedEvent = UIElement.PreviewMouseUpEvent });
+            Log("pagina abierta: " + model.AppSettings.GridViewSideBarVisible);
+        }
+
+        private static void PressButton(DesktopAppViewModel model, string argument)
+        {
+            var parts = argument.Split('|');
+            var index = parts.Length > 1 ? int.Parse(parts[1]) : 0;
+            var buttons = FindAll<System.Windows.Controls.Button>(model.Window.Window).
+                Where(a => a.IsVisible && a.Content?.ToString() == parts[0]).ToList();
+            Log($"botones '{parts[0]}': {buttons.Count}");
+            if (buttons.Count > index)
+            {
+                var command = buttons[index].Command;
+                Log("orden enlazada: " + (command != null));
+                command?.Execute(buttons[index].CommandParameter);
+            }
+        }
+
+        private static void LogGameMenu(DesktopAppViewModel model)
+        {
+            var menu = new Controls.GameMenu(model) { DataContext = model.SelectedGame, ShowStartSection = true };
+            menu.InitializeItems();
+            var lines = menu.Items.OfType<System.Windows.Controls.MenuItem>().
+                Select(a => a.Header + (a.Items.Count > 0 ? " > " + string.Join(", ", a.Items.OfType<System.Windows.Controls.MenuItem>().Select(b => b.Header)) : string.Empty));
+            Log("menu: " + string.Join(" | ", lines));
+        }
+
+        private static void SetProperty(object target, string argument)
+        {
+            var parts = argument.Split(new char[] { ' ' }, 2);
+            var property = target.GetType().GetProperty(parts[0]);
+            var type = Nullable.GetUnderlyingType(property.PropertyType) ?? property.PropertyType;
+            var value = type.IsEnum ? Enum.Parse(type, parts[1]) : Convert.ChangeType(parts[1], type);
+            property.SetValue(target, value);
+        }
+
+        private static void Invoke(object target, string argument)
+        {
+            var property = target.GetType().GetProperty(argument);
+            if (property.GetValue(target) is ICommand command)
+            {
+                command.Execute(null);
+            }
+        }
+
+        private static void Render(Visual visual, string name)
+        {
+            var element = visual as FrameworkElement;
+            var width = (int)Math.Ceiling(element.ActualWidth);
+            var height = (int)Math.Ceiling(element.ActualHeight);
+            if (width == 0 || height == 0)
+            {
+                Log($"sin tamano {name}");
+                return;
+            }
+
+            var bitmap = new RenderTargetBitmap(width, height, 96, 96, PixelFormats.Pbgra32);
+            bitmap.Render(visual);
+            var encoder = new PngBitmapEncoder();
+            encoder.Frames.Add(BitmapFrame.Create(bitmap));
+            using (var stream = File.Create(Path.Combine(Folder, name + ".png")))
+            {
+                encoder.Save(stream);
+            }
+        }
+
+        private static void RenderPopups(string name)
+        {
+            var index = 0;
+            foreach (var source in PresentationSource.CurrentSources.OfType<HwndSource>())
+            {
+                if (source.RootVisual != null && source.RootVisual.GetType().Name == "PopupRoot")
+                {
+                    Render(source.RootVisual, $"{name}-{index++}");
+                }
+            }
+        }
+
+        private static void WriteReport(DesktopAppViewModel model, string name)
+        {
+            var unifier = GameUnifier.Current;
+            var report = new StringBuilder();
+            var groups = unifier.GetAllGroups().OrderBy(a => a.Primary.Name).ToList();
+            report.AppendLine($"Entradas en la base: {model.GamesView.Items.Count}");
+            report.AppendLine($"Visibles: {model.GamesView.CollectionView.Count}");
+            report.AppendLine($"Grupos: {groups.Count}, copias plegadas: {unifier.CollapsedCopiesCount}");
+            foreach (var group in groups)
+            {
+                var years = group.Copies.Where(a => a.ReleaseYear != null).Select(a => a.ReleaseYear.Value).ToList();
+                var spread = years.Count > 1 ? years.Max() - years.Min() : 0;
+                report.AppendLine($"[{spread}] " + string.Join("  |  ", group.Copies.Select(a =>
+                    $"{a.Name} ({model.GamesView.GetLibraryPlugin(a)?.Name ?? "-"}, {a.ReleaseYear?.ToString() ?? "?"}{(a.IsInstalled ? ", inst" : "")})")));
+            }
+
+            File.WriteAllText(Path.Combine(Folder, name + ".txt"), report.ToString(), Encoding.UTF8);
+        }
+    }
+}
+#else
+using Playnite.DesktopApp.ViewModels;
+using System.Windows;
+
+namespace Playnite.DesktopApp.Atrio
+{
+    /// <summary>The off-screen test harness only exists in test builds (AtrioBanco=true).</summary>
+    public static class AtrioCaptura
+    {
+        public static bool IsActive => false;
+
+        public static void PrepareWindow(Window window)
+        {
+        }
+
+        public static void Run(DesktopAppViewModel model)
+        {
+        }
+    }
+}
+#endif
