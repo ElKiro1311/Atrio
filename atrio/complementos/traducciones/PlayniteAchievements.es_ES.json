@@ -214,7 +214,7 @@
   "Landing_NoAuthTitle": "Conecta tus cuentas",
   "Landing_OpenSettings": "Conectar cuentas",
   "Landing_ProviderStatus": "Estado de cada plataforma",
-  "Landing_Status_BadgeSetup": "Configurar",
+  "Landing_Status_BadgeSetup": "Pendiente",
   "Landing_Status_Checking": "Comprobando...",
   "Landing_Status_ConfigureInSettings": "Sin conectar",
   "Landing_Status_ReadyToRefresh": "Listo para leer",
