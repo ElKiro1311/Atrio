@@ -2,6 +2,7 @@ using Playnite.Atrio;
 using Playnite.Common;
 using Playnite.Converters;
 using Playnite.SDK;
+using Playnite.SDK.Models;
 using Playnite.SDK.Plugins;
 using System;
 using System.Collections.Generic;
@@ -58,6 +59,7 @@ namespace Playnite.DesktopApp.ViewModels
 
         private readonly DesktopAppViewModel main;
         private readonly DispatcherTimer rotationTimer;
+        private readonly DispatcherTimer refreshTimer;
 
         private List<HomeFeaturedGame> featured;
         public List<HomeFeaturedGame> Featured
@@ -180,6 +182,35 @@ namespace Playnite.DesktopApp.ViewModels
 
             rotationTimer = new DispatcherTimer { Interval = rotationInterval };
             rotationTimer.Tick += (_, __) => ShowNextFeatured();
+
+            // A sync adds games one by one: the page waits for them to stop arriving.
+            refreshTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(1.5) };
+            refreshTimer.Tick += (_, __) =>
+            {
+                refreshTimer.Stop();
+                Refresh();
+            };
+        }
+
+        private void Games_ItemCollectionChanged(object sender, ItemCollectionChangedEventArgs<Game> e)
+        {
+            refreshTimer.Dispatcher.BeginInvoke(new Action(() =>
+            {
+                refreshTimer.Stop();
+                refreshTimer.Start();
+            }));
+        }
+
+        /// <summary>Images arrive after the games do: the hero fills up as they come in.</summary>
+        private void Games_ItemUpdated(object sender, ItemUpdatedEventArgs<Game> e)
+        {
+            refreshTimer.Dispatcher.BeginInvoke(new Action(() =>
+            {
+                if (Featured?.Count(a => !a.Game.BackgroundImage.IsNullOrEmpty()) < FeaturedSize && !refreshTimer.IsEnabled)
+                {
+                    refreshTimer.Start();
+                }
+            }));
         }
 
         private void ShowNextFeatured()
@@ -196,11 +227,22 @@ namespace Playnite.DesktopApp.ViewModels
         public void StartRotation()
         {
             rotationTimer.Start();
+            if (main.Database?.Games != null)
+            {
+                main.Database.Games.ItemCollectionChanged += Games_ItemCollectionChanged;
+                main.Database.Games.ItemUpdated += Games_ItemUpdated;
+            }
         }
 
         public void StopRotation()
         {
             rotationTimer.Stop();
+            refreshTimer.Stop();
+            if (main.Database?.Games != null)
+            {
+                main.Database.Games.ItemCollectionChanged -= Games_ItemCollectionChanged;
+                main.Database.Games.ItemUpdated -= Games_ItemUpdated;
+            }
         }
 
         public void OpenGame(GamesCollectionViewEntry entry)
@@ -308,6 +350,13 @@ namespace Playnite.DesktopApp.ViewModels
                 {
                     featuredGames.Add(CreateFeatured(entry, "LOCAtrioHeroLibrary"));
                 }
+            }
+
+            // Without any artwork yet, a plain hero is still better than an empty one.
+            if (featuredGames.Count == 0)
+            {
+                featuredGames.AddRange((installed.Count > 0 ? installed : entries).Take(FeaturedSize).
+                    Select(a => CreateFeatured(a, "LOCAtrioHeroLibrary")));
             }
 
             Featured = featuredGames;
