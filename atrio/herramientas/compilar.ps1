@@ -28,12 +28,12 @@ function Buscar-Dotnet {
         $sdks = & $global.Source --list-sdks 2>$null
         if ($sdks) { return $global.Source }
     }
-    Write-Output 'No hay .NET SDK: bajando uno a .herramientas\dotnet'
+    Write-Host 'No hay .NET SDK: bajando uno a .herramientas\dotnet'
     New-Item -ItemType Directory -Force $herramientas | Out-Null
     $instalador = Join-Path $herramientas 'dotnet-install.ps1'
     [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
     Invoke-WebRequest 'https://dot.net/v1/dotnet-install.ps1' -OutFile $instalador -UseBasicParsing
-    & $instalador -Channel 9.0 -InstallDir (Join-Path $herramientas 'dotnet') -NoPath | Out-Null
+    & $instalador -Channel 9.0 -InstallDir (Join-Path $herramientas 'dotnet') -NoPath *>&1 | Out-Null
     return $local
 }
 

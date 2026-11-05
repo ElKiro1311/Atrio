@@ -272,6 +272,12 @@ namespace Playnite.DesktopApp.Atrio
                 case "catalogo":
                     await Task.Run(() => CheckCatalog(argument));
                     break;
+                case "descargar":
+                    await Task.Run(() => DownloadAddon(model, argument));
+                    break;
+                case "complementos":
+                    Log("complementos: " + string.Join(", ", Playnite.Plugins.ExtensionFactory.GetInstalledManifests().Select(a => a.Id)));
+                    break;
                 case "avisos":
                     Log("avisos: " + model.App.Notifications.Messages.Count);
                     foreach (var message in model.App.Notifications.Messages)
@@ -333,6 +339,19 @@ namespace Playnite.DesktopApp.Atrio
             });
 
             Log($"instaladores: {good} bien, {empty} vacios, {failed} con error, {watch.ElapsedMilliseconds} ms");
+        }
+
+        /// <summary>What the download button of the Stores page does, without its dialogs.</summary>
+        private static void DownloadAddon(DesktopAppViewModel model, string addonId)
+        {
+            var addon = model.App.ServicesClient.GetAddon(addonId);
+            var package = addon.InstallerManifest.GetLatestCompatiblePackage();
+            Log($"paquete {package?.Version} {package?.PackageUrl}");
+            var path = addon.GetTargetDownloadPath();
+            Playnite.Common.FileSystem.PrepareSaveFile(path);
+            Playnite.Common.Web.HttpDownloader.DownloadFile(package.PackageUrl, path);
+            Playnite.Plugins.ExtensionInstaller.QueuePackageInstall(path);
+            Log("en cola: " + Path.GetFileName(path));
         }
 
         private class DemoGame
