@@ -299,6 +299,58 @@ namespace Playnite.DesktopApp.Atrio
                     Log("tarjetas de logros: " + cards.Count);
                     cards[int.Parse(argument)].IsChecked = true;
                     break;
+                case "medir":
+                    var clock = System.Diagnostics.Stopwatch.StartNew();
+                    var measured = argument.Split(new char[] { ' ' }, 2);
+                    await Execute(model, measured[0], measured.Length > 1 ? measured[1] : string.Empty);
+                    await Application.Current.Dispatcher.InvokeAsync(() => { }, System.Windows.Threading.DispatcherPriority.ApplicationIdle);
+                    Log($"tiempo [{argument}]: {clock.ElapsedMilliseconds} ms");
+                    break;
+                case "sonda":
+                    await WatchUiThread(int.Parse(argument));
+                    break;
+                case "sincronizar":
+                    _ = model.UpdateLibrary(false, true, false);
+                    break;
+                case "temporizador":
+                    // Same thread as the real timer, which fires every few hours.
+                    var callback = typeof(PlayniteApplication).GetMethod("UpdateCheckerCallback", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+                    await Task.Run(() => callback.Invoke(model.App, new object[] { null }));
+                    await Task.Delay(1500);
+                    while (GlobalTaskHandler.IsActive)
+                    {
+                        await Task.Delay(250);
+                    }
+
+                    Log("ultima sincronizacion: " + model.AppSettings.LastLibraryUpdateCheck.ToString("s"));
+                    break;
+                case "periodico":
+                    await model.ProcessPeriodicLibUpdate();
+                    Log("ultima sincronizacion: " + model.AppSettings.LastLibraryUpdateCheck.ToString("s"));
+                    break;
+                case "jugando":
+                    if (argument == "si")
+                    {
+                        model.App.GamesEditor.RunningGames[Guid.NewGuid()] = null;
+                    }
+                    else
+                    {
+                        model.App.GamesEditor.RunningGames.Clear();
+                    }
+                    break;
+                case "combo":
+                    var boxes = FindAll<System.Windows.Controls.ComboBox>(model.Window.Window).Where(a => a.IsVisible).ToList();
+                    Log($"listas visibles: {boxes.Count}, opciones: {string.Join(" | ", boxes[0].Items.Cast<object>().Select(a => a.ToString()))}");
+                    boxes[0].SelectedIndex = int.Parse(argument);
+                    Log($"frecuencia: tiendas {model.AppSettings.CheckForLibraryUpdates}, emuladores {model.AppSettings.CheckForEmulatedLibraryUpdates}");
+                    break;
+                case "menulogros":
+                    var refreshButton = FindAll<System.Windows.Controls.Button>(model.Window.Window).First(a => a.ContextMenu != null && a.Content as string == argument);
+                    Log("opciones de actualizar: " + string.Join(" | ", refreshButton.ContextMenu.Items.Cast<System.Windows.Controls.MenuItem>().Select(a => a.Header)));
+                    break;
+                case "estado":
+                    Log($"ficha abierta: {model.AppSettings.GridViewSideBarVisible}, juego: {model.SelectedGameDetails?.Game.Game.Name ?? "ninguno"}, visibles: {model.GamesView.CollectionView.Count}");
+                    break;
                 case "logrosdemo":
                     SeedAchievements(model, argument);
                     break;
@@ -451,6 +503,27 @@ namespace Playnite.DesktopApp.Atrio
 
             Log("textos con el nombre: " + found.Count);
             found.Take(40).ForEach(a => Log("  " + a.Substring(0, Math.Min(150, a.Length)).Replace(Environment.NewLine, " ")));
+        }
+
+        /// <summary>How long the interface stays stuck: what the user feels as the app freezing.</summary>
+        private static async Task WatchUiThread(int milliseconds)
+        {
+            var total = System.Diagnostics.Stopwatch.StartNew();
+            var worst = 0L;
+            var stuck = 0L;
+            var samples = 0;
+            while (total.ElapsedMilliseconds < milliseconds)
+            {
+                var one = System.Diagnostics.Stopwatch.StartNew();
+                await Application.Current.Dispatcher.InvokeAsync(() => { }, System.Windows.Threading.DispatcherPriority.Input);
+                var wait = one.ElapsedMilliseconds;
+                worst = Math.Max(worst, wait);
+                stuck += wait > 100 ? wait : 0;
+                samples++;
+                await Task.Delay(25);
+            }
+
+            Log($"sonda: {samples} muestras, peor bloqueo {worst} ms, bloqueado {stuck} ms de {total.ElapsedMilliseconds} ms");
         }
 
         /// <summary>Saves invented achievements for a game, to see the pages that show them without any account.</summary>

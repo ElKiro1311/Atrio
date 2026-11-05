@@ -238,6 +238,85 @@ namespace Playnite.DesktopApp.ViewModels
             storesSidebarItem?.Command.Execute(null);
         }
 
+        /// <summary>
+        /// The add-on links to its settings only from a first page that goes away as soon as there are
+        /// achievements, and its refresh button is an icon without a name. The page keeps both in plain words.
+        /// </summary>
+        private void AddAchievementsButtons(SidebarItem item)
+        {
+            var open = item.Opened;
+            item.Opened = () =>
+            {
+                var refresh = CreateAchievementsButton("LOCAtrioAchievementsRefresh");
+                refresh.Command = new RelayCommand<object>(_ => ShowAchievementsRefreshMenu(refresh));
+                var settings = CreateAchievementsButton("LOCAtrioAchievementsSettings");
+                settings.Command = new RelayCommand<object>(_ => OpenPluginSettings(Playnite.Atrio.AtrioInfo.AchievementsPluginId));
+
+                var buttons = new StackPanel
+                {
+                    Orientation = Orientation.Horizontal,
+                    HorizontalAlignment = HorizontalAlignment.Right,
+                    VerticalAlignment = VerticalAlignment.Top,
+                    Margin = new Thickness(0, 10, 140, 0)
+                };
+                buttons.Children.Add(refresh);
+                buttons.Children.Add(settings);
+
+                var page = new Grid();
+                page.Children.Add(open());
+                page.Children.Add(buttons);
+                return new ContentControl { Content = page, Focusable = false };
+            };
+        }
+
+        private Button CreateAchievementsButton(string textKey)
+        {
+            var button = new Button
+            {
+                Content = Resources.GetString(textKey),
+                Margin = new Thickness(6, 0, 0, 0),
+                Padding = new Thickness(12, 0, 12, 0),
+                MinHeight = 30,
+                FontSize = 12
+            };
+            button.SetResourceReference(FrameworkElement.StyleProperty, "AtrioGhostButton");
+            return button;
+        }
+
+        /// <summary>
+        /// Offers what the add-on puts in its own menu, which already knows about a refresh in progress:
+        /// the kinds of refresh when it is idle, and how to follow or cancel the current one when it is not.
+        /// </summary>
+        private void ShowAchievementsRefreshMenu(Button button)
+        {
+            var refreshSection = "|" + Resources.GetString("LOCPlayAch_Button_Refresh");
+            var inProgress = new[] { "LOCPlayAch_Menu_RefreshInProgress", "LOCPlayAch_Common_View", "LOCPlayAch_Common_Cancel" }.Select(a => Resources.GetString(a)).ToList();
+            var menu = new ContextMenu { PlacementTarget = button, Placement = System.Windows.Controls.Primitives.PlacementMode.Bottom };
+            try
+            {
+                var plugin = Extensions.Plugins[Playnite.Atrio.AtrioInfo.AchievementsPluginId].Plugin;
+                foreach (var item in plugin.GetMainMenuItems(new GetMainMenuItemsArgs()))
+                {
+                    if (item.MenuSection?.EndsWith(refreshSection) != true && !inProgress.Contains(item.Description))
+                    {
+                        continue;
+                    }
+
+                    var entry = new MenuItem { Header = item.Description, IsEnabled = item.Action != null };
+                    entry.Click += (_, __) => item.Action(new MainMenuItemActionArgs());
+                    menu.Items.Add(entry);
+                }
+            }
+            catch (Exception e) when (!PlayniteEnvironment.ThrowAllErrors)
+            {
+                Logger.Error(e, "Failed to get the refresh options of the achievements add-on.");
+                return;
+            }
+
+            button.ContextMenu = menu;
+            menu.IsOpen = true;
+        }
+
         public void LoadSideBarItems()
         {
             libraryView = new Controls.Views.Library(this);
@@ -271,6 +350,7 @@ namespace Playnite.DesktopApp.ViewModels
                         if (plugin.Key == Playnite.Atrio.AtrioInfo.AchievementsPluginId)
                         {
                             items[0].Title = Resources.GetString("LOCAtrioAchievements");
+                            AddAchievementsButtons(items[0]);
                             achievementsItem = new SidebarWrapperItem(items[0], this);
                             continue;
                         }

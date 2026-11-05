@@ -309,7 +309,7 @@ namespace Playnite
         public int Version
         {
             get; set;
-        } = 7;
+        } = 8;
 
         private DetailsVisibilitySettings detailsVisibility = new DetailsVisibilitySettings();
         public DetailsVisibilitySettings DetailsVisibility
@@ -2160,7 +2160,7 @@ namespace Playnite
             }
         }
 
-        private LibraryUpdateCheckFrequency checkForLibraryUpdates = LibraryUpdateCheckFrequency.OnEveryStartup;
+        private LibraryUpdateCheckFrequency checkForLibraryUpdates = LibraryUpdateCheckFrequency.OnceADay;
         public LibraryUpdateCheckFrequency CheckForLibraryUpdates
         {
             get => checkForLibraryUpdates;
@@ -2171,7 +2171,7 @@ namespace Playnite
             }
         }
 
-        private LibraryUpdateCheckFrequency checkForEmulatedLibraryUpdates = LibraryUpdateCheckFrequency.OnEveryStartup;
+        private LibraryUpdateCheckFrequency checkForEmulatedLibraryUpdates = LibraryUpdateCheckFrequency.OnceADay;
         public LibraryUpdateCheckFrequency CheckForEmulatedLibraryUpdates
         {
             get => checkForEmulatedLibraryUpdates;
@@ -2527,6 +2527,22 @@ namespace Playnite
                 settings.Version = 7;
             }
 
+            if (settings.Version == 7)
+            {
+                // The library is already saved: asking every store on each start only made it slower to use.
+                if (settings.CheckForLibraryUpdates == LibraryUpdateCheckFrequency.OnEveryStartup)
+                {
+                    settings.CheckForLibraryUpdates = LibraryUpdateCheckFrequency.OnceADay;
+                }
+
+                if (settings.CheckForEmulatedLibraryUpdates == LibraryUpdateCheckFrequency.OnEveryStartup)
+                {
+                    settings.CheckForEmulatedLibraryUpdates = LibraryUpdateCheckFrequency.OnceADay;
+                }
+
+                settings.Version = 8;
+            }
+
             settings.WindowPositions = LoadExternalConfig<WindowPositions>(PlaynitePaths.WindowPositionsPath, PlaynitePaths.BackupWindowPositionsPath);
             settings.Fullscreen = LoadExternalConfig<FullscreenSettings>(PlaynitePaths.FullscreenConfigFilePath, PlaynitePaths.BackupFullscreenConfigFilePath);
             settings.BackupSettings();
@@ -2777,6 +2793,16 @@ namespace Playnite
                 default:
                     return true;
             }
+        }
+
+        public bool ShouldCheckLibraryPeriodic()
+        {
+            return CheckForLibraryUpdates != LibraryUpdateCheckFrequency.OnEveryStartup && ShouldCheckLibraryOnStartup();
+        }
+
+        public bool ShouldCheckEmuLibraryPeriodic()
+        {
+            return CheckForEmulatedLibraryUpdates != LibraryUpdateCheckFrequency.OnEveryStartup && ShouldCheckEmuLibraryOnStartup();
         }
 
         public bool ShouldDataBackupOnStartup()

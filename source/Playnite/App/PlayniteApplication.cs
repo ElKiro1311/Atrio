@@ -1411,6 +1411,17 @@ namespace Playnite
         {
             CheckForUpdates(AppSettings.ShouldCheckProgramUpdatePeriodic(), AppSettings.ShouldCheckAddonUpdatePeriodic());
             CheckAddonBlacklist();
+            SyncContext.Post(async _ =>
+            {
+                try
+                {
+                    await MainModelBase.ProcessPeriodicLibUpdate();
+                }
+                catch (Exception e) when (!PlayniteEnvironment.ThrowAllErrors)
+                {
+                    logger.Error(e, "Periodic library update failed.");
+                }
+            }, null);
         }
 
         public async Task StartUpdateCheckerAsync()

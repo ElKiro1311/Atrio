@@ -567,6 +567,26 @@ namespace Playnite.ViewModels
             await UpdateLibrary(AppSettings.DownloadMetadataOnImport, updateLibs, updateEmu);
         }
 
+        /// <summary>
+        /// For an app that stays open for days. It gives way to a running game or to any other task,
+        /// and the next round of the timer tries again.
+        /// </summary>
+        public async Task ProcessPeriodicLibUpdate()
+        {
+            var updateLibs = AppSettings.ShouldCheckLibraryPeriodic();
+            var updateEmu = AppSettings.ShouldCheckEmuLibraryPeriodic();
+            if ((!updateLibs && !updateEmu) || !GameAdditionAllowed || App.CmdLine.SkipLibUpdate ||
+                GlobalTaskHandler.IsActive || App.GamesEditor.RunningGames.HasItems())
+            {
+                return;
+            }
+
+            if (await Common.Network.GetIsConnectedToInternet())
+            {
+                await UpdateLibrary(AppSettings.DownloadMetadataOnImport, updateLibs, updateEmu);
+            }
+        }
+
         public async Task UpdateLibrary(bool metaForNewGames, bool updateIntegrations, bool updateEmu)
         {
             if (!GameAdditionAllowed)

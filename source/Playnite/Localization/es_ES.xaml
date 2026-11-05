@@ -1315,6 +1315,10 @@ Abre un nuevo problema en la página de GitHub de Playnite con una solicitud par
     <sys:String x:Key="LOCAtrioAccount">Cuenta</sys:String>
     <sys:String x:Key="LOCAtrioSync">Sincronizar</sys:String>
     <sys:String x:Key="LOCAtrioSyncAll">Sincronizar todas</sys:String>
+    <sys:String x:Key="LOCAtrioLibraryCheck">Buscar juegos nuevos</sys:String>
+    <sys:String x:Key="LOCAtrioLibraryCheckHint">Tu biblioteca queda guardada y Atrio solo consulta las tiendas con esta frecuencia. Si instalas un juego desde su tienda, pulsa Sincronizar para verlo antes.</sys:String>
+    <sys:String x:Key="LOCAtrioLibraryCheckLast">Última búsqueda: {0}</sys:String>
+    <sys:String x:Key="LOCAtrioLibraryCheckNever">Aún no se ha buscado</sys:String>
     <sys:String x:Key="LOCAtrioMoreStores">Más tiendas, listas para activar</sys:String>
     <sys:String x:Key="LOCAtrioEnable">Activar</sys:String>
     <sys:String x:Key="LOCAtrioUnifyTitle">Juegos repetidos</sys:String>
@@ -1376,6 +1380,8 @@ Abre un nuevo problema en la página de GitHub de Playnite con una solicitud par
     <sys:String x:Key="LOCAtrioEmulatorConfigure">Configurar</sys:String>
     <sys:String x:Key="LOCAtrioAchievementsCardTitle">Logros y RetroAchievements</sys:String>
     <sys:String x:Key="LOCAtrioAchievementsConnect">Conectar cuentas</sys:String>
+    <sys:String x:Key="LOCAtrioAchievementsSettings">Cuentas y ajustes</sys:String>
+    <sys:String x:Key="LOCAtrioAchievementsRefresh">Actualizar logros</sys:String>
     <sys:String x:Key="LOCAtrioRaNotConnected">Conecta tus tiendas para ver tus logros. Para los juegos clásicos necesitas tu usuario y tu clave web de RetroAchievements.</sys:String>
     <sys:String x:Key="LOCAtrioRaConnected">RetroAchievements conectado como {0}.</sys:String>
     <sys:String x:Key="LOCAtrioStoreDownload">Descargar</sys:String>

@@ -201,5 +201,34 @@ namespace Playnite.Tests
                 Assert.IsTrue(settings.ShouldCheckEmuLibraryOnStartup());
             }
         }
+
+        [Test]
+        public void LibraryUpdatePeriodicCheckTest()
+        {
+            var settings = new PlayniteSettings();
+            Assert.AreEqual(LibraryUpdateCheckFrequency.OnceADay, settings.CheckForLibraryUpdates);
+            Assert.AreEqual(LibraryUpdateCheckFrequency.OnceADay, settings.CheckForEmulatedLibraryUpdates);
+
+            var testDates = new TestDateTimes();
+            using (DateTimes.UseCustomDates(testDates))
+            {
+                testDates.Now = new DateTime(2020, 10, 1, 12, 0, 0);
+                settings.LastLibraryUpdateCheck = new DateTime(2020, 10, 1, 10, 0, 0);
+                settings.LastEmuLibraryUpdateCheck = new DateTime(2020, 10, 1, 10, 0, 0);
+                Assert.IsFalse(settings.ShouldCheckLibraryPeriodic());
+                Assert.IsFalse(settings.ShouldCheckEmuLibraryPeriodic());
+
+                // The app stayed open past midnight
+                testDates.Now = new DateTime(2020, 10, 2, 1, 0, 0);
+                Assert.IsTrue(settings.ShouldCheckLibraryPeriodic());
+                Assert.IsTrue(settings.ShouldCheckEmuLibraryPeriodic());
+
+                // These two choices never check on their own while the app is open
+                settings.CheckForLibraryUpdates = LibraryUpdateCheckFrequency.OnEveryStartup;
+                settings.CheckForEmulatedLibraryUpdates = LibraryUpdateCheckFrequency.Manually;
+                Assert.IsFalse(settings.ShouldCheckLibraryPeriodic());
+                Assert.IsFalse(settings.ShouldCheckEmuLibraryPeriodic());
+            }
+        }
     }
 }

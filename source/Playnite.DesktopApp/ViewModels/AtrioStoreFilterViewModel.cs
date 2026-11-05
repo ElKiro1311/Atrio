@@ -67,6 +67,7 @@ namespace Playnite.DesktopApp.ViewModels
                 SyncSelection();
                 OnPropertyChanged(nameof(InstalledOnly));
                 UpdateCount();
+                main.CloseGamePage();
             };
         }
 
@@ -77,6 +78,7 @@ namespace Playnite.DesktopApp.ViewModels
                 return;
             }
 
+            main.CloseGamePage();
             if (item.EmulatorId != null)
             {
                 ShowEmulator(item.IsSelected ? (Guid?)null : item.EmulatorId);
@@ -103,6 +105,7 @@ namespace Playnite.DesktopApp.ViewModels
         {
             main.AppSettings.FilterSettings.Library = null;
             main.GamesView.EmulatorFilter = emulatorId;
+            main.CloseGamePage();
             SyncSelection();
             UpdateCount();
         }

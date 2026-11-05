@@ -135,6 +135,7 @@ namespace Playnite.DesktopApp.ViewModels
                     if (toSelect == null)
                     {
                         SelectedGameDetails = null;
+                        CloseEmptyGamePage();
                     }
                     else
                     {
@@ -452,11 +453,7 @@ namespace Playnite.DesktopApp.ViewModels
             BindingOperations.EnableCollectionSynchronization(GamesView.Items, gamesLock);
             GamesView.UnifiedGroupsRefreshing += (_, __) => selectionBeforeUnification = SelectedGame?.Id;
             GamesView.UnifiedGroupsRefreshed += GamesView_UnifiedGroupsRefreshed;
-            if (Application.Current.TryFindResource("AtrioGridClickOpensPage") is bool clickOpensPage && clickOpensPage)
-            {
-                AppSettings.GridViewSideBarVisible = false;
-            }
-
+            CloseGamePage();
             if (AppSettings.LastSelectedGame != Guid.Empty)
             {
                 if (!SelectGameImpl(AppSettings.LastSelectedGame) && GamesView.CollectionView.Count > 0)
@@ -516,6 +513,7 @@ namespace Playnite.DesktopApp.ViewModels
                 if (e.RemovedItems.Any(a => a.Id == SelectedGameDetails.Game.Id))
                 {
                     SelectedGameDetails = null;
+                    CloseEmptyGamePage();
                     OnPropertyChanged(nameof(SelectedGameDetails));
                 if (ambientPending)
                 {
@@ -1217,6 +1215,31 @@ namespace Playnite.DesktopApp.ViewModels
                 Extensions,
                 pluginId);
             return model.OpenView() ?? false;
+        }
+
+        /// <summary>
+        /// In themes where the page of a game takes the place of the grid, it has to make way
+        /// when the user asks for a list of games.
+        /// </summary>
+        public void CloseGamePage()
+        {
+            if (Application.Current?.TryFindResource("AtrioGridClickOpensPage") is bool clickOpensPage && clickOpensPage)
+            {
+                AppSettings.GridViewSideBarVisible = false;
+            }
+        }
+
+        private void CloseEmptyGamePage()
+        {
+            // The selection also goes away for a moment while the list rebuilds itself after a sync,
+            // and that must not close the page the user is reading.
+            Application.Current?.Dispatcher.BeginInvoke(new Action(() =>
+            {
+                if (SelectedGameDetails == null)
+                {
+                    CloseGamePage();
+                }
+            }), System.Windows.Threading.DispatcherPriority.Background);
         }
 
         public void SwitchToLibraryView()

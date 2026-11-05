@@ -89,6 +89,30 @@ namespace Playnite.DesktopApp.ViewModels
 
         public bool HasAchievements => main.Extensions.Plugins.ContainsKey(AtrioInfo.AchievementsPluginId);
 
+        /// <summary>One choice for stores and emulators: both are the same library to the user.</summary>
+        public LibraryUpdateCheckFrequency LibraryCheckFrequency
+        {
+            get => main.AppSettings.CheckForLibraryUpdates;
+            set
+            {
+                main.AppSettings.CheckForLibraryUpdates = value;
+                main.AppSettings.CheckForEmulatedLibraryUpdates = value;
+                main.AppSettings.SaveSettings();
+                OnPropertyChanged();
+            }
+        }
+
+        public string LastLibraryCheckText
+        {
+            get
+            {
+                var last = main.AppSettings.LastLibraryUpdateCheck;
+                return last == default(DateTime) ?
+                    ResourceProvider.GetString("LOCAtrioLibraryCheckNever") :
+                    string.Format(ResourceProvider.GetString("LOCAtrioLibraryCheckLast"), last.ToString("g", Localization.ApplicationLanguageCultureInfo));
+            }
+        }
+
         private string retroAchievementsText;
         public string RetroAchievementsText
         {
@@ -151,9 +175,10 @@ namespace Playnite.DesktopApp.ViewModels
             OpenClientCommand = new RelayCommand<StoreCard>(a => a?.Plugin?.Client?.Open());
             ConfigureCommand = new RelayCommand<StoreCard>(a =>
             {
-                if (a?.Plugin != null)
+                // An account that was just connected shouldn't have to wait for the next check.
+                if (a?.Plugin != null && main.OpenPluginSettings(a.Plugin.Id))
                 {
-                    main.OpenPluginSettings(a.Plugin.Id);
+                    main.UpdateLibraryCommand.Execute(a.Plugin);
                 }
             });
             UpdateLibraryCommand = new RelayCommand<StoreCard>(a =>
@@ -185,6 +210,13 @@ namespace Playnite.DesktopApp.ViewModels
                 main.SwitchToLibraryView();
             });
             ConnectAchievementsCommand = new RelayCommand<object>(_ => main.OpenPluginSettings(AtrioInfo.AchievementsPluginId));
+            main.PropertyChanged += (_, e) =>
+            {
+                if (e.PropertyName == nameof(main.GameAdditionAllowed))
+                {
+                    OnPropertyChanged(nameof(LastLibraryCheckText));
+                }
+            };
         }
 
         private void AddEmulators()
@@ -347,6 +379,8 @@ namespace Playnite.DesktopApp.ViewModels
             UpdateSummary();
             OnPropertyChanged(nameof(UnifyDuplicates));
             OnPropertyChanged(nameof(AskStoreOnStart));
+            OnPropertyChanged(nameof(LibraryCheckFrequency));
+            OnPropertyChanged(nameof(LastLibraryCheckText));
         }
 
         private List<StoreCard> GetDisabledStores()

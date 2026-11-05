@@ -1320,6 +1320,10 @@ Open new issue on Playnite's GitHub page with a request to fix corruption in you
     <sys:String x:Key="LOCAtrioAccount">Account</sys:String>
     <sys:String x:Key="LOCAtrioSync">Sync</sys:String>
     <sys:String x:Key="LOCAtrioSyncAll">Sync all</sys:String>
+    <sys:String x:Key="LOCAtrioLibraryCheck">Look for new games</sys:String>
+    <sys:String x:Key="LOCAtrioLibraryCheckHint">Your library stays saved and Atrio only asks the stores this often. If you install a game from its store, press Sync to see it sooner.</sys:String>
+    <sys:String x:Key="LOCAtrioLibraryCheckLast">Last check: {0}</sys:String>
+    <sys:String x:Key="LOCAtrioLibraryCheckNever">Not checked yet</sys:String>
     <sys:String x:Key="LOCAtrioMoreStores">More stores, ready to enable</sys:String>
     <sys:String x:Key="LOCAtrioEnable">Enable</sys:String>
     <sys:String x:Key="LOCAtrioUnifyTitle">Repeated games</sys:String>
@@ -1381,6 +1385,8 @@ Open new issue on Playnite's GitHub page with a request to fix corruption in you
     <sys:String x:Key="LOCAtrioEmulatorConfigure">Configure</sys:String>
     <sys:String x:Key="LOCAtrioAchievementsCardTitle">Achievements and RetroAchievements</sys:String>
     <sys:String x:Key="LOCAtrioAchievementsConnect">Connect accounts</sys:String>
+    <sys:String x:Key="LOCAtrioAchievementsSettings">Accounts and settings</sys:String>
+    <sys:String x:Key="LOCAtrioAchievementsRefresh">Update achievements</sys:String>
     <sys:String x:Key="LOCAtrioRaNotConnected">Connect your stores to see your achievements. For classic games you need your RetroAchievements user and web API key.</sys:String>
     <sys:String x:Key="LOCAtrioRaConnected">RetroAchievements connected as {0}.</sys:String>
     <sys:String x:Key="LOCAtrioStoreDownload">Download</sys:String>
