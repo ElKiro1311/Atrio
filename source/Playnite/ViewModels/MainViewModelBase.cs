@@ -505,6 +505,7 @@ namespace Playnite.ViewModels
 
             Logger.Info($"Importing games from {plugin.Name} plugin.");
             ProgressStatus = Resources.GetString(LOC.ProgressImportinGames).Format(plugin.Name);
+            var knownErrors = GetErrorNotifications();
 
             try
             {
@@ -514,18 +515,29 @@ namespace Playnite.ViewModels
             catch (Exception e) when (!PlayniteEnvironment.ThrowAllErrors)
             {
                 Logger.Error(e, $"Failed to import games from plugin: {plugin.Name}");
+                App.Notifications.Add(new NotificationMessage(
+                    $"{plugin.Id} - download",
+                    Resources.GetString(LOC.LibraryImportError).Format(plugin.Name) + $"\n{e.Message}",
+                    NotificationType.Error));
+            }
 
-                // A store with no games is one the user has not set up yet, which is not an error for them.
-                if (!quietIfUnused || Database.Games.Any(a => a.PluginId == plugin.Id))
+            // A store with no games is one the user has not set up yet. Most add-ons report that as an
+            // error of their own, and a new user would start with a list of errors for stores they don't use.
+            if (quietIfUnused && !Database.Games.Any(a => a.PluginId == plugin.Id))
+            {
+                foreach (var id in GetErrorNotifications().Except(knownErrors))
                 {
-                    App.Notifications.Add(new NotificationMessage(
-                        $"{plugin.Id} - download",
-                        Resources.GetString(LOC.LibraryImportError).Format(plugin.Name) + $"\n{e.Message}",
-                        NotificationType.Error));
+                    App.Notifications.Remove(id);
                 }
             }
 
             return addedGames;
+        }
+
+        private List<string> GetErrorNotifications()
+        {
+            return PlayniteApplication.CurrentNative.Dispatcher.Invoke(() =>
+                App.Notifications.Messages.Where(a => a.Type == NotificationType.Error).Select(a => a.Id).ToList());
         }
 
         public async Task ProcessStartupLibUpdate()

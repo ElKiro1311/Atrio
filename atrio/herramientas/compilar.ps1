@@ -58,7 +58,7 @@ foreach ($proyecto in $proyectos) {
     $opciones = @(
         'build', (Join-Path $fuentes $proyecto), '-nologo', '-c', 'Release', '-v:q',
         '-p:Platform=x86', "-p:OutputPath=$temporal", '-p:AllowedReferenceRelatedFileExtensions=none',
-        "-p:SolutionDir=$fuentes\"
+        "-p:SolutionDir=$fuentes\", '-p:DebugType=none', '-p:DebugSymbols=false'
     )
     if ($Banco) { $opciones += '-p:AtrioBanco=true' }
     & $dotnet @opciones
