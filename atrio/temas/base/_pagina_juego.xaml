@@ -147,7 +147,48 @@
                                             Visibility="{PluginSettings Plugin=PlayniteAchievements, Path=HasAchievements, Converter={StaticResource BooleanToVisibilityConverter}, FallbackValue=Collapsed}">
                                     <TextBlock Text="{DynamicResource LOCAtrioAchievements}" Style="{DynamicResource AtrioSectionTitle}" />
                                     <ContentControl x:Name="PlayniteAchievements_AchievementProgressBar" MaxWidth="680" HorizontalAlignment="Left" Width="680" Margin="0,0,0,10" />
-                                    <ContentControl x:Name="PlayniteAchievements_AchievementCompactUnlockedList" MaxWidth="680" HorizontalAlignment="Left" Width="680" />
+                                    <ItemsControl ItemsSource="{PluginSettings Plugin=PlayniteAchievements, Path=ModernTheme.AllAchievementDisplayItems}" Focusable="False">
+                                        <ItemsControl.ItemsPanel>
+                                            <ItemsPanelTemplate>
+                                                <WrapPanel />
+                                            </ItemsPanelTemplate>
+                                        </ItemsControl.ItemsPanel>
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate>
+                                                <!-- A click shows what a hidden achievement is about -->
+                                                <ToggleButton IsChecked="{Binding IsRevealed}" Focusable="False">
+                                                    <ToggleButton.Template>
+                                                        <ControlTemplate TargetType="ToggleButton">
+                                                            <ContentPresenter />
+                                                        </ControlTemplate>
+                                                    </ToggleButton.Template>
+                                                    <Border x:Name="Card" Width="332" Height="84" Margin="0,0,12,12" Padding="12,10,12,10"
+                                                            CornerRadius="{DynamicResource AtrioCardRadius}" Background="{DynamicResource AtrioCardBrush}"
+                                                            BorderThickness="1" BorderBrush="{DynamicResource AtrioBorderBrush}"
+                                                            ToolTip="{Binding DescriptionResolved}">
+                                                        <DockPanel>
+                                                            <Image Source="{Binding DisplayIcon, Converter={StaticResource AchievementIconConverter}}" Width="60" Height="60" DockPanel.Dock="Left" Margin="0,0,12,0"
+                                                                   Stretch="UniformToFill" RenderOptions.BitmapScalingMode="Fant" />
+                                                            <DockPanel DockPanel.Dock="Bottom">
+                                                                <TextBlock Text="{Binding GlobalPercentText}" DockPanel.Dock="Right" Style="{DynamicResource AtrioCaption}" FontSize="11" />
+                                                                <TextBlock Text="{Binding UnlockTimeText}" Style="{DynamicResource AtrioCaption}" FontSize="11" TextTrimming="CharacterEllipsis" />
+                                                            </DockPanel>
+                                                            <StackPanel VerticalAlignment="Center">
+                                                                <TextBlock Text="{Binding DisplayNameResolved}" Style="{DynamicResource BaseTextBlockStyle}" FontSize="14"
+                                                                           FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
+                                                                <TextBlock Text="{Binding DescriptionResolved}" Style="{DynamicResource AtrioCaption}" TextTrimming="CharacterEllipsis" />
+                                                            </StackPanel>
+                                                        </DockPanel>
+                                                    </Border>
+                                                </ToggleButton>
+                                                <DataTemplate.Triggers>
+                                                    <DataTrigger Binding="{Binding Unlocked}" Value="False">
+                                                        <Setter TargetName="Card" Property="Opacity" Value="0.55" />
+                                                    </DataTrigger>
+                                                </DataTemplate.Triggers>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
                                 </StackPanel>
 
                                 <DockPanel Grid.Row="4" Margin="0,18,0,0">

@@ -293,6 +293,12 @@ namespace Playnite.DesktopApp.Atrio
                 case "buscarnombre":
                     FindProductName(model);
                     break;
+                case "revelar":
+                    var cards = FindAll<System.Windows.Controls.Primitives.ToggleButton>(model.Window.Window).
+                        Where(a => a.DataContext?.GetType().Name == "AchievementDisplayItem").ToList();
+                    Log("tarjetas de logros: " + cards.Count);
+                    cards[int.Parse(argument)].IsChecked = true;
+                    break;
                 case "logrosdemo":
                     SeedAchievements(model, argument);
                     break;
