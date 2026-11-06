@@ -97,20 +97,35 @@ namespace Playnite.Converters
         }
     }
 
+    /// <summary>The picture of the art. The values are if it's on its way and its path: until it comes nothing changes.</summary>
+    public class HeroPictureConverter : IMultiValueConverter
+    {
+        public object Convert(object[] values, Type targetType, object parameter, CultureInfo culture)
+        {
+            return values[0] as bool? == true ? Binding.DoNothing : values[1];
+        }
+
+        public object[] ConvertBack(object value, Type[] targetTypes, object parameter, CultureInfo culture)
+        {
+            throw new NotSupportedException();
+        }
+    }
+
     /// <summary>
     /// The picture behind the sides of the art: the one of the art, else the background of the game. The
-    /// values are those two and the layout. Nothing is loaded for a window where the art reaches the sides.
+    /// values are if the first one is on its way, both pictures and the layout. Nothing changes until it
+    /// comes, and nothing is loaded for a window where the art reaches the sides.
     /// </summary>
     public class HeroBackdropConverter : IMultiValueConverter
     {
         public object Convert(object[] values, Type targetType, object parameter, CultureInfo culture)
         {
-            if ((values[2] as HeroLayout)?.PictureMask == null)
+            if ((values[3] as HeroLayout)?.PictureMask == null)
             {
                 return null;
             }
 
-            return values[0] as string ?? values[1];
+            return values[0] as bool? == true ? Binding.DoNothing : values[1] as string ?? values[2];
         }
 
         public object[] ConvertBack(object value, Type[] targetTypes, object parameter, CultureInfo culture)

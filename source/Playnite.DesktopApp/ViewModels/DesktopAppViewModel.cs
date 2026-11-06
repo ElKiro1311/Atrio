@@ -85,6 +85,7 @@ namespace Playnite.DesktopApp.ViewModels
             }
         }
 
+        private const int InstalledArtLimit = 100;
         private object ambientImage;
 
         /// <summary>Artwork that tints the whole window, it follows the game in focus.</summary>
@@ -99,6 +100,31 @@ namespace Playnite.DesktopApp.ViewModels
         }
 
         private bool ambientPending;
+
+        /// <summary>
+        /// The pages of the installed games are the ones that get opened the most: their pictures are
+        /// saved a bit after starting, so that opening those pages never has to wait for Steam.
+        /// </summary>
+        public async void PrepareInstalledArt()
+        {
+            try
+            {
+                await Task.Delay(TimeSpan.FromSeconds(10));
+                var appIds = GamesView.Items.Where(a => a.IsInstalled).
+                    Select(a => SteamContent.GetAppId(a.Copies.Select(b => b.Game))).
+                    Where(a => a != null).Distinct().Take(InstalledArtLimit).ToList();
+                foreach (var appId in appIds)
+                {
+                    await SteamContent.GetHeroAsync(appId, CancellationToken.None);
+                    await SteamContent.GetLogoAsync(appId, CancellationToken.None);
+                }
+            }
+            catch (Exception e) when (!(e is OutOfMemoryException))
+            {
+                // Without internet they are asked for when a page is opened.
+                Logger.Debug(e, "Failed to save the art of the installed games.");
+            }
+        }
 
         public void UpdateAmbient()
         {

@@ -21,6 +21,7 @@
     <pcon:AchievementIconConverter x:Key="AchievementIconConverter" />
     <pcon:HeroLayoutConverter x:Key="HeroLayoutConverter" />
     <pcon:HeroBackdropConverter x:Key="HeroBackdropConverter" />
+    <pcon:HeroPictureConverter x:Key="HeroPictureConverter" />
     <pcon:RemoteImageConverter x:Key="RemoteImageConverter" />
     <pcon:AchievementPreviewConverter x:Key="AchievementPreviewConverter" />
     <pcon:AchievementOverflowConverter x:Key="AchievementOverflowConverter" />

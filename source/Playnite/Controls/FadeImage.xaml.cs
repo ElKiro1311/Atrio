@@ -47,8 +47,33 @@ namespace Playnite.Controls
 
         public double SourceUpdateDelay { get; set; } = 0;
 
+        private double fadeSeconds = 0.5;
+
+        /// <summary>How long a change of picture takes.</summary>
+        public double FadeSeconds
+        {
+            get => fadeSeconds;
+            set
+            {
+                fadeSeconds = value;
+                var speed = 0.5 / value;
+                Image1FadeIn.SpeedRatio = speed;
+                Image2FadeIn.SpeedRatio = speed;
+                Image1FadeOut.SpeedRatio = speed;
+                Image2FadeOut.SpeedRatio = speed;
+                BorderDarkenFadeOut.SpeedRatio = speed;
+            }
+        }
+
         private const int BlurredCopyWidth = 320;
-        private const int BlurredCopyRadius = 10;
+        private const int BlurredCopiesLimit = 100;
+
+        // Keeps the blur of the effect on a window of 1920 pixels: the copy is six times smaller, and
+        // three box blurs in a row reach further than their radius.
+        private const int BlurAmountPerCopyRadius = 20;
+
+        // They weigh very little, and going back to a game finds its copy ready.
+        private static readonly Dictionary<string, BitmapSource> blurredCopies = new Dictionary<string, BitmapSource>();
 
         #region AnimationEnabled
 
@@ -184,11 +209,12 @@ namespace Playnite.Controls
             nameof(UseBlurredCopy),
             typeof(bool),
             typeof(FadeImage),
-            new PropertyMetadata(false));
+            new PropertyMetadata(false, BlurSettingChanged));
 
         /// <summary>
-        /// Shows a small copy of the picture, blurred once when it loads. It takes a lot more blur
-        /// than <see cref="IsBlurEnabled"/>, and it doesn't cost anything to draw over a big area.
+        /// Does the blur on a small copy of the picture, once, when it loads. The effect is limited to a
+        /// radius of 100 and it's done again for every frame, which is a lot over a whole window in the
+        /// middle of a change of picture. The copy has no limit and it costs nothing to draw.
         /// </summary>
         public bool UseBlurredCopy
         {
@@ -207,6 +233,7 @@ namespace Playnite.Controls
             Image1FadeOut = (Storyboard)TryFindResource("Image1FadeOut");
             Image2FadeOut = (Storyboard)TryFindResource("Image2FadeOut");
             BorderDarkenFadeOut = (Storyboard)TryFindResource("BorderDarkenFadeOut");
+            Image2FadeIn.Completed += Image2FadeIn_Completed;
             Image1FadeOut.Completed += Image1FadeOut_Completed;
             Image2FadeOut.Completed += Image2FadeOut_Completed;
             BorderDarkenFadeOut.Completed += BorderDarkenOut_Completed;
@@ -218,17 +245,22 @@ namespace Playnite.Controls
             sourceChangeTimer.Dispose();
         }
 
+        private void Image2FadeIn_Completed(object sender, EventArgs e)
+        {
+            if (currentImage == CurrentImage.Image2)
+            {
+                Image1.Source = null;
+            }
+        }
+
         private void Image1FadeOut_Completed(object sender, EventArgs e)
         {
             Image1.Source = null;
-            Image1.UpdateLayout();
-            GC.Collect();
         }
 
         private void Image2FadeOut_Completed(object sender, EventArgs e)
         {
             Image2.Source = null;
-            Image2.UpdateLayout();
         }
 
         private void BorderDarkenOut_Completed(object sender, EventArgs e)
@@ -236,11 +268,72 @@ namespace Playnite.Controls
             BorderDarken.Opacity = 0;
         }
 
+        private static BitmapSource LoadImage(object source, int blurredCopyRadius)
+        {
+            if (blurredCopyRadius > 0)
+            {
+                return GetBlurredCopy((source as BitmapLoadProperties)?.Source ?? source as string, blurredCopyRadius);
+            }
+            else if (source is string str)
+            {
+                return ImageSourceManager.GetImage(str, false);
+            }
+            else if (source is BitmapLoadProperties props)
+            {
+                return ImageSourceManager.GetImage(props.Source, false, props);
+            }
+            else
+            {
+                return null;
+            }
+        }
+
+        private static BitmapSource GetBlurredCopy(string path, int radius)
+        {
+            if (path == null)
+            {
+                return null;
+            }
+
+            var key = $"{radius}|{path}";
+            lock (blurredCopies)
+            {
+                if (blurredCopies.TryGetValue(key, out var known))
+                {
+                    return known;
+                }
+            }
+
+            var copy = ImageSourceManager.GetImage(path, false, new BitmapLoadProperties(BlurredCopyWidth, 0))?.ToBlurred(radius);
+            if (copy != null)
+            {
+                lock (blurredCopies)
+                {
+                    if (blurredCopies.Count >= BlurredCopiesLimit)
+                    {
+                        blurredCopies.Clear();
+                    }
+
+                    blurredCopies[key] = copy;
+                }
+            }
+
+            return copy;
+        }
+
         private static void BlurSettingChanged(DependencyObject obj, DependencyPropertyChangedEventArgs args)
         {
             var control = (FadeImage)obj;
             if (control.Source == null)
             {
+                return;
+            }
+
+            if (control.UseBlurredCopy)
+            {
+                control.ImageHolder.Effect = null;
+                control.currentSource = null;
+                control.LoadNewSource();
                 return;
             }
 
@@ -290,35 +383,22 @@ namespace Playnite.Controls
             var blurAmount = BlurAmount;
             var blurEnabled = IsBlurEnabled;
             var highQuality = HighQualityBlur;
-            var useBlurredCopy = UseBlurredCopy;
+            var blurredCopyRadius = blurEnabled && UseBlurredCopy ? Math.Max(1, blurAmount / BlurAmountPerCopyRadius) : 0;
+            var requested = newSource;
             BitmapSource image = null;
-            currentSource = newSource;
-            if (newSource != null)
+            currentSource = requested;
+            if (requested != null)
             {
-                image = await Task.Factory.StartNew(() =>
+                image = await Task.Factory.StartNew(() => LoadImage(requested, blurredCopyRadius));
+
+                // The picture of a game left behind can't take the place of the one of the next game.
+                if (!ReferenceEquals(requested, currentSource))
                 {
-                    if (useBlurredCopy)
-                    {
-                        var path = (newSource as BitmapLoadProperties)?.Source ?? newSource as string;
-                        var properties = new BitmapLoadProperties(BlurredCopyWidth, 0);
-                        return ImageSourceManager.GetImage(path, false, properties)?.ToBlurred(BlurredCopyRadius);
-                    }
-                    else if (newSource is string str)
-                    {
-                        return ImageSourceManager.GetImage(str, false);
-                    }
-                    else if (newSource is BitmapLoadProperties props)
-                    {
-                        return ImageSourceManager.GetImage(props.Source, false, props);
-                    }
-                    else
-                    {
-                        return null;
-                    }
-                });
+                    return;
+                }
             }
 
-            if (blurEnabled)
+            if (blurEnabled && blurredCopyRadius == 0)
             {
                 if (ImageHolder.Effect == null)
                 {
@@ -347,17 +427,10 @@ namespace Playnite.Controls
                         return;
                     }
 
-                    if (currentImage == CurrentImage.Image1)
-                    {
-                        Image1FadeOut.Begin();
-                        BorderDarkenFadeOut.Begin();
-                    }
-                    else if (currentImage == CurrentImage.Image2)
-                    {
-                        Image2FadeOut.Begin();
-                        BorderDarkenFadeOut.Begin();
-                    }
-
+                    // Both: in the middle of a change the old picture is still there under the new one.
+                    Image1FadeOut.Begin();
+                    Image2FadeOut.Begin();
+                    BorderDarkenFadeOut.Begin();
                     currentImage = CurrentImage.None;
                 }
                 else
@@ -371,12 +444,13 @@ namespace Playnite.Controls
                         BorderDarkenFadeOut.Stop();
                         currentImage = CurrentImage.Image1;
                     }
+                    // Only the image on top moves, the other one stays whole under it. Fading both at
+                    // the same time lets what is behind them show through in the middle of the change.
                     else if (currentImage == CurrentImage.Image1)
                     {
                         Image2FadeOut.Stop();
                         Image2.Source = image;
                         Image2FadeIn.Begin();
-                        Image1FadeOut.Begin();
                         BorderDarken.Opacity = 1;
                         BorderDarkenFadeOut.Stop();
                         currentImage = CurrentImage.Image2;
@@ -384,8 +458,8 @@ namespace Playnite.Controls
                     else if (currentImage == CurrentImage.Image2)
                     {
                         Image1FadeOut.Stop();
+                        Image1FadeIn.Stop();
                         Image1.Source = image;
-                        Image1FadeIn.Begin();
                         Image2FadeOut.Begin();
                         BorderDarken.Opacity = 1;
                         BorderDarkenFadeOut.Stop();

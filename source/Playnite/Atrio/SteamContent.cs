@@ -83,11 +83,23 @@ namespace Playnite.Atrio
             return string.Format(ArtUrl, appId, file);
         }
 
+        private static string GetArtPath(string appId, string file)
+        {
+            return Path.Combine(PlaynitePaths.DataCachePath, "steam-art", $"{appId}-{file}");
+        }
+
+        /// <summary>Path of a picture of the game if it's already saved, which takes no waiting at all.</summary>
+        public static string GetSavedArt(string appId, string file)
+        {
+            var path = GetArtPath(appId, file);
+            return File.Exists(path) ? path : null;
+        }
+
         /// <summary>Path of a picture of the game, saved after the first time. Null when Steam doesn't have it.</summary>
         public static async Task<string> GetArtAsync(string appId, string file, CancellationToken token)
         {
-            var folder = Path.Combine(PlaynitePaths.DataCachePath, "steam-art");
-            var path = Path.Combine(folder, $"{appId}-{file}");
+            var path = GetArtPath(appId, file);
+            var folder = Path.GetDirectoryName(path);
             var missing = path + ".none";
             if (File.Exists(path))
             {
@@ -135,22 +147,44 @@ namespace Playnite.Atrio
             return header.Length > colorTypeOffset && (header[colorTypeOffset] == 4 || header[colorTypeOffset] == 6);
         }
 
+        /// <summary>Path of the big picture of the game, in the best size that it has.</summary>
+        public static async Task<string> GetHeroAsync(string appId, CancellationToken token)
+        {
+            return await GetArtAsync(appId, WideHeroFile, token).ConfigureAwait(false) ??
+                   await GetArtAsync(appId, HeroFile, token).ConfigureAwait(false);
+        }
+
         /// <summary>Path of the logo of the game, when it has a real one.</summary>
         public static async Task<string> GetLogoAsync(string appId, CancellationToken token)
         {
             var path = await GetArtAsync(appId, LogoFile, token).ConfigureAwait(false);
-            if (path == null)
-            {
-                return null;
-            }
+            return path != null && IsRealLogo(path) ? path : null;
+        }
 
-            var header = new byte[32];
-            using (var file = File.OpenRead(path))
-            {
-                await file.ReadAsync(header, 0, header.Length, token).ConfigureAwait(false);
-            }
+        /// <summary>Path of the logo of the game if it's already saved and it's a real one.</summary>
+        public static string GetSavedLogo(string appId)
+        {
+            var path = GetSavedArt(appId, LogoFile);
+            return path != null && IsRealLogo(path) ? path : null;
+        }
 
-            return IsTransparentPng(header) ? path : null;
+        private static bool IsRealLogo(string path)
+        {
+            try
+            {
+                var header = new byte[32];
+                using (var file = File.OpenRead(path))
+                {
+                    file.Read(header, 0, header.Length);
+                }
+
+                return IsTransparentPng(header);
+            }
+            catch (Exception e) when (e is IOException || e is UnauthorizedAccessException)
+            {
+                logger.Debug(e, $"Failed to read the logo {path}.");
+                return false;
+            }
         }
 
         public static async Task<List<SteamNewsItem>> GetNewsAsync(string appId, int count, CancellationToken token)

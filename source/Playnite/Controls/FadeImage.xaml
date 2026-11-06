@@ -27,12 +27,12 @@
         <Storyboard x:Key="Image1FadeOut">
             <DoubleAnimation Storyboard.TargetProperty="Opacity"
                              Storyboard.TargetName="Image1"
-                             From="1.0" To="0.0" Duration="0:0:0.5"/>
+                             To="0.0" Duration="0:0:0.5"/>
         </Storyboard>
         <Storyboard x:Key="Image2FadeOut">
             <DoubleAnimation Storyboard.TargetProperty="Opacity"
                              Storyboard.TargetName="Image2"
-                             From="1.0" To="0.0" Duration="0:0:0.5"/>
+                             To="0.0" Duration="0:0:0.5"/>
         </Storyboard>
         <Storyboard x:Key="BorderDarkenFadeOut">
             <DoubleAnimation Storyboard.TargetProperty="Opacity"

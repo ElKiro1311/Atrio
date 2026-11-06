@@ -241,6 +241,7 @@ namespace Playnite.DesktopApp
 
             // This is most likely safe place to consider application to be started properly
             FileSystem.DeleteFile(PlaynitePaths.SafeStartupFlagFile);
+            MainModel.PrepareInstalledArt();
 
             if (Atrio.AtrioCaptura.IsActive)
             {

@@ -128,11 +128,18 @@ namespace Playnite.Atrio
             results.Clear();
         }
 
+        /// <summary>The last answer of Steam about a game, while it's still recent.</summary>
+        public static SteamFriendsResult GetKnown(string appId)
+        {
+            return results.TryGetValue(appId, out var cached) && DateTime.Now - cached.Item1 < resultLifetime ? cached.Item2 : null;
+        }
+
         public static async Task<SteamFriendsResult> GetAsync(string appId, CancellationToken token)
         {
-            if (results.TryGetValue(appId, out var cached) && DateTime.Now - cached.Item1 < resultLifetime)
+            var known = GetKnown(appId);
+            if (known != null)
             {
-                return cached.Item2;
+                return known;
             }
 
             var current = await GetSessionAsync(token).ConfigureAwait(false);

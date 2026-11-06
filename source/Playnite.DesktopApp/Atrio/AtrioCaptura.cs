@@ -80,8 +80,11 @@ namespace Playnite.DesktopApp.Atrio
         {
             StartWatchdog();
             window.WindowStartupLocation = WindowStartupLocation.Manual;
-            window.Left = -32000;
-            window.Top = -32000;
+            // On a desktop of its own nobody sees the window, and on a screen it's really drawn: that's
+            // what "fluidez" needs, because outside of every screen the frames cost nothing.
+            var onScreen = Environment.GetEnvironmentVariable("ATRIO_CAPTURA_EN_PANTALLA") == "1";
+            window.Left = onScreen ? 0 : -32000;
+            window.Top = onScreen ? 0 : -32000;
             window.Width = GetSize("ATRIO_CAPTURA_ANCHO", 1720);
             window.Height = GetSize("ATRIO_CAPTURA_ALTO", 1000);
             window.ShowActivated = false;
@@ -169,6 +172,46 @@ namespace Playnite.DesktopApp.Atrio
                     break;
                 case "vista":
                     model.AppSettings.ViewSettings.GamesViewType = (DesktopView)Enum.Parse(typeof(DesktopView), argument);
+                    break;
+                case "fluidez":
+                    await MeasureSwitching(model, argument.Split('|'));
+                    break;
+                case "tictac":
+                    // Outside of every screen nothing asks for frames, and the animations stay where they are.
+                    CompositionTarget.Rendering += (_, __) => { };
+                    break;
+                case "cruce":
+                    // A capture in the middle of a change of picture: cruce <milliseconds> <capture> <game>
+                    var crossing = argument.Split(new[] { ' ' }, 3);
+                    model.OpenGame(model.GamesView.Items.First(a => a.Name == crossing[2]).Id);
+                    await Task.Delay(int.Parse(crossing[0]));
+                    Render(model.Window.Window, crossing[1]);
+                    break;
+                case "rafaga":
+                    var pause = int.Parse(argument.Split(' ')[0]);
+                    foreach (var name in argument.Substring(argument.IndexOf(' ') + 1).Split('|'))
+                    {
+                        model.OpenGame(model.GamesView.Items.First(a => a.Name == name).Id);
+                        await Task.Delay(pause);
+                    }
+
+                    break;
+                case "recorrer":
+                    var steps = argument.Split(' ');
+                    foreach (var game in model.GamesView.Items.Take(int.Parse(steps[0])).ToList())
+                    {
+                        model.OpenGame(game.Id);
+                        await Task.Delay(int.Parse(steps[1]));
+                    }
+
+                    Log($"memoria privada {System.Diagnostics.Process.GetCurrentProcess().PrivateMemorySize64 / 1048576} MB");
+                    break;
+                case "imagenes":
+                    foreach (var picture in FindAll<Playnite.Controls.FadeImage>(model.Window.Window))
+                    {
+                        Log($"  {GetPictureRole(picture)}: {GetPictureState(picture)}, fuente {picture.Source}");
+                    }
+
                     break;
                 case "juego":
                     var entry = model.GamesView.Items.FirstOrDefault(a => a.Name == argument) ??
@@ -1115,6 +1158,136 @@ namespace Playnite.DesktopApp.Atrio
             {
                 command.Execute(null);
             }
+        }
+
+        /// <summary>
+        /// Opens the games one after another and tells how the frames went. WPF only starts a frame when the
+        /// last one is on its way, so a gap means that the interface or the drawing fell behind.
+        /// </summary>
+        private static async Task MeasureSwitching(DesktopAppViewModel model, string[] names)
+        {
+            var clock = System.Diagnostics.Stopwatch.StartNew();
+            var ticks = new List<double>();
+            EventHandler onRendering = (_, __) => ticks.Add(clock.Elapsed.TotalMilliseconds);
+            var tier = System.Windows.Media.RenderCapability.Tier >> 16;
+            Log($"dibujo: nivel {tier}, modo {System.Windows.Media.RenderOptions.ProcessRenderMode}");
+            System.Windows.Media.CompositionTarget.Rendering += onRendering;
+
+            // What keeps the interface thread busy, by operation.
+            var nameOf = typeof(System.Windows.Threading.DispatcherOperation).GetProperty("Name",
+                System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);
+            var started = new Dictionary<System.Windows.Threading.DispatcherOperation, double>();
+            var busy = new Dictionary<string, double>();
+            var hooks = model.Window.Window.Dispatcher.Hooks;
+            System.Windows.Threading.DispatcherHookEventHandler onStarted = (_, e) => started[e.Operation] = clock.Elapsed.TotalMilliseconds;
+            System.Windows.Threading.DispatcherHookEventHandler onCompleted = (_, e) =>
+            {
+                if (started.TryGetValue(e.Operation, out var begin))
+                {
+                    started.Remove(e.Operation);
+                    var key = $"{nameOf.GetValue(e.Operation, null)} ({e.Operation.Priority})";
+                    busy.TryGetValue(key, out var total);
+                    busy[key] = total + clock.Elapsed.TotalMilliseconds - begin;
+                }
+            };
+            hooks.OperationStarted += onStarted;
+            hooks.OperationCompleted += onCompleted;
+
+            await Task.Delay(1500);
+            Log($"en reposo: {ticks.Count / 1.5:0} fotogramas por segundo");
+            foreach (var name in names)
+            {
+                var entry = model.GamesView.Items.First(a => a.Name == name);
+                ticks.Clear();
+                busy.Clear();
+                var threadsBefore = GetThreadTimes();
+                var collections = GC.CollectionCount(2);
+                var start = clock.Elapsed.TotalMilliseconds;
+                var pictures = FindAll<Playnite.Controls.FadeImage>(model.Window.Window).ToList();
+                var states = pictures.ToDictionary(a => a, GetPictureState);
+                var moves = new Dictionary<Playnite.Controls.FadeImage, Tuple<double, double>>();
+                var arrivals = new Dictionary<Playnite.Controls.FadeImage, double>();
+                var knownSources = pictures.SelectMany(GetPictureSources).ToList();
+                model.OpenGame(entry.Id);
+                var opened = clock.Elapsed.TotalMilliseconds - start;
+                while (clock.Elapsed.TotalMilliseconds - start < 1400)
+                {
+                    await Task.Delay(5);
+                    foreach (var picture in pictures)
+                    {
+                        var state = GetPictureState(picture);
+                        if (state != states[picture])
+                        {
+                            states[picture] = state;
+                            var now = clock.Elapsed.TotalMilliseconds - start;
+                            moves[picture] = Tuple.Create(moves.TryGetValue(picture, out var move) ? move.Item1 : now, now);
+                            if (!arrivals.ContainsKey(picture) && GetPictureSources(picture).Except(knownSources).Any())
+                            {
+                                arrivals[picture] = now;
+                            }
+                        }
+                    }
+                }
+
+                Log("  imagenes: " + string.Join(", ", moves.Select(a =>
+                    $"{GetPictureRole(a.Key)} se mueve a los {a.Value.Item1:0}, llega la nueva a los {(arrivals.TryGetValue(a.Key, out var arrival) ? arrival.ToString("0") : "-")}, acaba a los {a.Value.Item2:0}")));
+                var times = new[] { start }.Concat(ticks).ToList();
+                var gaps = times.Skip(1).Zip(times, (a, b) => a - b).ToList();
+                var firstSecond = times.Count(a => a < start + 1000) - 1;
+                Log($"{name}: abrir {opened:0} ms, mayor hueco {gaps.Max():0} ms, " +
+                    $"huecos de mas de 34 ms {gaps.Count(a => a > 34)}, de mas de 100 ms {gaps.Count(a => a > 100)}, " +
+                    $"fotogramas en el primer segundo {firstSecond}, recolecciones {GC.CollectionCount(2) - collections}");
+                var threadsAfter = GetThreadTimes();
+#pragma warning disable CS0618 // It is the id that the process lists, which is what is needed here.
+                var interfaceThread = AppDomain.GetCurrentThreadId();
+#pragma warning restore CS0618
+                Log("  hilos: " + string.Join(", ", threadsAfter.
+                    Select(a => new { a.Key, Time = a.Value - (threadsBefore.TryGetValue(a.Key, out var b) ? b : 0) }).
+                    OrderByDescending(a => a.Time).Take(5).
+                    Select(a => $"{(a.Key == interfaceThread ? "interfaz" : a.Key.ToString())} {a.Time:0} ms")));
+                Log("  ocupado: " + string.Join(", ", busy.OrderByDescending(a => a.Value).Take(6).Select(a => $"{a.Key} {a.Value:0} ms")));
+            }
+
+            var collection = System.Diagnostics.Stopwatch.StartNew();
+            GC.Collect();
+            Log($"  una recoleccion completa: {collection.ElapsedMilliseconds} ms, memoria privada {System.Diagnostics.Process.GetCurrentProcess().PrivateMemorySize64 / 1048576} MB");
+            hooks.OperationStarted -= onStarted;
+            hooks.OperationCompleted -= onCompleted;
+            System.Windows.Media.CompositionTarget.Rendering -= onRendering;
+        }
+
+        private static string GetPictureState(Playnite.Controls.FadeImage picture)
+        {
+            var images = ((System.Windows.Controls.Panel)picture.Content).Children.OfType<System.Windows.Controls.Image>().ToList();
+            return string.Join(" ", images.Select(a => $"{a.Opacity:0.00}/{a.Source?.GetHashCode()}"));
+        }
+
+        private static IEnumerable<ImageSource> GetPictureSources(Playnite.Controls.FadeImage picture)
+        {
+            return ((System.Windows.Controls.Panel)picture.Content).Children.OfType<System.Windows.Controls.Image>().
+                Select(a => a.Source).Where(a => a != null);
+        }
+
+        private static string GetPictureRole(Playnite.Controls.FadeImage picture)
+        {
+            return picture.Stretch == Stretch.Fill ? "lados" : picture.IsBlurEnabled ? "ventana" : "cabecera";
+        }
+
+        private static Dictionary<int, double> GetThreadTimes()
+        {
+            var times = new Dictionary<int, double>();
+            foreach (System.Diagnostics.ProcessThread thread in System.Diagnostics.Process.GetCurrentProcess().Threads)
+            {
+                try
+                {
+                    times[thread.Id] = thread.TotalProcessorTime.TotalMilliseconds;
+                }
+                catch (InvalidOperationException)
+                {
+                }
+            }
+
+            return times;
         }
 
         private static void Render(Visual visual, string name)

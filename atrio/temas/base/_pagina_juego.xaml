@@ -10,9 +10,10 @@
                                         <Binding Path="ActualHeight" ElementName="PART_ScrollViewHost" />
                                     </MultiBinding>
                                 </Grid.Tag>
-                                <FadeImage Stretch="Fill" UseBlurredCopy="True" Opacity="0.8" SourceUpdateDelay="150" IsHitTestVisible="False">
+                                <FadeImage Stretch="Fill" UseBlurredCopy="True" IsBlurEnabled="True" BlurAmount="200" FadeSeconds="0.2" Opacity="0.8" IsHitTestVisible="False">
                                     <FadeImage.Source>
                                         <MultiBinding Converter="{StaticResource HeroBackdropConverter}">
+                                            <Binding Path="HeroOnItsWay" />
                                             <Binding Path="HeroImage" />
                                             <Binding Path="Source" ElementName="PART_ImageBackground" />
                                             <Binding Path="Tag" ElementName="HeroArt" />
@@ -21,12 +22,21 @@
                                 </FadeImage>
                                 <Grid MaxWidth="{Binding Tag.PictureWidth, ElementName=HeroArt}"
                                       OpacityMask="{Binding Tag.PictureMask, ElementName=HeroArt}">
-                                    <FadeImage x:Name="PART_ImageBackground" Stretch="UniformToFill"
-                                               HorizontalAlignment="Stretch" VerticalAlignment="Stretch" />
-                                    <FadeImage Source="{Binding HeroImage}" Stretch="UniformToFill"
+                                    <Grid Visibility="{Binding HeroImage, Converter={StaticResource StringNullOrEmptyToVisibilityConverter}, ConverterParameter=Inverted}">
+                                        <FadeImage x:Name="PART_ImageBackground" Stretch="UniformToFill" FadeSeconds="0.2"
+                                                   HorizontalAlignment="Stretch" VerticalAlignment="Stretch" />
+                                    </Grid>
+                                    <FadeImage Stretch="UniformToFill" FadeSeconds="0.2"
                                                HorizontalAlignment="Stretch" VerticalAlignment="Top"
                                                Height="{Binding Tag.PictureHeight, ElementName=HeroArt}"
-                                               Margin="{Binding Tag.PictureMargin, ElementName=HeroArt}" />
+                                               Margin="{Binding Tag.PictureMargin, ElementName=HeroArt}">
+                                        <FadeImage.Source>
+                                            <MultiBinding Converter="{StaticResource HeroPictureConverter}">
+                                                <Binding Path="HeroOnItsWay" />
+                                                <Binding Path="HeroImage" />
+                                            </MultiBinding>
+                                        </FadeImage.Source>
+                                    </FadeImage>
                                 </Grid>
                                 <Rectangle IsHitTestVisible="False">
                                     <Rectangle.Fill>

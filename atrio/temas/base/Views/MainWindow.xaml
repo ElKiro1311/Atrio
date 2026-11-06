@@ -31,8 +31,8 @@
                             </Grid.Resources>
 
                             <!-- The art of the game in focus, blurred until only its colors remain -->
-                            <FadeImage Source="{Binding AmbientImage}" Stretch="UniformToFill" Opacity="@@ambiente@@"
-                                       IsBlurEnabled="True" BlurAmount="60" HighQualityBlur="False"
+                            <FadeImage Source="{Binding AmbientImage}" Stretch="UniformToFill" Opacity="@@ambiente@@" FadeSeconds="0.2"
+                                       IsBlurEnabled="True" BlurAmount="60" UseBlurredCopy="True"
                                        HorizontalAlignment="Stretch" VerticalAlignment="Stretch" IsHitTestVisible="False" />
                             <Rectangle IsHitTestVisible="False">
                                 <Rectangle.Fill>

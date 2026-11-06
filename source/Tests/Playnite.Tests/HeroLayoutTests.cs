@@ -123,11 +123,27 @@ namespace Playnite.Tests
             var converter = new HeroBackdropConverter();
             var wide = new HeroLayout(3118, 1338);
             var ordinary = new HeroLayout(1545, 847);
-            Assert.AreEqual("art", converter.Convert(new object[] { "art", "background", wide }, null, null, null));
-            Assert.AreEqual("background", converter.Convert(new object[] { null, "background", wide }, null, null, null));
-            Assert.IsNull(converter.Convert(new object[] { null, null, wide }, null, null, null));
-            Assert.IsNull(converter.Convert(new object[] { "art", "background", ordinary }, null, null, null));
-            Assert.IsNull(converter.Convert(new object[] { "art", "background", null }, null, null, null));
+            Assert.AreEqual("art", converter.Convert(new object[] { false, "art", "background", wide }, null, null, null));
+            Assert.AreEqual("background", converter.Convert(new object[] { false, null, "background", wide }, null, null, null));
+            Assert.IsNull(converter.Convert(new object[] { false, null, null, wide }, null, null, null));
+            Assert.IsNull(converter.Convert(new object[] { false, "art", "background", ordinary }, null, null, null));
+            Assert.IsNull(converter.Convert(new object[] { false, "art", "background", null }, null, null, null));
+        }
+
+        [Test]
+        public void BackdropWaitsForTheArtOnItsWayTest()
+        {
+            var values = new object[] { true, null, "background", new HeroLayout(3118, 1338) };
+            Assert.AreEqual(System.Windows.Data.Binding.DoNothing, new HeroBackdropConverter().Convert(values, null, null, null));
+        }
+
+        [Test]
+        public void PictureWaitsWhileItsOnItsWayTest()
+        {
+            var converter = new HeroPictureConverter();
+            Assert.AreEqual(System.Windows.Data.Binding.DoNothing, converter.Convert(new object[] { true, null }, null, null, null));
+            Assert.IsNull(converter.Convert(new object[] { false, null }, null, null, null));
+            Assert.AreEqual("art.jpg", converter.Convert(new object[] { false, "art.jpg" }, null, null, null));
         }
 
         private static BitmapSource CreatePicture(int width, int height, Func<int, byte> value)

@@ -57,6 +57,12 @@ namespace Playnite.DesktopApp.ViewModels
     {
         private readonly System.Threading.CancellationTokenSource contentToken = new System.Threading.CancellationTokenSource();
 
+        // Going through the list with the keyboard shouldn't ask Steam for every game on the way.
+        private const int KeyboardPause = 100;
+
+        // Long enough for Steam to send a picture, and short enough not to show the wrong game for long.
+        private const int HeroPatience = 500;
+
         private static readonly ILogger logger = LogManager.GetLogger();
         private IResourceProvider resources;
         private IDialogsFactory dialogs;
@@ -408,8 +414,30 @@ namespace Playnite.DesktopApp.ViewModels
             get => heroImage;
             set
             {
-                heroImage = value;
-                OnPropertyChanged();
+                if (heroImage != value)
+                {
+                    heroImage = value;
+                    OnPropertyChanged();
+                }
+            }
+        }
+
+        private bool heroOnItsWay;
+
+        /// <summary>
+        /// The picture is being asked for. The page keeps the one it has meanwhile: one change
+        /// straight into the new picture looks better than going through an empty page.
+        /// </summary>
+        public bool HeroOnItsWay
+        {
+            get => heroOnItsWay;
+            private set
+            {
+                if (heroOnItsWay != value)
+                {
+                    heroOnItsWay = value;
+                    OnPropertyChanged();
+                }
             }
         }
 
@@ -419,9 +447,12 @@ namespace Playnite.DesktopApp.ViewModels
             get => logoImage;
             set
             {
-                logoImage = value;
-                OnPropertyChanged();
-                OnPropertyChanged(nameof(HasLogo));
+                if (logoImage != value)
+                {
+                    logoImage = value;
+                    OnPropertyChanged();
+                    OnPropertyChanged(nameof(HasLogo));
+                }
             }
         }
 
@@ -652,8 +683,21 @@ namespace Playnite.DesktopApp.ViewModels
             steamAppId = appId;
             if (appId != null && DesktopAppViewModel.UsesLibraryPanes)
             {
+                // What is already saved comes with the page: the picture changes straight into the
+                // new one, instead of going away and coming back when the rest arrives.
+                HeroImage = SteamContent.GetSavedArt(appId, SteamContent.WideHeroFile) ?? SteamContent.GetSavedArt(appId, SteamContent.HeroFile);
+                HeroOnItsWay = HeroImage == null;
+                LogoImage = SteamContent.GetSavedLogo(appId);
                 LoadSteamContent(appId);
-                ReloadFriends();
+                var friends = SteamFriends.GetKnown(appId);
+                if (friends != null)
+                {
+                    ShowFriends(friends);
+                }
+                else
+                {
+                    ReloadFriends();
+                }
             }
         }
 
@@ -668,7 +712,7 @@ namespace Playnite.DesktopApp.ViewModels
             var token = contentToken.Token;
             try
             {
-                await Task.Delay(TimeSpan.FromMilliseconds(400), token);
+                await Task.Delay(TimeSpan.FromMilliseconds(KeyboardPause), token);
                 var result = await SteamFriends.GetAsync(steamAppId, token);
                 token.ThrowIfCancellationRequested();
                 ShowFriends(result);
@@ -765,24 +809,22 @@ namespace Playnite.DesktopApp.ViewModels
             var token = contentToken.Token;
             try
             {
-                // Going through the list with the keyboard shouldn't ask for every game on the way.
-                await Task.Delay(TimeSpan.FromMilliseconds(250), token);
-                var minutes = SteamContent.GetRecentMinutes(appId);
+                await Task.Delay(TimeSpan.FromMilliseconds(KeyboardPause), token);
+                var hero = SteamContent.GetHeroAsync(appId, token);
+                var logo = SteamContent.GetLogoAsync(appId, token);
+                var latestNews = SteamContent.GetNewsAsync(appId, 5, token);
+                var minutes = await Task.Run(() => SteamContent.GetRecentMinutes(appId), token);
                 if (minutes > 0)
                 {
                     var text = new PlayTimeToStringConverter().Convert((ulong)minutes.Value * 60, typeof(string), null, null);
                     RecentPlaytimeText = string.Format(resources.GetString("LOCAtrioPlaytimeRecent"), text);
                 }
 
-                var hero = await SteamContent.GetArtAsync(appId, SteamContent.WideHeroFile, token) ??
-                           await SteamContent.GetArtAsync(appId, SteamContent.HeroFile, token);
-                token.ThrowIfCancellationRequested();
-                HeroImage = hero;
-                var logo = await SteamContent.GetLogoAsync(appId, token);
-                token.ThrowIfCancellationRequested();
-                LogoImage = logo;
-
-                var news = await SteamContent.GetNewsAsync(appId, 5, token);
+                await Task.WhenAny(hero, Task.Delay(TimeSpan.FromMilliseconds(HeroPatience), token));
+                HeroOnItsWay = false;
+                HeroImage = await hero;
+                LogoImage = await logo;
+                var news = await latestNews;
                 token.ThrowIfCancellationRequested();
                 newsActivity = news.Select(a => GameActivityEntry.Create(a.Date, resources.GetString("LOCAtrioActivityNews"), a.Title, a.Text, a.ImageUrl, a.Url)).ToList();
                 UpdatePlayedContent();
@@ -793,6 +835,7 @@ namespace Playnite.DesktopApp.ViewModels
             catch (Exception e) when (!(e is OutOfMemoryException))
             {
                 // Without internet the page stays with what the library knows.
+                HeroOnItsWay = false;
                 logger.Debug(e, $"Failed to load the Steam content of {appId}.");
             }
         }

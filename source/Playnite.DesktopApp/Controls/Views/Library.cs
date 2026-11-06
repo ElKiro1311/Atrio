@@ -168,7 +168,8 @@ namespace Playnite.DesktopApp.Controls.Views
                 ((mainModel.AppSettings.ShowBackImageOnGridView && mainModel.AppSettings.ViewSettings.GamesViewType == DesktopView.Grid) ||
                 mainModel.AppSettings.ViewSettings.GamesViewType == DesktopView.Details))
             {
-                ImageBackground.SourceUpdateDelay = 150;
+                // The wait is for going through the list without loading every picture. A copy loads in no time.
+                ImageBackground.SourceUpdateDelay = ImageBackground.UseBlurredCopy ? 0 : 150;
                 BindingTools.SetBinding(ImageBackground,
                     FadeImage.SourceProperty,
                     mainModel,
