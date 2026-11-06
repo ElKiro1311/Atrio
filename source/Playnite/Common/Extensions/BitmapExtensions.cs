@@ -361,6 +361,58 @@ namespace System.Drawing.Imaging
             }
         }
 
+        /// <summary>
+        /// A blurred copy of the same size. It's meant for small pictures that are then stretched over a big
+        /// area, which blurs them a lot more than an effect can and leaves nothing to do when they are drawn.
+        /// </summary>
+        public static BitmapSource ToBlurred(this BitmapSource image, int radius)
+        {
+            var width = image.PixelWidth;
+            var height = image.PixelHeight;
+            var stride = width * 4;
+            var pixels = new byte[stride * height];
+            new FormatConvertedBitmap(image, System.Windows.Media.PixelFormats.Bgr32, null, 0).CopyPixels(pixels, stride, 0);
+
+            // Three box blurs in a row are as good as a gaussian one. Each step turns the picture around,
+            // so that the next one blurs it in the other direction. Rounding only at the end keeps
+            // the slow changes of color smooth, those are all that is left of the picture.
+            var values = Array.ConvertAll(pixels, a => (float)a);
+            var turned = new float[values.Length];
+            for (var pass = 0; pass < 3; pass++)
+            {
+                BlurRows(values, turned, width, height, radius);
+                BlurRows(turned, values, height, width, radius);
+            }
+
+            var blurred = BitmapSource.Create(width, height, 96, 96, System.Windows.Media.PixelFormats.Bgr32, null,
+                Array.ConvertAll(values, a => (byte)(a + 0.5f)), stride);
+            blurred.Freeze();
+            return blurred;
+        }
+
+        private static void BlurRows(float[] from, float[] to, int width, int height, int radius)
+        {
+            for (var y = 0; y < height; y++)
+            {
+                for (var color = 0; color < 3; color++)
+                {
+                    var row = y * width * 4 + color;
+                    var sum = 0f;
+                    for (var x = -radius; x <= radius; x++)
+                    {
+                        sum += from[row + Math.Max(0, Math.Min(width - 1, x)) * 4];
+                    }
+
+                    for (var x = 0; x < width; x++)
+                    {
+                        to[(x * height + y) * 4 + color] = sum / (radius * 2 + 1);
+                        sum += from[row + Math.Min(width - 1, x + radius + 1) * 4];
+                        sum -= from[row + Math.Max(0, x - radius) * 4];
+                    }
+                }
+            }
+        }
+
         public static long GetSizeInMemory(this BitmapSource image)
         {
             try

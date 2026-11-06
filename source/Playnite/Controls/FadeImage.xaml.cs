@@ -47,6 +47,9 @@ namespace Playnite.Controls
 
         public double SourceUpdateDelay { get; set; } = 0;
 
+        private const int BlurredCopyWidth = 320;
+        private const int BlurredCopyRadius = 10;
+
         #region AnimationEnabled
 
         public static readonly DependencyProperty AnimationEnabledProperty = DependencyProperty.Register(
@@ -175,6 +178,26 @@ namespace Playnite.Controls
 
         #endregion HighQualityBlur
 
+        #region UseBlurredCopy
+
+        public static readonly DependencyProperty UseBlurredCopyProperty = DependencyProperty.Register(
+            nameof(UseBlurredCopy),
+            typeof(bool),
+            typeof(FadeImage),
+            new PropertyMetadata(false));
+
+        /// <summary>
+        /// Shows a small copy of the picture, blurred once when it loads. It takes a lot more blur
+        /// than <see cref="IsBlurEnabled"/>, and it doesn't cost anything to draw over a big area.
+        /// </summary>
+        public bool UseBlurredCopy
+        {
+            get { return (bool)GetValue(UseBlurredCopyProperty); }
+            set { SetValue(UseBlurredCopyProperty, value); }
+        }
+
+        #endregion UseBlurredCopy
+
         public FadeImage()
         {
             InitializeComponent();
@@ -267,13 +290,20 @@ namespace Playnite.Controls
             var blurAmount = BlurAmount;
             var blurEnabled = IsBlurEnabled;
             var highQuality = HighQualityBlur;
+            var useBlurredCopy = UseBlurredCopy;
             BitmapSource image = null;
             currentSource = newSource;
             if (newSource != null)
             {
                 image = await Task.Factory.StartNew(() =>
                 {
-                    if (newSource is string str)
+                    if (useBlurredCopy)
+                    {
+                        var path = (newSource as BitmapLoadProperties)?.Source ?? newSource as string;
+                        var properties = new BitmapLoadProperties(BlurredCopyWidth, 0);
+                        return ImageSourceManager.GetImage(path, false, properties)?.ToBlurred(BlurredCopyRadius);
+                    }
+                    else if (newSource is string str)
                     {
                         return ImageSourceManager.GetImage(str, false);
                     }

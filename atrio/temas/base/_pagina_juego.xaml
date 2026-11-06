@@ -1,15 +1,33 @@
                     <ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto"
                                   Style="{DynamicResource DetailsScrollViewer}" x:Name="PART_ScrollViewHost">
                         <StackPanel>
-                            <!-- The art grows with the window up to a limit, the rest of the page never moves away from the top -->
-                            <Grid ClipToBounds="True"
-                                  Height="{Binding ActualWidth, ElementName=PART_ScrollViewHost, Converter={StaticResource HeroHeightConverter}}">
-                                <FadeImage x:Name="PART_ImageBackground" Stretch="UniformToFill"
-                                           HorizontalAlignment="Stretch" VerticalAlignment="Stretch" />
-                                <FadeImage Source="{Binding HeroImage}" Stretch="UniformToFill"
-                                           HorizontalAlignment="Stretch" VerticalAlignment="Top"
-                                           Height="{Binding ActualWidth, ElementName=PART_ScrollViewHost, Converter={StaticResource HeroPictureHeightConverter}}"
-                                           Margin="{Binding ActualWidth, ElementName=PART_ScrollViewHost, Converter={StaticResource HeroPictureMarginConverter}}" />
+                            <!-- The art grows with the window up to a limit, the rest of the page never moves away from the top.
+                                 Past it the picture stays whole in the middle and its sides fade into a blurred copy of it. -->
+                            <Grid x:Name="HeroArt" ClipToBounds="True" Height="{Binding Tag.Height, RelativeSource={RelativeSource Self}}">
+                                <Grid.Tag>
+                                    <MultiBinding Converter="{StaticResource HeroLayoutConverter}">
+                                        <Binding Path="ActualWidth" ElementName="PART_ScrollViewHost" />
+                                        <Binding Path="ActualHeight" ElementName="PART_ScrollViewHost" />
+                                    </MultiBinding>
+                                </Grid.Tag>
+                                <FadeImage Stretch="Fill" UseBlurredCopy="True" Opacity="0.8" SourceUpdateDelay="150" IsHitTestVisible="False">
+                                    <FadeImage.Source>
+                                        <MultiBinding Converter="{StaticResource HeroBackdropConverter}">
+                                            <Binding Path="HeroImage" />
+                                            <Binding Path="Source" ElementName="PART_ImageBackground" />
+                                            <Binding Path="Tag" ElementName="HeroArt" />
+                                        </MultiBinding>
+                                    </FadeImage.Source>
+                                </FadeImage>
+                                <Grid MaxWidth="{Binding Tag.PictureWidth, ElementName=HeroArt}"
+                                      OpacityMask="{Binding Tag.PictureMask, ElementName=HeroArt}">
+                                    <FadeImage x:Name="PART_ImageBackground" Stretch="UniformToFill"
+                                               HorizontalAlignment="Stretch" VerticalAlignment="Stretch" />
+                                    <FadeImage Source="{Binding HeroImage}" Stretch="UniformToFill"
+                                               HorizontalAlignment="Stretch" VerticalAlignment="Top"
+                                               Height="{Binding Tag.PictureHeight, ElementName=HeroArt}"
+                                               Margin="{Binding Tag.PictureMargin, ElementName=HeroArt}" />
+                                </Grid>
                                 <Rectangle IsHitTestVisible="False">
                                     <Rectangle.Fill>
                                         <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
