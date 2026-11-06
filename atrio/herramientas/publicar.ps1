@@ -23,7 +23,7 @@ try {
 
     # Solo avanza: Atrio ignora cualquier versión que no sea mayor que la suya.
     $publicadas = gh release list --repo $repositorio --limit 100 --json tagName --jq '.[].tagName' |
-        ForEach-Object { [version]$_.TrimStart('v') } | Sort-Object
+        Where-Object { $_ -match '^v\d+\.\d+\.\d+$' } | ForEach-Object { [version]$_.TrimStart('v') } | Sort-Object
     if ($LASTEXITCODE -ne 0) { throw 'No se pudo leer la lista de versiones.' }
     if ($publicadas -and [version]$Version -le ($publicadas | Select-Object -Last 1)) {
         throw "La última versión publicada ya es $($publicadas | Select-Object -Last 1)."
