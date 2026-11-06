@@ -1371,7 +1371,7 @@ namespace Playnite
                 try
                 {
                     var release = AtrioUpdates.GetNewerRelease();
-                    if (release != null)
+                    if (release != null && (!AppSettings.UpdateNotificationOnPatchesOnly || release.Version.Major == AtrioInfo.CurrentVersion.Major))
                     {
                         MainModelBase.UpdatesAvailable = true;
                         Notifications.Add(new NotificationMessage(

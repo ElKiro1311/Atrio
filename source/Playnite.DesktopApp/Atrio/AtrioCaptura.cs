@@ -926,6 +926,9 @@ namespace Playnite.DesktopApp.Atrio
                 case "ventana":
                     _ = Application.Current.Dispatcher.BeginInvoke(new Action(() => model.OpenUpdatesCommand.Execute(null)));
                     break;
+                case "comprobar":
+                    _ = Application.Current.Dispatcher.BeginInvoke(new Action(() => model.CheckForUpdateCommand.Execute(null)));
+                    break;
                 case "notas":
                     Log("notas: " + string.Join(" | ", window().ReleaseNotes.Select(a => $"{a.Version}: {a.Note}")));
                     break;

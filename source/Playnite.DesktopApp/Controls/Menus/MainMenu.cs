@@ -197,6 +197,7 @@ namespace Playnite.DesktopApp.Controls
             AddMenuChild(helpItem.Items, "LOCCrashRestartSafe", mainModel.RestartInSafeMode);
 
             // About
+            AddMenuChild(Items, "LOCCheckForUpdates", mainModel.CheckForUpdateCommand);
             AddMenuChild(Items, "LOCMenuAbout", mainModel.OpenAboutCommand, null, "AboutPlayniteIcon");
             Items.Add(new Separator());
 
