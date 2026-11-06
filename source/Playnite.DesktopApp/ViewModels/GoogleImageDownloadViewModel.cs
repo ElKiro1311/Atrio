@@ -275,7 +275,7 @@ namespace Playnite.DesktopApp.ViewModels
             {
                 if (!AvailableImages.HasItems())
                 {
-                    Dialogs.ShowErrorMessage(LOC.WebImageDownloadError.GetLocalized() + "\n\n" + "https://playnite.link/webimageissues", "");
+                    Dialogs.ShowErrorMessage(LOC.WebImageDownloadError.GetLocalized(), "");
                     return;
                 }
 

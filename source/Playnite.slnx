@@ -18,22 +18,15 @@
       <BuildDependency Project="Tests/TestPlugin/TestPlugin.csproj" />
       <Platform Project="x86" />
     </Project>
-    <Project Path="Tests/Playnite.Toolbox.Tests/Playnite.Toolbox.Tests.csproj">
-      <Platform Project="x86" />
-    </Project>
     <Project Path="Tests/TestApp/TestApp.csproj" />
     <Project Path="Tests/TestGameLibrary/TestGameLibrary.csproj" />
     <Project Path="Tests/TestMetadataPlugin/TestMetadataPlugin.csproj" />
     <Project Path="Tests/TestPlugin/TestPlugin.csproj" />
   </Folder>
   <Folder Name="/Tools/">
-    <Project Path="Tools/Playnite.Toolbox/Playnite.Toolbox.csproj">
-      <Platform Project="x86" />
-    </Project>
     <Project Path="Tools/Playnite.Utilities/Playnite.Utilities.csproj">
       <Platform Project="x86" />
     </Project>
-    <Project Path="Tools/PlayniteInstaller/PlayniteInstaller.csproj" />
   </Folder>
   <Project Path="Playnite.BrowserProcess/Playnite.BrowserProcess.csproj">
     <Platform Project="x86" />

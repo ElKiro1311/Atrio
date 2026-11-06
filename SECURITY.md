@@ -10,7 +10,7 @@ Usa [un aviso privado de seguridad](https://github.com/ElKiro1311/Atrio/security
 
 **Las sesiones de las tiendas se guardan en la carpeta de Atrio.** Están en `ExtensionsData`. Si compartes o subes tu carpeta, quítala antes.
 
-**El programa no está firmado.** Descárgalo solo de la página de versiones de este repositorio.
+**El programa no está firmado.** Descárgalo solo de la página de versiones de este repositorio. Las actualizaciones vienen de esa misma página, y Atrio comprueba la huella de cada paquete antes de instalarlo.
 
 **Librerías heredadas.** Atrio mantiene dos librerías antiguas de Playnite porque los complementos y el formato de la biblioteca dependen de ellas:
 

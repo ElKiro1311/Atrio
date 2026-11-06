@@ -24,7 +24,8 @@ namespace Playnite.Atrio
         public Guid GameId => Game.Id;
         public string GameName => Game.Name;
         public string StoreName => Plugin?.Name ?? Emulator?.Name ?? ResourceProvider.GetString("LOCAtrioManualStore");
-        public object StoreIcon => Emulator != null ? EmulatorStores.GetIcon(Emulator.Name) : Plugin?.LibraryIcon == null ? null : ImageSourceManager.GetImage(Plugin.LibraryIcon, true);
+        public object StoreIcon => Emulator != null || AtrioInfo.GetTestSetting("ATRIO_SIN_MARCAS") != null ? EmulatorStores.GetIcon(StoreName) :
+            Plugin?.LibraryIcon == null ? null : ImageSourceManager.GetImage(Plugin.LibraryIcon, true);
         public System.Windows.Media.Brush CardBrush => Emulator != null ? EmulatorStores.GetCardBrush(Emulator.Name) : StoreBranding.GetCardBrush(Plugin?.Name);
         public System.Windows.Media.Brush ColorBrush => Emulator != null ? EmulatorStores.GetBrush(Emulator.Name) : StoreBranding.GetBrush(Plugin?.Name);
         public bool IsInstalled => Game.IsInstalled;

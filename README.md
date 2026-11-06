@@ -18,10 +18,10 @@ Un solo sitio para los juegos de todas tus tiendas. Atrio es un lanzador portát
 - **Navegador propio.** Los enlaces de tiendas, noticias y fichas se abren dentro de Atrio, en todas las tiendas.
   En Ajustes puedes elegir otro navegador. Los tráileres con H.264 no se reproducen en él.
 - **Amigos en la ficha.** Con tu sesión de Steam en ese navegador, la ficha enseña qué amigos juegan a cada juego.
-- **Colecciones.** Como en Steam: las llenas tú, con clic derecho, arrastrando o eligiendo juegos de una lista, o se llenan solas
+- **Colecciones.** Las llenas tú, con clic derecho, arrastrando o eligiendo juegos de una lista, o se llenan solas
   con unos filtros. Cada una tiene su página y puede salir como estante en Inicio.
-- **Se actualiza sola.** Atrio mira las Releases de GitHub, enseña las novedades y se instala con un clic. Si algo falla, se queda
-  como estaba, y tu biblioteca y tus ajustes no se tocan.
+- **Se actualiza sola.** Atrio mira las Releases de este repositorio, sin ninguna cuenta, enseña las novedades y se instala con
+  un clic. Si algo falla, se queda como estaba, y tu biblioteca y tus ajustes no se tocan.
 - **Interfaz nueva.** Menú arriba y biblioteca a la izquierda, con un selector de tiendas y buscador.
   Inicio con novedades, juegos recientes y qué jugar después. Ficha con cabecera, barra de juego,
   actividad y logros, que se adapta desde portátiles hasta pantallas ultrapanorámicas. Siete temas.
@@ -56,6 +56,7 @@ Para publicar una versión, escribe sus novedades en `atrio\novedades\<versión>
 | `source/` | El código. Lo propio de Atrio está en las carpetas `Atrio` y en los archivos `Atrio*` |
 | `atrio/temas/` | Temas: `base/`, una carpeta por variante, `variantes.py` (colores), `fuentes/`, `vistas/` |
 | `atrio/complementos/` | Lista fijada de complementos con su versión, huella y licencia |
+| `source/paquetes/` | `Playnite.Deps`, las librerías binarias que Playnite solo publica en su propio servidor de paquetes, para compilar sin depender de él |
 | `atrio/herramientas/` | Scripts de compilación y publicación |
 | `atrio/novedades/` | Lo que trae cada versión, que Atrio enseña antes de actualizarse |
 | `atrio/demo/` | Generador de la biblioteca de ejemplo |
@@ -65,20 +66,22 @@ Para publicar una versión, escribe sus novedades en `atrio\novedades\<versión>
 
 Atrio no incluye juegos, ROM, BIOS ni claves, ni ayuda a conseguirlos. Tampoco salta ningún DRM: cada juego se abre con su tienda.
 
-Atrio no usa los servidores de Playnite. El buscador de complementos lee la [base pública de complementos](https://github.com/JosefNemec/PlayniteAddonDatabase), los complementos oficiales incluidos se actualizan con cada versión de Atrio y el plan B del complemento de Steam está desactivado.
+Atrio no usa los servidores de Playnite, ni al funcionar ni al compilar. El buscador de complementos lee la [base pública de complementos](https://github.com/JosefNemec/PlayniteAddonDatabase), los complementos oficiales incluidos se actualizan con cada versión de Atrio y el plan B del complemento de Steam está desactivado.
 
 El proveedor de metadatos IGDB no viene incluido porque depende de esos servidores. Quien lo quiera puede instalarlo desde Complementos.
 
 ## Créditos y licencias
 
-Atrio es una versión modificada de [Playnite](https://github.com/JosefNemec/Playnite), de Josef Nemec y colaboradores, y se publica con la misma licencia [MIT](LICENSE.md). Las dependencias de Playnite aparecen en [`source/Playnite/license.txt`](source/Playnite/license.txt).
+Atrio es una versión modificada (un *fork*) de [Playnite](https://github.com/JosefNemec/Playnite), de Josef Nemec y colaboradores, y se publica con la misma licencia [MIT](LICENSE.md). Las dependencias de Playnite aparecen en [`source/Playnite/license.txt`](source/Playnite/license.txt).
+
+Es un proyecto independiente: si encuentras un fallo, avisa aquí y no en Playnite.
 
 Los logros se apoyan en [Playnite Achievements](https://github.com/justin-delano/PlayniteAchievements), de Justin Delano (MIT). Atrio lo incluye adaptado: nombre, traducción al español y sin un sonido cuya licencia no consta.
 
 Los complementos incluidos son obra de sus autores: cada uno figura en [`atrio/complementos/lista.json`](atrio/complementos/lista.json) con su licencia, y el paquete lleva el texto de todas en `licencias-complementos.txt`. Solo se incluyen los que permiten redistribuirlos.
 
-Las fuentes Poppins y Barlow usan la [SIL Open Font License](atrio/temas/fuentes).
+Las fuentes Poppins y Barlow usan la [SIL Open Font License](atrio/temas/fuentes). Los iconos de [IcoFont](https://icofont.com) usan [CC BY 4.0 y SIL OFL](references/Fonts/LICENCIA-IcoFont.txt).
 
-Atrio no está afiliado a Playnite, Valve, Epic Games, Microsoft ni a ninguna otra tienda. Los nombres y logotipos son de sus dueños y se usan solo para identificar cada tienda.
+Atrio no está afiliado a Playnite, Valve, Epic Games, Microsoft ni a ninguna otra tienda. Los nombres y logotipos son de sus dueños y solo identifican cada tienda. Este repositorio no incluye sus logotipos: los aporta el complemento de cada tienda.
 
 Consulta también la [política de seguridad](SECURITY.md).

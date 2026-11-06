@@ -163,14 +163,7 @@ namespace Playnite.ViewModels
         {
             try
             {
-                if (PlayniteEnvironment.ReleaseChannel == ReleaseChannel.Beta)
-                {
-                    ProcessStarter.StartUrl(UrlConstants.IssuesTesting);
-                }
-                else
-                {
-                    ProcessStarter.StartUrl(UrlConstants.Issues);
-                }
+                ProcessStarter.StartUrl(UrlConstants.Issues);
             }
             catch (Exception e) when (!PlayniteEnvironment.ThrowAllErrors)
             {

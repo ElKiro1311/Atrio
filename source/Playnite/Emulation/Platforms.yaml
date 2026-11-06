@@ -305,7 +305,6 @@
 - Name: Nintendo Switch
   Id: nintendo_switch
   IgdbId: 130
-  Emulators: [eden, sudachi] #Suyu and Citron are supported but not recommended for download here due to inactivity (Suyu)/shady behavior (Citron)
 
 - Name: Nintendo Switch 2
   Id: nintendo_switch2

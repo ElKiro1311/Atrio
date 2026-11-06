@@ -43,12 +43,6 @@
                       SelectedValue="{Binding Settings.Language}"
                       SelectedValuePath="Id" DisplayMemberPath="DisplayString"
                       ItemsSource="{Binding AvailableLanguages}"/>
-            <TextBlock Margin="20,0,0,0" VerticalAlignment="Center">
-                <Hyperlink Command="{x:Static pcmd:GlobalCommands.NavigateUrlCommand}"
-                            CommandParameter="https://crowdin.com/project/playnite">
-                    <Run Text="{DynamicResource LOCSettingsCreateLocalization}" />
-                </Hyperlink>
-            </TextBlock>
         </DockPanel>
 
         <StackPanel Orientation="Horizontal" Margin="5,0,5,0">

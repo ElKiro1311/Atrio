@@ -16,6 +16,12 @@ de las tiendas. Playnite no se toca y los dos pueden convivir.
 Windows puede avisar de que no reconoce el programa porque no está firmado.
 
 
+Actualizaciones
+---------------
+Atrio avisa cuando hay una versión nueva, enseña sus novedades y se instala con un clic.
+No hace falta ninguna cuenta. Tu biblioteca y tus ajustes no se tocan.
+
+
 Créditos y licencias
 --------------------
 Atrio es una versión modificada de Playnite, de Josef Nemec y colaboradores,
@@ -28,7 +34,8 @@ Delano, adaptado para Atrio.
 Atrio no incluye emuladores, juegos, BIOS ni claves.
 
 Las fuentes Poppins y Barlow se distribuyen con la licencia SIL Open Font License
-(archivos OFL-*.txt dentro de la carpeta Fonts de cada tema).
+(archivos OFL-*.txt dentro de la carpeta Fonts de cada tema). Los iconos son de IcoFont
+(icofont.com), con licencia CC BY 4.0 y SIL OFL.
 
 Atrio no está afiliado a Playnite, Valve, Epic Games ni a ninguna otra tienda.
 Los nombres y logotipos son de sus dueños.

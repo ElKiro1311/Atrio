@@ -17,6 +17,9 @@ New-Item -ItemType Directory -Force $datos, $capturas | Out-Null
 
 & python (Join-Path $raiz 'atrio\demo\generar.py') $arte
 $env:ATRIO_IMPORTAR = 'no'
+
+# Estas imágenes se publican: las tiendas salen con distintivos propios, sin sus logos.
+$env:ATRIO_SIN_MARCAS = 'si'
 $env:ATRIO_CAPTURA_ANCHO = 1500
 $env:ATRIO_CAPTURA_ALTO = 900
 
@@ -43,7 +46,7 @@ foreach ($par in $temas) {
     $json['ViewSettings']['GamesViewType'] = $vista
     $json['SidebarPosition'] = $barra
     $json | ConvertTo-Json -Depth 30 | Set-Content $configuracion -Encoding utf8
-    "espera 3500`ncaptura tema-$carpeta-inicio`nbarra Biblioteca`nespera 2800`ncaptura tema-$carpeta-biblioteca`nsalir" | Set-Content $guion -Encoding utf8
+    "espera 3500`ncaptura tema-$carpeta-inicio`nbarra Biblioteca`nespera 1500`njuego Aguja del Norte`nespera 2800`ncaptura tema-$carpeta-biblioteca`nsalir" | Set-Content $guion -Encoding utf8
     & $probar -Exe $Exe -Datos $datos -Guion $guion -Capturas $capturas -Limite 60 | Select-Object -Last 1
     Write-Output "tema $carpeta listo"
 }

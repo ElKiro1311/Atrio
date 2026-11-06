@@ -35,13 +35,6 @@
             <TextBlock Text="{DynamicResource LOCOpenDirectoryCommand}" VerticalAlignment="Center"/>
             <TextBox Text="{Binding Settings.DirectoryOpenCommand}"
                      Margin="10,0,0,0" Width="250"/>
-            <TextBlock VerticalAlignment="Center" Margin="10,0,0,0">
-                <Hyperlink NavigateUri="https://github.com/JosefNemec/Playnite/wiki/Custom-directory-open-command"
-                           Command="{x:Static pcmd:GlobalCommands.NavigateUrlCommand}"
-                           CommandParameter="{Binding NavigateUri, RelativeSource={RelativeSource Self}}">
-                    <Run Text="{DynamicResource LOCWhatIsThis}" />
-                </Hyperlink>
-            </TextBlock>
         </StackPanel>
 
         <StackPanel Orientation="Horizontal" Margin="0,15,0,0">            

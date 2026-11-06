@@ -1,4 +1,4 @@
-"""Quita la redirección errónea de RuntimeInformation, igual que FixAppConfig en build.ps1.
+"""Quita la redirección errónea de RuntimeInformation de los archivos .config.
 
 Se hace sobre el texto: reescribirlo con un parser XML mueve los espacios de nombres
 y Windows deja de aceptar el archivo ("side-by-side configuration is incorrect").

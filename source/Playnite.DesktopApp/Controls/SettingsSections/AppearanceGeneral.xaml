@@ -33,18 +33,8 @@
                       SelectedValue="{Binding Settings.Theme}"
                       SelectedValuePath="Id"
                       DisplayMemberPath="Name" />
-            <TextBlock Margin="20,0,0,0" VerticalAlignment="Center">
-                <Hyperlink Command="{x:Static pcmd:GlobalCommands.NavigateUrlCommand}"
-                           CommandParameter="https://playnite.link/addons.html#themesDesktop">
-                    <Run Text="{DynamicResource LOCSettingsGetThemes}" />
-                </Hyperlink>
-            </TextBlock>
-            <TextBlock Margin="20,0,0,0" VerticalAlignment="Center">
-                <Hyperlink Command="{x:Static pcmd:GlobalCommands.NavigateUrlCommand}"
-                           CommandParameter="{}{DocsRootUrl}/tutorials/themes/introduction.html">
-                    <Run Text="{DynamicResource LOCSettingsCreateThemes}" />
-                </Hyperlink>
-            </TextBlock>
+            <Canvas/>
+            <Canvas/>
 
             <ContentControl VerticalAlignment="Center" Margin="0,15,0,0"
                             Content="{DynamicResource LOCSettingsSkinFullscreen}"
@@ -54,12 +44,7 @@
                       SelectedValue="{Binding FullscreenSettings.Theme}"
                       SelectedValuePath="Id"
                       DisplayMemberPath="Name" />
-            <TextBlock Margin="20,15,0,0" VerticalAlignment="Center">
-                <Hyperlink Command="{x:Static pcmd:GlobalCommands.NavigateUrlCommand}"
-                           CommandParameter="https://playnite.link/addons.html#themesFullscreen">
-                    <Run Text="{DynamicResource LOCSettingsGetThemes}" />
-                </Hyperlink>
-            </TextBlock>
+            <Canvas/>
             <Canvas/>
         </GridEx>
 

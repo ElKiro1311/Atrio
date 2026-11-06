@@ -111,18 +111,6 @@
         </StackPanel>
     </DataTemplate>
     
-    <DataTemplate x:Key="MainMenuPatreonButtonTemplate">
-        <StackPanel Orientation="Horizontal">
-            <TextBlock Text="{DynamicResource LOCMenuPatreonSupport}" VerticalAlignment="Center" />
-        </StackPanel>
-    </DataTemplate>
-
-    <DataTemplate x:Key="MainMenuKofiButtonTemplate">
-        <StackPanel Orientation="Horizontal">
-            <TextBlock Text="{DynamicResource LOCMenuKofiSupport}" VerticalAlignment="Center" />
-        </StackPanel>
-    </DataTemplate>
-
     <DataTemplate x:Key="MainMenuMinimizeButtonTemplate">
         <StackPanel Orientation="Horizontal">
             <TextBlock Text="{DynamicResource LOCMinimize}" VerticalAlignment="Center" />

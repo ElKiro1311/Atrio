@@ -1733,3 +1733,10 @@ Apache License
    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
    See the License for the specific language governing permissions and
    limitations under the License.
+
+----------------------------------------------------------------------------------------
+IcoFont
+
+https://icofont.com
+Icons: Creative Commons Attribution 4.0 (CC BY 4.0), https://creativecommons.org/licenses/by/4.0/
+Font file: SIL Open Font License 1.1, https://openfontlicense.org

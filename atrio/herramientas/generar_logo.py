@@ -82,6 +82,12 @@ for tema in ('Playnite.DesktopApp/Themes/Desktop/Default/Images', 'Playnite.Full
     guardar_ico(monocromo((255, 255, 255)), os.path.join(ruta, 'applogo_white.ico'))
     guardar_ico(monocromo((16, 16, 20)), os.path.join(ruta, 'applogo_black.ico'))
 
+# Portada de un juego que no tiene ninguna
+portada = degradado(620, (38, 41, 50), (20, 21, 26)).crop((82, 0, 538, 620)).convert('RGBA')
+portada.alpha_composite(monocromo((96, 100, 114)).resize((110, 110), Image.LANCZOS), (173, 255))
+for tema in ('Playnite.DesktopApp/Themes/Desktop/Default/Images', 'Playnite.FullscreenApp/Themes/Fullscreen/Default/Images'):
+    portada.save(os.path.join(FUENTES, tema, 'custom_cover_background.png'))
+
 # Pantalla de inicio
 for proyecto in ('Playnite.DesktopApp', 'Playnite.FullscreenApp'):
     ruta = os.path.join(FUENTES, proyecto, 'SplashScreen.png')

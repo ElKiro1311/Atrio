@@ -1523,4 +1523,5 @@ Abre un nuevo problema en la página de GitHub de Playnite con una solicitud par
 
 {0}</sys:String>
     <sys:String x:Key="LOCAtrioUpdaterStillOpen">Atrio sigue abierto. Ciérralo y vuelve a intentarlo.</sys:String>
+    <sys:String x:Key="LOCFullscreenSettingsDesktopNotif">Los ajustes del modo de pantalla completa están en el menú de ajustes de ese modo.</sys:String>
 </ResourceDictionary>

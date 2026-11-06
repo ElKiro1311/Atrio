@@ -44,7 +44,7 @@ namespace Playnite.FullscreenApp.ViewModels
         public void SendFeedback()
         {
             Close();
-            NavigateUrlCommand.Navigate(PlayniteEnvironment.ReleaseChannel == ReleaseChannel.Beta ? UrlConstants.IssuesTesting : UrlConstants.Issues);
+            NavigateUrlCommand.Navigate(UrlConstants.Issues);
         }
 
         public void RestartApp()
