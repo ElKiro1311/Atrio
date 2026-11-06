@@ -448,6 +448,22 @@ namespace Playnite.DesktopApp.Atrio
                     await Task.Delay(200);
                     Log($"boton marcado: {paneButton.IsChecked}, panel: {model.Pane}");
                     break;
+                case "tecla":
+                    var mainWindow = model.Window.Window;
+                    mainWindow.RaiseEvent(new KeyEventArgs(Keyboard.PrimaryDevice, PresentationSource.FromVisual(mainWindow), 0, (Key)Enum.Parse(typeof(Key), argument))
+                    {
+                        RoutedEvent = Keyboard.KeyDownEvent
+                    });
+                    await Task.Delay(200);
+                    Log($"tras la tecla: {model.Pane}, pestana: {model.SelectedGameDetails?.ShowAchievements}");
+                    break;
+                case "rueda":
+                    var navigation = FindAll<System.Windows.Controls.ScrollViewer>(model.Window.Window).First(a => a.Name == "PART_ScrollSideBarItems");
+                    var before = navigation.HorizontalOffset;
+                    navigation.RaiseEvent(new MouseWheelEventArgs(Mouse.PrimaryDevice, Environment.TickCount, -240) { RoutedEvent = UIElement.PreviewMouseWheelEvent });
+                    await Task.Delay(200);
+                    Log($"rueda: de {before} a {navigation.HorizontalOffset}");
+                    break;
                 case "fila":
                     var row = FindAll<Playnite.DesktopApp.Controls.Views.Sidebar>(model.Window.Window).First();
                     Log("no caben: " + string.Join(", ", row.GetHiddenItems().Select(a => a.Title)));
