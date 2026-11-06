@@ -8,9 +8,7 @@ using System.Diagnostics;
 using System.IO;
 using System.IO.Compression;
 using System.Linq;
-using System.Net;
 using System.Net.Http;
-using System.Net.Http.Headers;
 using System.Security.Cryptography;
 using System.Threading;
 using System.Threading.Tasks;
@@ -30,8 +28,8 @@ namespace Playnite.Atrio
     }
 
     /// <summary>
-    /// Versions come from the releases of the project on GitHub: each one has the program in a zip, built
-    /// there from the source. Nothing of this stays in the folder of Atrio once the new version is running.
+    /// Versions come from the public releases of the project on GitHub, each one with the program in a zip. It works
+    /// the same for anybody, with no account. Nothing of this stays in the folder of Atrio once the new version is running.
     /// </summary>
     public static class AtrioUpdates
     {
@@ -79,7 +77,6 @@ namespace Playnite.Atrio
         private const string MarkerName = "instalada.txt";
         private const string InstallerName = "Atrio.Updater.exe";
         private const string HashPrefix = "sha256:";
-        private const int MaxRedirects = 5;
         private const int BufferSize = 81920;
 
         /// <summary>How long a download can go without receiving anything.</summary>
@@ -89,9 +86,6 @@ namespace Playnite.Atrio
 
         private static string ReleasesUrl => AtrioInfo.GetTestSetting("ATRIO_RELEASES_URL") ?? PlayniteSettings.GetAppConfigValue("AtrioReleasesUrl");
         private static string UpdateFolder => Path.Combine(PlaynitePaths.ProgramPath, UpdateFolderName);
-
-        /// <summary>With a private repository, the access this computer already has for git.</summary>
-        private static bool needsAccess;
 
         /// <summary>The versions published with their package, the newest first.</summary>
         public static List<AtrioRelease> ParseReleases(string json)
@@ -125,52 +119,6 @@ namespace Playnite.Atrio
             return releases.Where(a => a.Version > current).ToList();
         }
 
-        /// <summary>What the command git uses to log in answers, which only goes in the memory of this process.</summary>
-        public static string ParseCredential(string output)
-        {
-            const string key = "password=";
-            return output?.Split('\n').Select(a => a.Trim()).FirstOrDefault(a => a.StartsWith(key, StringComparison.Ordinal))?.Substring(key.Length);
-        }
-
-        private static string GetGitAccess()
-        {
-            try
-            {
-                var info = new ProcessStartInfo("git", "credential fill")
-                {
-                    UseShellExecute = false,
-                    CreateNoWindow = true,
-                    RedirectStandardInput = true,
-                    RedirectStandardOutput = true,
-                    RedirectStandardError = true
-                };
-
-                // Without a login it has to say so, not ask for one.
-                info.EnvironmentVariables["GIT_TERMINAL_PROMPT"] = "0";
-                info.EnvironmentVariables["GCM_INTERACTIVE"] = "never";
-                using (var process = Process.Start(info))
-                {
-                    var output = process.StandardOutput.ReadToEndAsync();
-                    process.ErrorDataReceived += (_, __) => { };
-                    process.BeginErrorReadLine();
-                    process.StandardInput.Write("protocol=https\nhost=github.com\n\n");
-                    process.StandardInput.Close();
-                    if (!output.Wait(TimeSpan.FromSeconds(15)))
-                    {
-                        process.Kill();
-                        return null;
-                    }
-
-                    return ParseCredential(output.Result);
-                }
-            }
-            catch (Exception e) when (!(e is OutOfMemoryException))
-            {
-                logger.Info($"Without access to GitHub through git: {e.GetType().Name}.");
-                return null;
-            }
-        }
-
         private static HttpClient CreateClient(HttpMessageHandler handler)
         {
             var client = new HttpClient(handler) { Timeout = Timeout.InfiniteTimeSpan };
@@ -178,55 +126,28 @@ namespace Playnite.Atrio
             return client;
         }
 
-        private static async Task<HttpResponseMessage> AskGitHub(HttpClient client, string url, string accept, string access, CancellationToken token)
+        private static Task<HttpResponseMessage> AskGitHub(HttpClient client, string url, string accept, CancellationToken token)
         {
             var request = new HttpRequestMessage(HttpMethod.Get, url);
             request.Headers.Accept.ParseAdd(accept);
-            if (access != null)
-            {
-                request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", access);
-            }
-
-            return await client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, token).ConfigureAwait(false);
+            return client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, token);
         }
 
-        /// <summary>
-        /// A public repository answers to anybody. A private one says it doesn't exist, and this computer can
-        /// see it if it is logged in for git with an account that has access.
-        /// </summary>
+        /// <summary>The same question for anybody: no account or login of the person using Atrio takes part in this.</summary>
         public static List<AtrioRelease> GetReleases()
         {
             using (var cancel = new CancellationTokenSource(TimeSpan.FromSeconds(20)))
             using (var handler = new HttpClientHandler())
             using (var client = CreateClient(handler))
+            using (var response = AskGitHub(client, ReleasesUrl, "application/vnd.github+json", cancel.Token).GetAwaiter().GetResult())
             {
-                const string accept = "application/vnd.github+json";
-                var response = AskGitHub(client, ReleasesUrl, accept, null, cancel.Token).GetAwaiter().GetResult();
-                if (response.StatusCode == HttpStatusCode.NotFound || response.StatusCode == HttpStatusCode.Unauthorized ||
-                    response.StatusCode == HttpStatusCode.Forbidden)
+                logger.Info($"GitHub answered {(int)response.StatusCode} to the question about releases.");
+                if (!response.IsSuccessStatusCode)
                 {
-                    response.Dispose();
-                    var access = GetGitAccess();
-                    if (access.IsNullOrEmpty())
-                    {
-                        logger.Info("The releases can't be read: the repository is private and this computer has no access.");
-                        return new List<AtrioRelease>();
-                    }
-
-                    needsAccess = true;
-                    response = AskGitHub(client, ReleasesUrl, accept, access, cancel.Token).GetAwaiter().GetResult();
+                    return new List<AtrioRelease>();
                 }
 
-                using (response)
-                {
-                    logger.Info($"GitHub answered {(int)response.StatusCode} to the question about releases.");
-                    if (!response.IsSuccessStatusCode)
-                    {
-                        return new List<AtrioRelease>();
-                    }
-
-                    return ParseReleases(response.Content.ReadAsStringAsync().GetAwaiter().GetResult());
-                }
+                return ParseReleases(response.Content.ReadAsStringAsync().GetAwaiter().GetResult());
             }
         }
 
@@ -240,31 +161,15 @@ namespace Playnite.Atrio
             return BitConverter.ToString(bytes).Replace("-", string.Empty).ToLowerInvariant();
         }
 
-        /// <summary>The address of a package sends to a temporary one, and that one must not receive the access to GitHub.</summary>
-        private static async Task<HttpResponseMessage> OpenPackage(HttpClient client, string url, CancellationToken token)
+        private static Task<Stream> GetContent(HttpResponseMessage response)
         {
-            var access = needsAccess ? GetGitAccess() : null;
-            for (var redirect = 0; redirect <= MaxRedirects; redirect++)
-            {
-                var response = await AskGitHub(client, url, "application/octet-stream", access, token).ConfigureAwait(false);
-                var location = response.Headers.Location;
-                if ((int)response.StatusCode < 300 || (int)response.StatusCode >= 400 || location == null)
-                {
-                    response.EnsureSuccessStatusCode();
-                    return response;
-                }
-
-                url = (location.IsAbsoluteUri ? location : new Uri(new Uri(url), location)).ToString();
-                access = null;
-                response.Dispose();
-            }
-
-            throw new WebException("Too many redirects.");
+            response.EnsureSuccessStatusCode();
+            return response.Content.ReadAsStreamAsync();
         }
 
         private static async Task Download(AtrioRelease release, string path, Action<int> progress, CancellationToken token)
         {
-            using (var handler = new HttpClientHandler { AllowAutoRedirect = false })
+            using (var handler = new HttpClientHandler())
             using (var client = CreateClient(handler))
             using (var hash = SHA256.Create())
             using (var stalled = CancellationTokenSource.CreateLinkedTokenSource(token))
@@ -272,11 +177,11 @@ namespace Playnite.Atrio
                 stalled.CancelAfter(stallTimeout);
                 try
                 {
-                    using (var response = await OpenPackage(client, release.PackageUrl, stalled.Token).ConfigureAwait(false))
+                    using (var response = await AskGitHub(client, release.PackageUrl, "application/octet-stream", stalled.Token).ConfigureAwait(false))
 
                     // A read that waits for the network doesn't listen to the token: closing the answer is what stops it.
                     using (stalled.Token.Register(response.Dispose))
-                    using (var source = await response.Content.ReadAsStreamAsync().ConfigureAwait(false))
+                    using (var source = await GetContent(response).ConfigureAwait(false))
                     using (var file = File.Create(path))
                     {
                         var total = response.Content.Headers.ContentLength ?? release.PackageSize;

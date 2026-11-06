@@ -52,16 +52,6 @@ namespace Playnite.Tests
             Assert.AreEqual(offered, AtrioUpdates.GetNewerReleases(releases, Version.Parse(installed)).Count);
         }
 
-        [Test]
-        public void AccessComesFromWhatGitAnswersTest()
-        {
-            Assert.AreEqual("secreto", AtrioUpdates.ParseCredential("protocol=https\nhost=github.com\nusername=alguien\npassword=secreto\n"));
-            Assert.AreEqual("secreto", AtrioUpdates.ParseCredential("protocol=https\r\npassword=secreto\r\n"));
-            Assert.IsNull(AtrioUpdates.ParseCredential("protocol=https\nhost=github.com\n"));
-            Assert.IsNull(AtrioUpdates.ParseCredential(string.Empty));
-            Assert.IsNull(AtrioUpdates.ParseCredential(null));
-        }
-
         private static string NewFolder()
         {
             var folder = Path.Combine(Path.GetTempPath(), "atrio-test-" + Guid.NewGuid().ToString("N"));
