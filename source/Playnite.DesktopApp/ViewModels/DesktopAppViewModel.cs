@@ -1355,7 +1355,16 @@ namespace Playnite.DesktopApp.ViewModels
         private bool OpenLinkInBrowser(string url)
         {
             var opened = false;
-            Application.Current?.Dispatcher.Invoke(new Action(() => opened = OpenInBrowser(url)));
+            try
+            {
+                Application.Current?.Dispatcher.Invoke(new Action(() => opened = OpenInBrowser(url)));
+            }
+            catch (Exception e) when (!PlayniteEnvironment.ThrowAllErrors)
+            {
+                // The link still has to open: the system takes over.
+                Logger.Error(e, "Failed to open a link in the browser of Atrio.");
+            }
+
             return opened;
         }
 
