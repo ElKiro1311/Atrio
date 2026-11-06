@@ -2,6 +2,9 @@
   <Configurations>
     <Platform Name="x86" />
   </Configurations>
+  <Project Path="Atrio.Updater/Atrio.Updater.csproj">
+    <Platform Project="x86" />
+  </Project>
   <Folder Name="/Tests/">
     <Project Path="Tests/Playnite.DesktopApp.Tests/Playnite.DesktopApp.Tests.csproj">
       <Platform Project="x86" />

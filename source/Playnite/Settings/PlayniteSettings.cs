@@ -309,7 +309,7 @@ namespace Playnite
         public int Version
         {
             get; set;
-        } = 9;
+        } = 10;
 
         private DetailsVisibilitySettings detailsVisibility = new DetailsVisibilitySettings();
         public DetailsVisibilitySettings DetailsVisibility
@@ -2166,7 +2166,7 @@ namespace Playnite
             }
         }
 
-        private UpdateCheckFrequency checkForProgramUpdates = UpdateCheckFrequency.OnceADay;
+        private UpdateCheckFrequency checkForProgramUpdates = UpdateCheckFrequency.OnEveryStartup;
         public UpdateCheckFrequency CheckForProgramUpdates
         {
             get => checkForProgramUpdates;
@@ -2592,6 +2592,17 @@ namespace Playnite
                 settings.Version = 9;
             }
 
+            if (settings.Version == 9)
+            {
+                // Asking GitHub is a small question, and a new version now installs itself with one click.
+                if (settings.CheckForProgramUpdates == UpdateCheckFrequency.OnceADay)
+                {
+                    settings.CheckForProgramUpdates = UpdateCheckFrequency.OnEveryStartup;
+                }
+
+                settings.Version = 10;
+            }
+
             settings.WindowPositions = LoadExternalConfig<WindowPositions>(PlaynitePaths.WindowPositionsPath, PlaynitePaths.BackupWindowPositionsPath);
             settings.Fullscreen = LoadExternalConfig<FullscreenSettings>(PlaynitePaths.FullscreenConfigFilePath, PlaynitePaths.BackupFullscreenConfigFilePath);
             settings.BackupSettings();
@@ -2759,6 +2770,8 @@ namespace Playnite
                 case UpdateCheckFrequency.OnceAWeek:
                     return (DateTimes.Now - LastProgramUpdateCheck).TotalDays > 6;
                 case UpdateCheckFrequency.OnEveryStartup:
+                    // Atrio can stay open for days.
+                    return true;
                 default:
                     return false;
             }

@@ -20,6 +20,8 @@ Un solo sitio para los juegos de todas tus tiendas. Atrio es un lanzador portát
 - **Amigos en la ficha.** Con tu sesión de Steam en ese navegador, la ficha enseña qué amigos juegan a cada juego.
 - **Colecciones.** Como en Steam: las llenas tú, con clic derecho, arrastrando o eligiendo juegos de una lista, o se llenan solas
   con unos filtros. Cada una tiene su página y puede salir como estante en Inicio.
+- **Se actualiza sola.** Atrio mira las Releases de GitHub, enseña las novedades y se instala con un clic. Si algo falla, se queda
+  como estaba, y tu biblioteca y tus ajustes no se tocan.
 - **Interfaz nueva.** Menú arriba y biblioteca a la izquierda, con un selector de tiendas y buscador.
   Inicio con novedades, juegos recientes y qué jugar después. Ficha con cabecera, barra de juego,
   actividad y logros, que se adapta desde portátiles hasta pantallas ultrapanorámicas. Siete temas.
@@ -47,12 +49,15 @@ El resultado queda en `salida\Atrio`. Con `-Zip` crea además el paquete para pu
 
 Para regenerar el logo, la biblioteca de ejemplo o las vistas previas hacen falta Pillow y PyYAML: `python -m pip install --target .herramientas\py pillow pyyaml`.
 
+Para publicar una versión, escribe sus novedades en `atrio\novedades\<versión>.md`, súbelas a `main` y ejecuta `atrio\herramientas\publicar.ps1 -Version <versión>` desde una copia limpia. Compila el paquete y crea la Release, y Atrio la encuentra solo.
+
 | Carpeta | Contenido |
 |---|---|
 | `source/` | El código. Lo propio de Atrio está en las carpetas `Atrio` y en los archivos `Atrio*` |
 | `atrio/temas/` | Temas: `base/`, una carpeta por variante, `variantes.py` (colores), `fuentes/`, `vistas/` |
 | `atrio/complementos/` | Lista fijada de complementos con su versión, huella y licencia |
-| `atrio/herramientas/` | Scripts de compilación |
+| `atrio/herramientas/` | Scripts de compilación y publicación |
+| `atrio/novedades/` | Lo que trae cada versión, que Atrio enseña antes de actualizarse |
 | `atrio/demo/` | Generador de la biblioteca de ejemplo |
 | `atrio/pruebas/` | Banco de pruebas y pruebas unitarias |
 

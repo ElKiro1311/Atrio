@@ -17,6 +17,7 @@ namespace Playnite.ViewModels
         private IDialogsFactory dialogs;
         private ApplicationMode mode;
         private readonly SynchronizationContext context;
+        private CancellationTokenSource downloadToken;
 
         private int updateProgress;
         public int UpdateProgress
@@ -93,11 +94,24 @@ namespace Playnite.ViewModels
 
         public void CloseView()
         {
+            downloadToken?.Cancel();
             window.Close();
         }
 
         public async void InstallUpdate()
         {
+            if (ShowProgress)
+            {
+                return;
+            }
+
+            // Atrio has to restart, and it would stop counting the time of the game.
+            if (PlayniteApplication.Current?.GamesEditor?.RunningGames.HasItems() == true)
+            {
+                dialogs.ShowMessage(resources.GetString("LOCAtrioUpdateGameRunning"), "", MessageBoxButton.OK, MessageBoxImage.Information);
+                return;
+            }
+
             if (GlobalTaskHandler.IsActive)
             {
                 if (dialogs.ShowMessage(resources.GetString("LOCUpdateProgressCancelAsk"), "", MessageBoxButton.YesNo, MessageBoxImage.Question) == MessageBoxResult.Yes)
@@ -125,12 +139,18 @@ namespace Playnite.ViewModels
             try
             {
                 ShowProgress = true;
-                await updater.DownloadUpdate((e) =>
+                downloadToken = new CancellationTokenSource();
+                await updater.DownloadUpdate((percent) =>
                 {
-                    context.Post((a) => UpdateProgress = e.ProgressPercentage, null);
-                });
+                    context.Post((a) => UpdateProgress = percent, null);
+                }, downloadToken.Token);
                 updater.InstallUpdate(mode);
                 window.Close(true);
+            }
+            catch (OperationCanceledException) when (downloadToken?.IsCancellationRequested == true)
+            {
+                // Closed by the user, the window is already gone.
+                logger.Info("Update cancelled.");
             }
             catch (Exception exc) when (!PlayniteEnvironment.ThrowAllErrors)
             {

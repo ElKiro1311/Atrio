@@ -26,6 +26,7 @@
 
   <ItemGroup>
     <Compile Include="..\TestApp\TestAppProcInfo.cs" Link="_TestTools\TestAppProcInfo.cs" /> 
+    <Compile Include="..\..\Atrio.Updater\UpdateInstaller.cs" Link="_TestTools\UpdateInstaller.cs" />
   </ItemGroup>
 
   <ItemGroup>

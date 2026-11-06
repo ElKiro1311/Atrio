@@ -48,7 +48,6 @@
                              Visibility="{Binding ShowProgress, Converter={pcon:BooleanToVisibilityConverter}}"
                              DockPanel.Dock="Top" Margin="5"/>
                 <Button Name="ButtonClose" Content="{DynamicResource LOCCloseLabel}" DockPanel.Dock="Right" IsCancel="True"
-                        IsEnabled="{Binding ShowProgress, Converter={pcon:NegateConverter}}"
                         Style="{StaticResource BottomButton}"
                         Command="{Binding CloseCommand}"/>
                 <Button Name="ButtonInstall" Content="{DynamicResource LOCUpdaterInstallUpdate}" DockPanel.Dock="Right"

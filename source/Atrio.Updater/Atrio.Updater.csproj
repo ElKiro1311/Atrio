@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <AssemblyName>Atrio.Updater</AssemblyName>
+    <RootNamespace>Atrio.Updater</RootNamespace>
+    <AssemblyTitle>Atrio</AssemblyTitle>
+    <TargetFramework>net462</TargetFramework>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <ApplicationIcon>..\Playnite.BrowserProcess\app.ico</ApplicationIcon>
+    <RuntimeIdentifier>win-x86</RuntimeIdentifier>
+    <Platforms>x86</Platforms>
+    <BaseOutputPath>bin</BaseOutputPath>
+    <LangVersion>12</LangVersion>
+    <UseWindowsForms>true</UseWindowsForms>
+  </PropertyGroup>
+</Project>

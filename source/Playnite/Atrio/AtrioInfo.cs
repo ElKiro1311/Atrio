@@ -16,8 +16,11 @@ namespace Playnite.Atrio
 
     public static class AtrioInfo
     {
+        /// <summary>The published versions get theirs from the tag: this one is what a build of the source says.</summary>
         public const string Version = "1.0";
         public const string ProjectUrl = "https://github.com/ElKiro1311/Atrio";
+
+        public static Version CurrentVersion => System.Version.Parse(GetTestSetting("ATRIO_VERSION") ?? Version);
 
         /// <summary>Playnite Achievements: reads the achievements of the stores and of RetroAchievements.</summary>
         public static readonly Guid AchievementsPluginId = Guid.Parse("e6aad2c9-6e06-4d8d-ac55-ac3b252b5f7b");

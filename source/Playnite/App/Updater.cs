@@ -1,69 +1,43 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Configuration;
-using System.Diagnostics;
-using System.IO;
 using System.Linq;
-using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
-using Newtonsoft.Json;
-using System.Windows;
-using Flurl;
-using System.Net;
+using Playnite.Atrio;
 using Playnite.Common;
-using Playnite.Common.Web;
-using Playnite.Settings;
 using Playnite.SDK;
 
 namespace Playnite
 {
     public class Updater
     {
-        private static string updateBranch
-        {
-            get
-            {
-                return ConfigurationManager.AppSettings["UpdateBranch"];
-            }
-        }
+        // The panel that shows the notes ignores the colors of the window: without this they are black on dark.
+        private const string NotesStyle =
+            "<style>body { color: #E8E8E8; font-family: 'Segoe UI'; font-size: 10pt; } " +
+            "h1, h2, h3 { color: #FFFFFF; margin: 10px 0 4px 0; } ul { margin: 4px 0 4px 18px; padding: 0; } a { color: #8AB4F8; }</style>";
 
         private static ILogger logger = LogManager.GetLogger();
-        private UpdateManifest updateManifest;
-        private IPlayniteApplication playniteApp;
-        private IDownloader downloader;
+        private readonly IPlayniteApplication playniteApp;
+        private List<AtrioRelease> newerReleases;
 
-        private string updaterPath
+        private List<AtrioRelease> NewerReleases
         {
             get
             {
-                return Path.Combine(PlaynitePaths.TempPath, "update.exe");
-            }
-        }
-
-        public bool IsUpdateAvailable
-        {
-            get
-            {
-                var latest = GetLatestVersion();
-                var current = CurrentVersion;
-                if (latest > current)
+                if (newerReleases == null)
                 {
-                    // Windows 7 and 8 and 32bit systems should no longer update, except for patches
-                    if (Computer.WindowsVersion == WindowsVersion.Win7 || Computer.WindowsVersion == WindowsVersion.Win8 || !Environment.Is64BitOperatingSystem)
-                    {
-                        return latest.Major == current.Major;
-                    }
-                    else
-                    {
-                        return true;
-                    }
+                    newerReleases = AtrioUpdates.GetNewerReleases(AtrioUpdates.GetReleases(), AtrioInfo.CurrentVersion);
                 }
 
-                return false;
+                return newerReleases;
             }
         }
 
+        public bool IsUpdateAvailable => NewerReleases.Count > 0;
+
         private static Version currentVersion;
+
+        /// <summary>The version add-ons and themes are built against. Atrio has its own, in <see cref="AtrioInfo"/>.</summary>
         public static Version CurrentVersion
         {
             get
@@ -77,153 +51,43 @@ namespace Playnite
             }
         }
 
-        public Updater(IPlayniteApplication app) : this(app, new Downloader())
-        {
-        }
-
-        public Updater(IPlayniteApplication app, IDownloader webDownloader)
+        public Updater(IPlayniteApplication app)
         {
             playniteApp = app;
-            downloader = webDownloader;
         }
 
-        private string GetUpdateDataRootUrl(string configKey)
-        {
-            return Url.Combine(ConfigurationManager.AppSettings[configKey], updateBranch, $"{CurrentVersion.Major}.{CurrentVersion.Minor}");
-        }
-
+        /// <summary>What changed since the installed version, the newest first.</summary>
         public List<ReleaseNoteData> GetReleaseNotes()
         {
-            var notes = new List<ReleaseNoteData>();
-            if (updateManifest == null)
+            return NewerReleases.Select(a => new ReleaseNoteData
             {
-                DownloadManifest();
-            }
-
-            foreach (var version in updateManifest.VersionHistory)
-            {
-                if (version.CompareTo(CurrentVersion) > 0)
-                {
-                    var noteUrls = new List<string>
-                    {
-                        Url.Combine(ConfigurationManager.AppSettings["UpdateUrl"], updateBranch, $"{version.Major}.{version.Minor}.html"),
-                        Url.Combine(ConfigurationManager.AppSettings["UpdateUrl2"], updateBranch, $"{version.Major}.{version.Minor}.html")
-                    };
-
-                    var note = downloader.DownloadString(noteUrls);
-                    notes.Add(new ReleaseNoteData()
-                    {
-                        Version = version,
-                        Note = note
-                    });
-                }
-            }
-
-            return notes;
+                Version = a.Version,
+                Note = $"<html><head>{NotesStyle}</head><body>{new MarkupConverter().MarkdownToHtml(a.Notes ?? string.Empty)}</body></html>"
+            }).ToList();
         }
 
-        private bool VerifyUpdateFile(string checksum, string path)
+        public Task DownloadUpdate(Action<int> progressHandler, CancellationToken token)
         {
-            var newMD5 = FileSystem.GetMD5(path);
-            if (newMD5 != checksum)
-            {
-                logger.Error($"Checksum of downloaded file doesn't match: {newMD5} vs {checksum}");
-                return false;
-            }
-
-            return true;
-        }
-
-        public async Task DownloadUpdate(Action<DownloadProgressChangedEventArgs> progressHandler)
-        {
-            if (updateManifest == null)
-            {
-                DownloadManifest();
-            }
-
-            if (File.Exists(updaterPath))
-            {
-                if (VerifyUpdateFile(updateManifest.Checksum, updaterPath))
-                {
-                    logger.Info("Update already downloaded skipping download.");
-                    return;
-                }
-            }
-
-            try
-            {
-                await downloader.DownloadFileAsync(updateManifest.PackageUrls, updaterPath, progressHandler);
-            }
-            catch (Exception e)
-            {
-                logger.Error(e, "Failed to download update file.");
-                throw new Exception("Failed to download update file.");
-            }
-
-            if (!VerifyUpdateFile(updateManifest.Checksum, updaterPath))
-            {
-                throw new Exception($"Update file integrity check failed.");
-            }
+            return AtrioUpdates.Prepare(NewerReleases[0], progressHandler, token);
         }
 
         public void InstallUpdate(ApplicationMode mode)
         {
-            var portable = PlayniteSettings.IsPortable ? "/PORTABLE" : "";
-            var fullscreen = mode == ApplicationMode.Fullscreen ? "/FULLSCREEN" : "";
-            logger.Info("Installing new update to {0}, in {1} mode".Format(PlaynitePaths.ProgramPath, portable));
-            playniteApp.QuitAndStart(
-                updaterPath,
-                @"/SILENT /NOCANCEL /DIR=""{0}"" /UPDATE {1} {2}".Format(PlaynitePaths.ProgramPath, portable, fullscreen),
-                !FileSystem.CanWriteToFolder(PlaynitePaths.ProgramPath));
-        }
-
-        public UpdateManifest DownloadManifest()
-        {
-            var dataString = string.Empty;
-
-            try
+            var fullscreen = mode == ApplicationMode.Fullscreen;
+            var options = new CmdLineOptions
             {
-                dataString = GetUpdateManifestData(GetUpdateDataRootUrl("UpdateUrl"));
-            }
-            catch (Exception e)
-            {
-                logger.Warn(e, "Failed to download update manifest from main URL");
-            }
+                SkipLibUpdate = true,
+                MasterInstance = true,
+                StartInFullscreen = fullscreen,
+                UserDataDir = PlayniteApplication.Current.CmdLine.UserDataDir
+            };
 
-            try
-            {
-                if (string.IsNullOrEmpty(dataString))
-                {
-                    dataString = GetUpdateManifestData(GetUpdateDataRootUrl("UpdateUrl2"));
-                }
-            }
-            catch (Exception e)
-            {
-                logger.Warn(e, "Failed to download update manifest from secondary URL");
-            }
-
-            if (string.IsNullOrEmpty(dataString))
-            {
-                throw new Exception("Failed to download update manifest.");
-            }
-
-            updateManifest = JsonConvert.DeserializeObject<UpdateManifest>(dataString);
-            return updateManifest;
-        }
-
-        public Version GetLatestVersion()
-        {
-            if (updateManifest == null)
-            {
-                DownloadManifest();
-            }
-
-            return updateManifest.Version;
-        }
-
-        private string GetUpdateManifestData(string url)
-        {
-            return downloader.DownloadString(Url.Combine(url, UpdateManifest.ServerManifestFileName));
+            logger.Info($"Installing Atrio {NewerReleases[0].Version} in {PlaynitePaths.ProgramPath}.");
+            var plan = AtrioUpdates.CreatePlan(
+                NewerReleases[0],
+                fullscreen ? PlaynitePaths.FullscreenExecutablePath : PlaynitePaths.DesktopExecutablePath,
+                options.ToString());
+            playniteApp.QuitAndStart(AtrioUpdates.InstallerPath, $"\"{plan}\"");
         }
     }
 }

@@ -726,7 +726,7 @@ Más información en https://playnite.link/cefstartup</sys:String>
     <sys:String x:Key="LOCUpdateProgressCancelAsk">Una tarea en segundo plano está actualmente en curso. ¿Quieres cancelarla y continuar con la actualización?</sys:String>
     <sys:String x:Key="LOCBackgroundProgressCancelAskExit">Una tarea en segundo plano está actualmente en curso. ¿Quieres cancelarla y salir de Playnite?</sys:String>
     <sys:String x:Key="LOCBackgroundProgressCancelAskSwitchMode">Una tarea en segundo plano está actualmente en curso. Cambiar modos cancelara la tarea, ¿Quieres cambiar de todos modos?</sys:String>
-    <sys:String x:Key="LOCUpdateIsAvailableNotificationBody">Hay una actualización para Playnite disponible</sys:String>
+    <sys:String x:Key="LOCUpdateIsAvailableNotificationBody">Hay una actualización de Atrio disponible</sys:String>
     <sys:String x:Key="LOCThemeTestReloadList">Volver a cargar la lista de temas</sys:String>
     <sys:String x:Key="LOCThemeTestApplySkin">Aplicar tema seleccionado</sys:String>
     <sys:String x:Key="LOCThemeTestWatchChanges">Ver cambios de archivos</sys:String>
@@ -1477,7 +1477,7 @@ Abre un nuevo problema en la página de GitHub de Playnite con una solicitud par
     <sys:String x:Key="LOCAtrioRaNotConnected">Conecta tus tiendas para ver tus logros. Para los juegos clásicos necesitas tu usuario y tu clave web de RetroAchievements.</sys:String>
     <sys:String x:Key="LOCAtrioRaConnected">RetroAchievements conectado como {0}.</sys:String>
     <sys:String x:Key="LOCAtrioStoreDownload">Descargar</sys:String>
-    <sys:String x:Key="LOCAtrioUpdateAvailable">Atrio {0} ya está disponible. Haz clic para abrir la página de descarga.</sys:String>
+    <sys:String x:Key="LOCAtrioUpdateAvailable">Atrio {0} ya está disponible. Haz clic para ver las novedades e instalarla.</sys:String>
     <sys:String x:Key="LOCAtrioDisclaimer">Atrio no está afiliado a ninguna tienda. Los nombres y logotipos son de sus dueños.</sys:String>
     <sys:String x:Key="LOCAtrioConnectStores">Conectar mis tiendas</sys:String>
     <sys:String x:Key="LOCAtrioImportTitle">Te damos la bienvenida a Atrio</sys:String>
@@ -1514,4 +1514,13 @@ Abre un nuevo problema en la página de GitHub de Playnite con una solicitud par
     <sys:String x:Key="LOCAtrioCollectionSaveFilters">Guardar estos filtros como colección dinámica</sys:String>
     <sys:String x:Key="LOCAtrioCollectionClose">Ver toda la biblioteca</sys:String>
     <sys:String x:Key="LOCAtrioGroupByCollection">Agrupar por colección</sys:String>
+    <sys:String x:Key="LOCAtrioUpdateInstalled">Atrio se ha actualizado a la versión {0}.</sys:String>
+    <sys:String x:Key="LOCAtrioUpdateGameRunning">Cierra el juego antes de actualizar: Atrio se reiniciará y dejaría de contar tu tiempo de juego.</sys:String>
+    <sys:String x:Key="LOCAtrioUpdateReadOnly">Atrio no puede escribir en su carpeta: {0}</sys:String>
+    <sys:String x:Key="LOCAtrioUpdaterWaiting">Cerrando Atrio…</sys:String>
+    <sys:String x:Key="LOCAtrioUpdaterInstalling">Actualizando Atrio a la versión {0}…</sys:String>
+    <sys:String x:Key="LOCAtrioUpdaterFailed" xml:space="preserve">No se pudo actualizar y Atrio sigue en la versión que tenías.
+
+{0}</sys:String>
+    <sys:String x:Key="LOCAtrioUpdaterStillOpen">Atrio sigue abierto. Ciérralo y vuelve a intentarlo.</sys:String>
 </ResourceDictionary>

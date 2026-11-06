@@ -1373,11 +1373,12 @@ namespace Playnite
                     var release = AtrioUpdates.GetNewerRelease();
                     if (release != null)
                     {
+                        MainModelBase.UpdatesAvailable = true;
                         Notifications.Add(new NotificationMessage(
                             "AtrioUpdateAvailable",
                             string.Format(ResourceProvider.GetString("LOCAtrioUpdateAvailable"), release.Version),
                             NotificationType.Info,
-                            () => Commands.GlobalCommands.NavigateUrl(release.Url)));
+                            () => MainModelBase.OpenUpdatesCommand.Execute(null)));
                     }
                 }
                 catch (Exception exc)
@@ -1424,14 +1425,34 @@ namespace Playnite
             }, null);
         }
 
+        private void FinishProgramUpdate()
+        {
+            try
+            {
+                var installed = AtrioUpdates.FinishUpdate();
+                if (installed != null)
+                {
+                    Notifications.Add(new NotificationMessage(
+                        "AtrioUpdateInstalled",
+                        string.Format(ResourceProvider.GetString("LOCAtrioUpdateInstalled"), installed),
+                        NotificationType.Info));
+                }
+            }
+            catch (Exception exc) when (!PlayniteEnvironment.ThrowAllErrors)
+            {
+                logger.Warn(exc, "Failed to finish the last update.");
+            }
+        }
+
         public async Task StartUpdateCheckerAsync()
         {
+            await Task.Delay(Common.Timer.SecondsToMilliseconds(5));
+            await Task.Run(() => FinishProgramUpdate());
             if (PlayniteEnvironment.InOfflineMode)
             {
                 return;
             }
 
-            await Task.Delay(Common.Timer.SecondsToMilliseconds(5));
             if (GlobalTaskHandler.IsActive)
             {
                 await GlobalTaskHandler.ProgressTask;

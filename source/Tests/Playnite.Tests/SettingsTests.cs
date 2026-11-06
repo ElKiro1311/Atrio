@@ -60,9 +60,9 @@ namespace Playnite.Tests
                 testDates.Now = new DateTime(2020, 10, 8, 10, 0, 0);
                 Assert.IsTrue(settings.ShouldCheckProgramUpdatePeriodic());
 
-                // Startup only check
+                // On every start also means while it stays open, for a program that can run for days
                 settings.CheckForProgramUpdates = UpdateCheckFrequency.OnEveryStartup;
-                Assert.IsFalse(settings.ShouldCheckProgramUpdatePeriodic());
+                Assert.IsTrue(settings.ShouldCheckProgramUpdatePeriodic());
 
                 // --- Addon update
                 // No date set check

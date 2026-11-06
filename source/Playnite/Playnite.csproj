@@ -73,6 +73,7 @@
     <PackageReference Include="Magick.NET.Core" Version="14.17.2" />
     <PackageReference Include="Magick.NET.SystemWindowsMedia" Version="8.0.28" />
     <PackageReference Include="Markdig" Version="0.18.0" />
+    <Compile Include="..\Atrio.Updater\UpdatePlan.cs" Link="Atrio\UpdatePlan.cs" />
     <PackageReference Include="Microsoft.Xaml.Behaviors.Wpf" Version="1.1.39" />
     <PackageReference Include="Nett" Version="0.10.1" />
     <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />

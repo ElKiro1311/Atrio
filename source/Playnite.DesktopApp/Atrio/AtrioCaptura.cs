@@ -194,6 +194,9 @@ namespace Playnite.DesktopApp.Atrio
                 case "coleccion":
                     await CollectionOrder(model, argument);
                     break;
+                case "actualizacion":
+                    UpdateOrder(model, argument);
+                    break;
                 case "barra":
                     var item = model.SidebarItems.FirstOrDefault(a => a.Title == argument);
                     if (item == null)
@@ -903,6 +906,45 @@ namespace Playnite.DesktopApp.Atrio
             var lines = menu.Items.OfType<System.Windows.Controls.MenuItem>().
                 Select(a => a.Header + (a.Items.Count > 0 ? " > " + string.Join(", ", a.Items.OfType<System.Windows.Controls.MenuItem>().Select(b => (b.IsChecked ? "[x] " : string.Empty) + b.Header)) : string.Empty));
             Log("menu: " + string.Join(" | ", lines));
+        }
+
+        private static void UpdateOrder(DesktopAppViewModel model, string argument)
+        {
+            Playnite.ViewModels.UpdateViewModel window() =>
+                Application.Current.Windows.Cast<Window>().Select(a => a.DataContext).OfType<Playnite.ViewModels.UpdateViewModel>().First();
+            switch (argument)
+            {
+                case "buscar":
+                    var releases = AtrioUpdates.GetReleases();
+                    Log($"instalada: {AtrioInfo.CurrentVersion}, publicadas: {string.Join(", ", releases.Select(a => a.Version))}, " +
+                        $"nueva: {AtrioUpdates.GetNewerRelease()?.Version}, paquete: {releases.FirstOrDefault()?.PackageSize}, huella: {releases.FirstOrDefault()?.PackageHash != null}");
+                    break;
+                case "aviso":
+                    typeof(PlayniteApplication).GetMethod("CheckForUpdates", BindingFlags.Instance | BindingFlags.NonPublic).Invoke(model.App, new object[] { true, false });
+                    Log($"boton: {model.UpdatesAvailable}, avisos: {string.Join(" | ", model.App.Notifications.Messages.Select(a => a.Text))}");
+                    break;
+                case "ventana":
+                    _ = Application.Current.Dispatcher.BeginInvoke(new Action(() => model.OpenUpdatesCommand.Execute(null)));
+                    break;
+                case "notas":
+                    Log("notas: " + string.Join(" | ", window().ReleaseNotes.Select(a => $"{a.Version}: {a.Note}")));
+                    break;
+                case "instalar":
+                    window().InstallUpdateCommand.Execute(null);
+                    break;
+                case "progreso":
+                    Log($"descarga: {window().ShowProgress}, {window().UpdateProgress} %");
+                    break;
+                case "cerrar":
+                    window().CloseCommand.Execute(null);
+                    break;
+                case "carpeta":
+                    Log("carpeta de la actualizacion: " + Directory.Exists(Path.Combine(PlaynitePaths.ProgramPath, "update")));
+                    break;
+                default:
+                    Log("orden de actualizacion desconocida: " + argument);
+                    break;
+            }
         }
 
         private static GameCollection FindCollection(DesktopAppViewModel model, string name)

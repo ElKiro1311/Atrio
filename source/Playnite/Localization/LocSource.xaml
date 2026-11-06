@@ -726,7 +726,7 @@ More information at https://playnite.link/cefstartup</sys:String>
     <sys:String x:Key="LOCUpdateProgressCancelAsk">Some background task is currently in progress. Do you want to cancel it and proceed with the update?</sys:String>
     <sys:String x:Key="LOCBackgroundProgressCancelAskExit">Some background task is currently in progress. Do you want to cancel it and exit Playnite?</sys:String>
     <sys:String x:Key="LOCBackgroundProgressCancelAskSwitchMode">Some background task is currently in progress. Switching modes will cancel the task, do you want to switch anyways?</sys:String>
-    <sys:String x:Key="LOCUpdateIsAvailableNotificationBody">An update for Playnite is available</sys:String>
+    <sys:String x:Key="LOCUpdateIsAvailableNotificationBody">An update for Atrio is available</sys:String>
     <sys:String x:Key="LOCThemeTestReloadList">Reload theme list</sys:String>
     <sys:String x:Key="LOCThemeTestApplySkin">Apply selected theme</sys:String>
     <sys:String x:Key="LOCThemeTestWatchChanges">Watch file changes</sys:String>
@@ -1482,7 +1482,7 @@ Open new issue on Playnite's GitHub page with a request to fix corruption in you
     <sys:String x:Key="LOCAtrioRaNotConnected">Connect your stores to see your achievements. For classic games you need your RetroAchievements user and web API key.</sys:String>
     <sys:String x:Key="LOCAtrioRaConnected">RetroAchievements connected as {0}.</sys:String>
     <sys:String x:Key="LOCAtrioStoreDownload">Download</sys:String>
-    <sys:String x:Key="LOCAtrioUpdateAvailable">Atrio {0} is available. Click to open the download page.</sys:String>
+    <sys:String x:Key="LOCAtrioUpdateAvailable">Atrio {0} is available. Click to see what is new and install it.</sys:String>
     <sys:String x:Key="LOCAtrioDisclaimer">Atrio is not affiliated with any store. Names and logos belong to their owners.</sys:String>
     <sys:String x:Key="LOCAtrioConnectStores">Connect my stores</sys:String>
     <sys:String x:Key="LOCAtrioImportTitle">Welcome to Atrio</sys:String>
@@ -1519,4 +1519,13 @@ Open new issue on Playnite's GitHub page with a request to fix corruption in you
     <sys:String x:Key="LOCAtrioCollectionSaveFilters">Save these filters as a dynamic collection</sys:String>
     <sys:String x:Key="LOCAtrioCollectionClose">See the whole library</sys:String>
     <sys:String x:Key="LOCAtrioGroupByCollection">Group by collection</sys:String>
+    <sys:String x:Key="LOCAtrioUpdateInstalled">Atrio has been updated to version {0}.</sys:String>
+    <sys:String x:Key="LOCAtrioUpdateGameRunning">Close the game before updating: Atrio will restart and would stop counting your playtime.</sys:String>
+    <sys:String x:Key="LOCAtrioUpdateReadOnly">Atrio can't write to its folder: {0}</sys:String>
+    <sys:String x:Key="LOCAtrioUpdaterWaiting">Closing Atrio...</sys:String>
+    <sys:String x:Key="LOCAtrioUpdaterInstalling">Updating Atrio to version {0}...</sys:String>
+    <sys:String x:Key="LOCAtrioUpdaterFailed" xml:space="preserve">The update failed and Atrio stays on the version you had.
+
+{0}</sys:String>
+    <sys:String x:Key="LOCAtrioUpdaterStillOpen">Atrio is still open. Close it and try again.</sys:String>
 </ResourceDictionary>

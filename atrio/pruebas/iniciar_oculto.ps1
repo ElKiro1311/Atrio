@@ -3,11 +3,13 @@
 #
 #   iniciar_oculto.ps1 -Exe <programa> -Argumentos '--userdatadir "..."' -Segundos 40
 # Devuelve el codigo de salida, o cierra el proceso si sigue abierto al terminar el tiempo.
+# -EsperaFinal mantiene el escritorio ese tiempo: lo que el programa abra al cerrarse necesita que siga existiendo.
 param(
     [Parameter(Mandatory = $true)][string]$Exe,
     [string]$Argumentos = '',
     [int]$Segundos = 40,
-    [string]$ParaCerrar = ''
+    [string]$ParaCerrar = '',
+    [int]$EsperaFinal = 0
 )
 Add-Type -TypeDefinition @'
 using System;
@@ -78,5 +80,6 @@ if (-not $terminado -and $proceso) {
     }
 }
 Start-Sleep -Milliseconds 500
+if ($EsperaFinal -gt 0) { Start-Sleep -Seconds $EsperaFinal }
 [EscritorioAparte]::CloseDesktop($escritorio) | Out-Null
 Write-Output "terminado: $terminado"

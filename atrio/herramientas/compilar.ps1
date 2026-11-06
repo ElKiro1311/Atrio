@@ -6,10 +6,13 @@
 #   -Salida <carpeta>  Dónde dejarla. Por defecto salida\Atrio. Conserva los datos que haya en ella.
 #   -Banco             Añade el banco de pruebas fuera de pantalla (solo para desarrollo).
 #   -Zip               Además crea salida\Atrio-<version>.zip para publicar.
+#   -Version <x.y.z>   La versión que dirá el programa. Sin esto, la del código fuente, que es más
+#                      baja que cualquier versión publicada.
 param(
     [string]$Salida = '',
     [switch]$Banco,
-    [switch]$Zip
+    [switch]$Zip,
+    [string]$Version = ''
 )
 $ErrorActionPreference = 'Stop'
 
@@ -19,6 +22,9 @@ if ($Salida -eq '') { $Salida = Join-Path $raiz 'salida\Atrio' }
 New-Item -ItemType Directory -Force $Salida | Out-Null
 $Salida = (Resolve-Path $Salida).Path
 $fuentes = Join-Path $raiz 'source'
+$infoAtrio = Join-Path $fuentes 'Playnite\Atrio\AtrioInfo.cs'
+$patronVersion = 'const string Version = "([^"]+)"'
+if ($Version -ne '' -and $Version -notmatch '^\d+\.\d+\.\d+$') { throw "Versión no válida: $Version" }
 
 function Buscar-Dotnet {
     $local = Join-Path $herramientas 'dotnet\dotnet.exe'
@@ -49,11 +55,19 @@ if (-not $env:NUGET_PACKAGES) { $env:NUGET_PACKAGES = Join-Path $herramientas 'n
 
 $proyectos = 'Playnite.DesktopApp\Playnite.DesktopApp.csproj',
              'Playnite.FullscreenApp\Playnite.FullscreenApp.csproj',
-             'Playnite.BrowserProcess\Playnite.BrowserProcess.csproj'
+             'Playnite.BrowserProcess\Playnite.BrowserProcess.csproj',
+             'Atrio.Updater\Atrio.Updater.csproj'
 $temporal = Join-Path $raiz 'salida\compilacion\'
 if (Test-Path $temporal) { Remove-Item $temporal -Recurse -Force }
 New-Item -ItemType Directory -Force $temporal | Out-Null
 
+# La versión solo cambia mientras se compila: el código fuente se queda como estaba.
+$infoOriginal = [IO.File]::ReadAllText($infoAtrio)
+if ($Version -ne '') {
+    [IO.File]::WriteAllText($infoAtrio, ($infoOriginal -replace $patronVersion, "const string Version = `"$Version`""))
+}
+
+try {
 foreach ($proyecto in $proyectos) {
     $opciones = @(
         'build', (Join-Path $fuentes $proyecto), '-nologo', '-c', 'Release', '-v:q',
@@ -63,6 +77,9 @@ foreach ($proyecto in $proyectos) {
     if ($Banco) { $opciones += '-p:AtrioBanco=true' }
     & $dotnet @opciones
     if ($LASTEXITCODE -ne 0) { throw "Fallo al compilar $proyecto" }
+}
+} finally {
+    [IO.File]::WriteAllText($infoAtrio, $infoOriginal)
 }
 
 Push-Location $temporal
@@ -89,13 +106,19 @@ if ($LASTEXITCODE -ne 0) { throw 'Fallo al preparar los complementos' }
 Copy-Item (Join-Path $raiz 'atrio\LEEME.txt') (Join-Path $temporal 'LEEME.txt') -Force
 Copy-Item (Join-Path $raiz 'LICENSE.md') (Join-Path $temporal 'LICENSE.md') -Force
 
+# Lo que es de esta versión: al actualizar, lo que deje de estar aquí se retira. Nada más se toca.
+$lista = Join-Path $temporal 'atrio-archivos.txt'
+$inicio = (Resolve-Path $temporal).Path.TrimEnd('\').Length + 1
+Get-ChildItem $temporal -Recurse -File | ForEach-Object { $_.FullName.Substring($inicio) } | Set-Content $lista -Encoding UTF8
+Add-Content $lista 'atrio-archivos.txt' -Encoding UTF8
+
 # Copia solo el programa: library, ExtensionsData y la configuracion del usuario no estan aqui.
 Copy-Item (Join-Path $temporal '*') $Salida -Recurse -Force
 Write-Output "listo: $Salida"
 
 if ($Zip) {
-    $version = (Select-String -Path (Join-Path $fuentes 'Playnite\Atrio\AtrioInfo.cs') -Pattern 'Version = "([^"]+)"').Matches[0].Groups[1].Value
-    $archivo = Join-Path $raiz "salida\Atrio-$version.zip"
+    $nombreVersion = if ($Version -ne '') { $Version } else { [regex]::Match($infoOriginal, $patronVersion).Groups[1].Value }
+    $archivo = Join-Path $raiz "salida\Atrio-$nombreVersion.zip"
     if (Test-Path $archivo) { Remove-Item $archivo -Force }
     Compress-Archive -Path (Join-Path $temporal '*') -DestinationPath $archivo
     Write-Output "paquete: $archivo"
