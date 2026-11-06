@@ -1070,6 +1070,23 @@ namespace Playnite
             }
         }
 
+        private string linkBrowser = Playnite.Atrio.LinkBrowsers.Internal;
+
+        /// <summary>Where links open, one of the options of <see cref="Playnite.Atrio.LinkBrowsers"/>.</summary>
+        public string LinkBrowser
+        {
+            get
+            {
+                return linkBrowser;
+            }
+
+            set
+            {
+                linkBrowser = value;
+                OnPropertyChanged();
+            }
+        }
+
         private Dock sidebarPosition = Dock.Left;
         public Dock SidebarPosition
         {

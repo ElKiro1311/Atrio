@@ -20,6 +20,14 @@ namespace Playnite.DesktopApp.ViewModels
         public string Url { get; set; }
     }
 
+    public class SteamFriendsGroup
+    {
+        public string Title { get; set; }
+        public bool ShowNames { get; set; }
+        public List<SteamFriend> Friends { get; set; }
+        public string MoreText { get; set; }
+    }
+
     public class GameActivityEntry
     {
         public DateTime Date { get; set; }
@@ -465,7 +473,52 @@ namespace Playnite.DesktopApp.ViewModels
 
         public string ReviewUrl { get; private set; }
 
+        private List<SteamFriendsGroup> friendGroups;
+        public List<SteamFriendsGroup> FriendGroups
+        {
+            get => friendGroups;
+            private set
+            {
+                friendGroups = value;
+                OnPropertyChanged();
+                OnPropertyChanged(nameof(HasFriendGroups));
+                OnPropertyChanged(nameof(HasFriendsCard));
+            }
+        }
+
+        private string friendsMessage;
+        public string FriendsMessage
+        {
+            get => friendsMessage;
+            private set
+            {
+                friendsMessage = value;
+                OnPropertyChanged();
+                OnPropertyChanged(nameof(HasFriendsMessage));
+                OnPropertyChanged(nameof(HasFriendsCard));
+            }
+        }
+
+        private string friendsActionText;
+        public string FriendsActionText
+        {
+            get => friendsActionText;
+            private set
+            {
+                friendsActionText = value;
+                OnPropertyChanged();
+            }
+        }
+
+        public bool HasFriendGroups => FriendGroups.HasItems();
+        public bool HasFriendsMessage => !FriendsMessage.IsNullOrEmpty();
+        public bool HasFriendsCard => HasFriendGroups || HasFriendsMessage;
+        public string AllFriendsUrl => $"https://steamcommunity.com/my/friendsthatplay/{steamAppId}";
+        public RelayCommand<object> FriendsActionCommand { get; }
+
         private List<GameActivityEntry> newsActivity = new List<GameActivityEntry>();
+        private string steamAppId;
+        private string friendsActionUrl;
 
         public RelayCommand<string> OpenPageCommand { get; }
         public RelayCommand<object> ShowAchievementsCommand { get; }
@@ -518,6 +571,7 @@ namespace Playnite.DesktopApp.ViewModels
                     GlobalCommands.NavigateUrl(a);
                 }
             });
+            FriendsActionCommand = new RelayCommand<object>(_ => DesktopApplication.Current?.MainModel?.OpenInBrowser(friendsActionUrl));
             ShowAchievementsCommand = new RelayCommand<object>(_ => ShowAchievements = true);
             HideAchievementsCommand = new RelayCommand<object>(_ => ShowAchievements = false);
             StartCopyCommand = new RelayCommand<GameCopyEntry>(StartCopy);
@@ -595,10 +649,80 @@ namespace Playnite.DesktopApp.ViewModels
             UpdatePageLinks(appId);
             ReviewUrl = appId == null ? null : $"https://store.steampowered.com/recommended/recommendgame/{appId}";
             UpdatePlayedContent();
-            if (appId != null)
+            steamAppId = appId;
+            if (appId != null && DesktopAppViewModel.UsesLibraryPanes)
             {
                 LoadSteamContent(appId);
+                ReloadFriends();
             }
+        }
+
+        /// <summary>The question goes to Steam with the session of the browser of Atrio.</summary>
+        public async void ReloadFriends()
+        {
+            if (steamAppId == null)
+            {
+                return;
+            }
+
+            var token = contentToken.Token;
+            try
+            {
+                await Task.Delay(TimeSpan.FromMilliseconds(400), token);
+                var result = await SteamFriends.GetAsync(steamAppId, token);
+                token.ThrowIfCancellationRequested();
+                ShowFriends(result);
+            }
+            catch (OperationCanceledException)
+            {
+            }
+            catch (Exception e) when (!(e is OutOfMemoryException))
+            {
+                logger.Debug(e, "Failed to read the friends that play a game.");
+            }
+        }
+
+        public void ShowFriends(SteamFriendsResult result)
+        {
+            FriendGroups = new[]
+            {
+                CreateFriendsGroup(result.InGame, "LOCAtrioFriendsInGameOne", "LOCAtrioFriendsInGame", true),
+                CreateFriendsGroup(result.PlayedRecently, "LOCAtrioFriendsRecentOne", "LOCAtrioFriendsRecent", true),
+                CreateFriendsGroup(result.PlayedBefore, "LOCAtrioFriendsBeforeOne", "LOCAtrioFriendsBefore", false),
+                CreateFriendsGroup(result.Owners, "LOCAtrioFriendsOwnOne", "LOCAtrioFriendsOwn", false)
+            }.Where(a => a != null).ToList();
+
+            FriendsMessage = result.State == SteamFriendsState.SignedOut ? resources.GetString("LOCAtrioFriendsSignIn") :
+                result.State == SteamFriendsState.Locked ? resources.GetString("LOCAtrioFriendsLocked") : null;
+            FriendsActionText = resources.GetString(result.State == SteamFriendsState.SignedOut ? "LOCAtrioFriendsSignInButton" : "LOCAtrioFriendsLockedButton");
+            friendsActionUrl = result.State == SteamFriendsState.SignedOut ? "https://steamcommunity.com/login/home/" : "https://store.steampowered.com/";
+        }
+
+        private SteamFriendsGroup CreateFriendsGroup(List<SteamFriend> friends, string oneKey, string manyKey, bool showNames)
+        {
+            if (!friends.HasItems())
+            {
+                return null;
+            }
+
+            var converter = new PlayTimeToStringConverter();
+            string playtime(int minutes) => converter.Convert((ulong)minutes * 60, typeof(string), null, null)?.ToString();
+            foreach (var friend in friends)
+            {
+                friend.Name = friend.Name ?? friend.SteamId;
+                friend.DetailText = friend.RecentMinutes > 0 ? string.Format(resources.GetString("LOCAtrioPlaytimeRecent"), playtime(friend.RecentMinutes)) :
+                    friend.TotalMinutes > 0 ? string.Format(resources.GetString("LOCAtrioPlaytimeTotal"), playtime(friend.TotalMinutes)) :
+                    null;
+            }
+
+            var limit = showNames ? SteamFriends.NamedLimit : SteamFriends.PictureLimit;
+            return new SteamFriendsGroup
+            {
+                Title = friends.Count == 1 ? resources.GetString(oneKey) : string.Format(resources.GetString(manyKey), friends.Count),
+                ShowNames = showNames,
+                Friends = friends.Take(limit).ToList(),
+                MoreText = friends.Count > limit ? $"+{friends.Count - limit}" : null
+            };
         }
 
         private void UpdatePageLinks(string appId)

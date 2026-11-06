@@ -464,6 +464,47 @@ namespace Playnite.DesktopApp.Atrio
                     await Task.Delay(200);
                     Log($"rueda: de {before} a {navigation.HorizontalOffset}");
                     break;
+                case "enlace":
+                    Playnite.Commands.GlobalCommands.NavigateUrl(argument);
+                    await Task.Delay(300);
+                    Log($"navegador: {model.BrowserModel.Address}, en la fila: {model.SidebarItems.Any(a => a.Title == ResourceProvider.GetString("LOCAtrioBrowser") && a.Visible)}, activa: {model.ActiveView?.GetType().Name}");
+                    break;
+                case "textonavegador":
+                    var pageText = await CefSharp.WebBrowserExtensions.GetTextAsync(model.BrowserModel.Browser);
+                    Log($"pagina {model.BrowserModel.Address}: {pageText.Substring(0, Math.Min(int.Parse(argument), pageText.Length))}");
+                    break;
+                case "jsnavegador":
+                    var evaluated = await CefSharp.WebBrowserExtensions.EvaluateScriptAsync(model.BrowserModel.Browser, argument);
+                    Log("js: " + evaluated.Success + " " + evaluated.Result + " " + evaluated.Message);
+                    break;
+                case "cerrarnavegador":
+                    model.BrowserModel.CloseCommand.Execute(null);
+                    await Task.Delay(300);
+                    Log($"en la fila: {model.SidebarItems.Any(a => a.Title == ResourceProvider.GetString("LOCAtrioBrowser") && a.Visible)}, activa: {model.ActiveView?.GetType().Name}, panel: {model.Pane}");
+                    break;
+                case "navegadores":
+                    Log("navegadores: " + string.Join(" | ", Playnite.Atrio.LinkBrowsers.GetOptions().Select(a => a.Name + " = " + a.Id)));
+                    break;
+                case "amigos":
+                    await Task.Delay(int.Parse(argument));
+                    Log($"amigos: tarjeta {model.SelectedGameDetails?.HasFriendsCard}, grupos {model.SelectedGameDetails?.FriendGroups?.Count}, aviso: {model.SelectedGameDetails?.FriendsMessage}");
+                    break;
+                case "amigosdemo":
+                    string avatar = "https://avatars.fastly.steamstatic.com/fef49e7fa7e1997310d705b2a6158ff8dc1cdfeb_full.jpg";
+                    List<Playnite.Atrio.SteamFriend> demoFriends(int count, int recent, int total) => Enumerable.Range(1, count).
+                        Select(a => new Playnite.Atrio.SteamFriend { SteamId = "7656119" + a, Name = "Amigo de ejemplo " + a, AvatarUrl = avatar, RecentMinutes = recent, TotalMinutes = total }).ToList();
+                    model.SelectedGameDetails.ShowFriends(new Playnite.Atrio.SteamFriendsResult
+                    {
+                        State = Playnite.Atrio.SteamFriendsState.Ready,
+                        InGame = demoFriends(1, 45, 900),
+                        PlayedRecently = demoFriends(2, 320, 4000),
+                        PlayedBefore = demoFriends(20, 0, 1200),
+                        Owners = demoFriends(5, 0, 0)
+                    });
+                    break;
+                case "amigosaviso":
+                    model.SelectedGameDetails.ShowFriends(new Playnite.Atrio.SteamFriendsResult { State = (Playnite.Atrio.SteamFriendsState)Enum.Parse(typeof(Playnite.Atrio.SteamFriendsState), argument) });
+                    break;
                 case "fila":
                     var row = FindAll<Playnite.DesktopApp.Controls.Views.Sidebar>(model.Window.Window).First();
                     Log("no caben: " + string.Join(", ", row.GetHiddenItems().Select(a => a.Title)));

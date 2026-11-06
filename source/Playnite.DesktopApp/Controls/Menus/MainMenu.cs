@@ -238,7 +238,7 @@ namespace Playnite.DesktopApp.Controls
                 viewItem.Items.RemoveAt(2);
             }
 
-            foreach (var sideItem in mainModel.SidebarItems.Where(a => a.SideItem.Type == SiderbarItemType.View))
+            foreach (var sideItem in mainModel.SidebarItems.Where(a => a.SideItem.Type == SiderbarItemType.View && a.Visible))
             {
                 AddMenuChild(viewItem.Items, sideItem.SideItem.Title, mainModel.SelectSidebarViewCommand, sideItem);
             }

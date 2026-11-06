@@ -18,6 +18,9 @@ namespace Playnite.Commands
         private static ILogger logger = LogManager.GetLogger();
         internal static PlayniteSettings AppSettings { get; set; }
 
+        /// <summary>Opens an address in the browser of Atrio. False when it isn't possible at that moment.</summary>
+        public static Func<string, bool> InAppBrowser { get; set; }
+
         public static RelayCommand<object> NavigateUrlCommand { get; } = new RelayCommand<object>((url) =>
         {
             try
@@ -99,6 +102,28 @@ namespace Playnite.Commands
                 else
                 {
                     url = "http://" + url;
+                }
+            }
+
+            OpenLink(url);
+        }
+
+        private static void OpenLink(string url)
+        {
+            if (Playnite.Atrio.LinkBrowsers.IsWebAddress(url))
+            {
+                var browser = AppSettings?.LinkBrowser;
+                if (browser == Playnite.Atrio.LinkBrowsers.Internal)
+                {
+                    if (InAppBrowser?.Invoke(url) == true)
+                    {
+                        return;
+                    }
+                }
+                else if (browser != Playnite.Atrio.LinkBrowsers.SystemDefault && File.Exists(browser))
+                {
+                    ProcessStarter.StartProcess(browser, $"\"{url.Replace("\"", "%22")}\"")?.Dispose();
+                    return;
                 }
             }
 

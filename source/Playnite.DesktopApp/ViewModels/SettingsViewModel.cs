@@ -129,6 +129,8 @@ namespace Playnite.DesktopApp.ViewModels
             get => Localization.AvailableLanguages;
         }
 
+        public List<Playnite.Atrio.BrowserOption> AvailableBrowsers { get; } = Playnite.Atrio.LinkBrowsers.GetOptions();
+
         public List<string> AvailableFonts
         {
             get => System.Drawing.FontFamily.Families.Where(a => !a.Name.IsNullOrEmpty()).Select(a => a.Name).ToList();

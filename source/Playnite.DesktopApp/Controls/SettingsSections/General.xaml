@@ -51,6 +51,14 @@
             </TextBlock>
         </DockPanel>
 
+        <StackPanel Orientation="Horizontal" Margin="5,0,5,0">
+            <TextBlock Text="{DynamicResource LOCAtrioLinksOpenIn}" Margin="0,0,5,0" VerticalAlignment="Center" />
+            <ComboBox VerticalAlignment="Center" MinWidth="240"
+                      SelectedValue="{Binding Settings.LinkBrowser}"
+                      SelectedValuePath="Id" DisplayMemberPath="Name"
+                      ItemsSource="{Binding AvailableBrowsers}" />
+        </StackPanel>
+
         <StackPanel Orientation="Horizontal" Margin="5,15,5,0">
             <TextBlock Text="{DynamicResource LOCSettingsAfterGameStart}" Margin="0,0,5,0"
                        VerticalAlignment="Center" />

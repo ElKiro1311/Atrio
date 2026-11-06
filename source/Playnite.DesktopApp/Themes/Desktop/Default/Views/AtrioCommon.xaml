@@ -24,6 +24,7 @@
     <Visibility x:Key="AtrioViewChoiceVisibility">Visible</Visibility>
     <Thickness x:Key="AtrioPageCornerMargin">0,0,110,4</Thickness>
     <Thickness x:Key="AtrioHomeMargin">28,40,0,32</Thickness>
+    <Thickness x:Key="AtrioBrowserBarMargin">14,36,14,8</Thickness>
 
     <Style x:Key="AtrioPageTitle" TargetType="TextBlock" BasedOn="{StaticResource BaseTextBlockStyle}">
         <Setter Property="FontSize" Value="32" />
@@ -203,6 +204,27 @@
 
     <!-- Store pill of the library -->
     <!-- Square button of the library column, with an icon -->
+    <!-- Something clickable that brings its own look, like a friend with a picture -->
+    <Style x:Key="AtrioPlainButton" TargetType="Button">
+        <Setter Property="OverridesDefaultStyle" Value="True" />
+        <Setter Property="Cursor" Value="Hand" />
+        <Setter Property="Focusable" Value="False" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Button">
+                    <Border x:Name="Root" Background="Transparent">
+                        <ContentPresenter />
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="Root" Property="Opacity" Value="0.75" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
     <Style x:Key="AtrioIconToggle" TargetType="ToggleButton">
         <Setter Property="OverridesDefaultStyle" Value="True" />
         <Setter Property="Foreground" Value="{DynamicResource TextBrushDarker}" />

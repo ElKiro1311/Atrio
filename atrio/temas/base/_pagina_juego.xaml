@@ -367,6 +367,76 @@
                                 </StackPanel>
 
                                 <StackPanel>
+                                    <!-- Who else plays it, as far as Steam tells -->
+                                    <Border Style="{DynamicResource AtrioCard}" Margin="0,0,0,14"
+                                            Visibility="{Binding HasFriendsCard, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                        <StackPanel>
+                                            <TextBlock Text="{DynamicResource LOCAtrioFriendsTitle}" Style="{DynamicResource AtrioSectionTitle}" />
+                                            <StackPanel Visibility="{Binding HasFriendsMessage, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                                <TextBlock Text="{Binding FriendsMessage}" Style="{DynamicResource AtrioCaption}" TextWrapping="Wrap" />
+                                                <Button Style="{DynamicResource AtrioGhostButton}" Content="{Binding FriendsActionText}" Margin="0,10,0,0"
+                                                        HorizontalAlignment="Left" Padding="14,0,14,0" MinHeight="30" FontSize="12"
+                                                        Command="{Binding FriendsActionCommand}" />
+                                            </StackPanel>
+                                            <ItemsControl ItemsSource="{Binding FriendGroups}" Focusable="False">
+                                                <ItemsControl.ItemTemplate>
+                                                    <DataTemplate>
+                                                        <StackPanel Margin="0,0,0,12">
+                                                            <TextBlock Text="{Binding Title}" Style="{DynamicResource AtrioCaption}" Margin="0,0,0,7" />
+                                                            <ItemsControl ItemsSource="{Binding Friends}" Focusable="False"
+                                                                          Visibility="{Binding ShowNames, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                                                <ItemsControl.ItemTemplate>
+                                                                    <DataTemplate>
+                                                                        <Button Style="{DynamicResource AtrioPlainButton}" Margin="0,0,0,6"
+                                                                                Command="{Binding DataContext.OpenPageCommand, RelativeSource={RelativeSource AncestorType={x:Type GameOverview}}}"
+                                                                                CommandParameter="{Binding ProfileUrl}">
+                                                                            <DockPanel>
+                                                                                <Image DockPanel.Dock="Left" Width="36" Height="36" Margin="0,0,10,0" Stretch="UniformToFill"
+                                                                                       Source="{Binding AvatarUrl, Converter={StaticResource RemoteImageConverter}, ConverterParameter=72}" />
+                                                                                <StackPanel VerticalAlignment="Center">
+                                                                                    <TextBlock Text="{Binding Name}" Style="{DynamicResource BaseTextBlockStyle}" FontSize="13" TextTrimming="CharacterEllipsis" />
+                                                                                    <TextBlock Text="{Binding DetailText}" Style="{DynamicResource AtrioCaption}" TextTrimming="CharacterEllipsis" />
+                                                                                </StackPanel>
+                                                                            </DockPanel>
+                                                                        </Button>
+                                                                    </DataTemplate>
+                                                                </ItemsControl.ItemTemplate>
+                                                            </ItemsControl>
+                                                            <ItemsControl ItemsSource="{Binding Friends}" Focusable="False"
+                                                                          Visibility="{Binding ShowNames, Converter={StaticResource InvertedBooleanToVisibilityConverter}}">
+                                                                <ItemsControl.ItemsPanel>
+                                                                    <ItemsPanelTemplate>
+                                                                        <WrapPanel />
+                                                                    </ItemsPanelTemplate>
+                                                                </ItemsControl.ItemsPanel>
+                                                                <ItemsControl.ItemTemplate>
+                                                                    <DataTemplate>
+                                                                        <Button Style="{DynamicResource AtrioPlainButton}" Margin="0,0,6,6"
+                                                                                Command="{Binding DataContext.OpenPageCommand, RelativeSource={RelativeSource AncestorType={x:Type GameOverview}}}"
+                                                                                CommandParameter="{Binding ProfileUrl}">
+                                                                            <Button.ToolTip>
+                                                                                <StackPanel>
+                                                                                    <TextBlock Text="{Binding Name}" FontWeight="SemiBold" />
+                                                                                    <TextBlock Text="{Binding DetailText}" Opacity="0.7" />
+                                                                                </StackPanel>
+                                                                            </Button.ToolTip>
+                                                                            <Image Width="36" Height="36" Stretch="UniformToFill"
+                                                                                   Source="{Binding AvatarUrl, Converter={StaticResource RemoteImageConverter}, ConverterParameter=72}" />
+                                                                        </Button>
+                                                                    </DataTemplate>
+                                                                </ItemsControl.ItemTemplate>
+                                                            </ItemsControl>
+                                                            <TextBlock Text="{Binding MoreText}" Style="{DynamicResource AtrioCaption}" />
+                                                        </StackPanel>
+                                                    </DataTemplate>
+                                                </ItemsControl.ItemTemplate>
+                                            </ItemsControl>
+                                            <Button Style="{DynamicResource AtrioLinkButton}" Content="{DynamicResource LOCAtrioFriendsSeeAll}" FontSize="12"
+                                                    HorizontalAlignment="Left" Command="{Binding OpenPageCommand}" CommandParameter="{Binding AllFriendsUrl}"
+                                                    Visibility="{Binding HasFriendGroups, Converter={StaticResource BooleanToVisibilityConverter}}" />
+                                        </StackPanel>
+                                    </Border>
+
                                     <!-- A short look at the achievements: all of them are one click away -->
                                     <Border Style="{DynamicResource AtrioCard}" Margin="0,0,0,14"
                                             Visibility="{PluginSettings Plugin=PlayniteAchievements, Path=HasAchievements, Converter={StaticResource BooleanToVisibilityConverter}, FallbackValue=Collapsed}">

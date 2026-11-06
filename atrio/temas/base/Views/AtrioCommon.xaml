@@ -19,4 +19,5 @@
     <Visibility x:Key="AtrioViewChoiceVisibility">Collapsed</Visibility>
     <Thickness x:Key="AtrioPageCornerMargin">0,0,14,4</Thickness>
     <Thickness x:Key="AtrioHomeMargin">28,18,0,32</Thickness>
+    <Thickness x:Key="AtrioBrowserBarMargin">14,8,14,8</Thickness>
 </ResourceDictionary>

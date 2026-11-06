@@ -1348,6 +1348,67 @@ namespace Playnite.DesktopApp.ViewModels
             }
         }
 
+        public BrowserViewModel BrowserModel { get; private set; }
+        private SidebarWrapperItem browserItem;
+        private SidebarWrapperItem itemBeforeBrowser;
+
+        private bool OpenLinkInBrowser(string url)
+        {
+            var opened = false;
+            Application.Current?.Dispatcher.Invoke(new Action(() => opened = OpenInBrowser(url)));
+            return opened;
+        }
+
+        /// <summary>Opens an address in the browser of Atrio, whatever is chosen for the links.</summary>
+        public bool OpenInBrowser(string url)
+        {
+            if (!CefTools.IsInitialized || browserItem == null)
+            {
+                return false;
+            }
+
+            // A window waiting for an answer has the main one locked: this page wouldn't be reachable.
+            if (System.Windows.Interop.ComponentDispatcher.IsThreadModal)
+            {
+                var view = App.PlayniteApiGlobal.WebViews.CreateView(1280, 800);
+                view.WindowHost.Closed += (_, __) => Application.Current?.Dispatcher.BeginInvoke(new Action(view.Dispose));
+                view.Navigate(url);
+                view.Open();
+                return true;
+            }
+
+            var current = SidebarItems.FirstOrDefault(a => a.Selected);
+            if (current != null && current != browserItem)
+            {
+                itemBeforeBrowser = current;
+            }
+
+            browserItem.SideItem.Visible = true;
+            browserItem.Command.Execute(null);
+            BrowserModel.Open(url);
+            if (Window?.Window?.WindowState == WindowState.Minimized || Window?.Window?.IsVisible == false)
+            {
+                RestoreWindow();
+            }
+
+            return true;
+        }
+
+        /// <summary>Takes the browser off the row and goes back to where the user came from.</summary>
+        public void CloseBrowser()
+        {
+            if (itemBeforeBrowser != null)
+            {
+                itemBeforeBrowser.Command.Execute(null);
+            }
+            else
+            {
+                SwitchToLibraryView();
+            }
+
+            browserItem.SideItem.Visible = false;
+        }
+
         public void SwitchToLibraryView()
         {
             SidebarItems.First(a => a.SideItem is MainSidebarViewItem item && item.AppView == ApplicationView.Library).Command.Execute(null);

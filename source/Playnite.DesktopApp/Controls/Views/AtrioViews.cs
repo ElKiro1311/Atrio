@@ -71,6 +71,37 @@ namespace Playnite.DesktopApp.Controls.Views
         }
     }
 
+    /// <summary>The browser of Atrio. The browser itself comes from the model, the page only gives it a place.</summary>
+    [TemplatePart(Name = "PART_BrowserHost", Type = typeof(ContentControl))]
+    public class BrowserView : AtrioPage
+    {
+        private readonly BrowserViewModel model;
+
+        static BrowserView()
+        {
+            DefaultStyleKeyProperty.OverrideMetadata(typeof(BrowserView), new FrameworkPropertyMetadata(typeof(BrowserView)));
+        }
+
+        public BrowserView()
+        {
+        }
+
+        public BrowserView(BrowserViewModel model)
+        {
+            this.model = model;
+            DataContext = model;
+        }
+
+        public override void OnApplyTemplate()
+        {
+            base.OnApplyTemplate();
+            if (model != null && Template.FindName("PART_BrowserHost", this) is ContentControl host)
+            {
+                host.Content = model.Browser;
+            }
+        }
+    }
+
     public class StoresView : AtrioPage
     {
         private readonly StoresViewModel model;

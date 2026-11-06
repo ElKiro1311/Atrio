@@ -329,6 +329,7 @@ namespace Playnite.DesktopApp.ViewModels
             statsView = new Controls.LibraryStatistics(LibraryStats);
             StoreFilter = new StoreFilterViewModel(this);
             HomeModel = new HomeViewModel(this);
+            BrowserModel = new BrowserViewModel(this);
             var storesModel = new StoresViewModel(this);
             var themesModel = new ThemesViewModel(this);
 
@@ -393,6 +394,17 @@ namespace Playnite.DesktopApp.ViewModels
                     Title = Resources.GetString("LOCAtrioHome")
                 }, this));
             }
+
+            // Only on the row while it has a page open.
+            browserItem = new SidebarWrapperItem(new AtrioSidebarItem(new Controls.Views.BrowserView(BrowserModel), BrowserModel.OnShown)
+            {
+                Icon = "SidebarBrowserIcon",
+                Title = Resources.GetString("LOCAtrioBrowser"),
+                Visible = false,
+                Closed = BrowserModel.OnHidden
+            }, this);
+            sideItems.Add(browserItem);
+            Playnite.Commands.GlobalCommands.InAppBrowser = OpenLinkInBrowser;
 
             sideItems.Add(new SidebarWrapperItem(new AtrioSidebarItem(new Controls.Views.ThemesView(themesModel), themesModel.Refresh)
             {

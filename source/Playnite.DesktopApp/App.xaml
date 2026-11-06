@@ -108,6 +108,7 @@
                 <ResourceDictionary Source="Themes/Desktop/Default/Views/AtrioCommon.xaml" />
                 <ResourceDictionary Source="Themes/Desktop/Default/Views/HomeView.xaml" />
                 <ResourceDictionary Source="Themes/Desktop/Default/Views/StoresView.xaml" />
+                <ResourceDictionary Source="Themes/Desktop/Default/Views/BrowserView.xaml" />
                 <ResourceDictionary Source="Themes/Desktop/Default/Views/ThemesView.xaml" />
                 <ResourceDictionary Source="Themes/Desktop/Default/Views/StoreFilterBar.xaml" />
             </ResourceDictionary.MergedDictionaries>
