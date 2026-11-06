@@ -19,10 +19,7 @@
     </Style>
 
     <DataTemplate x:Key="TopPanelGeneralViewSettingsTemplate">
-        <StackPanel Orientation="Horizontal" Margin="11,0,11,0">
-            <TextBlock Text="&#xE890;" Style="{DynamicResource AtrioBarIcon}" />
-            <TextBlock Text="{DynamicResource LOCAtrioView}" Style="{DynamicResource AtrioBarLabel}" />
-        </StackPanel>
+        <TextBlock Text="&#xE890;" Style="{DynamicResource AtrioBarIcon}" HorizontalAlignment="Center" />
     </DataTemplate>
 
     <DataTemplate x:Key="TopPanelFilterPresetsSelectionTemplate">
@@ -30,17 +27,11 @@
     </DataTemplate>
 
     <DataTemplate x:Key="TopPanelGroupSettingsTemplate">
-        <StackPanel Orientation="Horizontal" Margin="11,0,11,0">
-            <TextBlock Text="&#xE81E;" Style="{DynamicResource AtrioBarIcon}" />
-            <TextBlock Text="{DynamicResource LOCAtrioGroup}" Style="{DynamicResource AtrioBarLabel}" />
-        </StackPanel>
+        <TextBlock Text="&#xE81E;" Style="{DynamicResource AtrioBarIcon}" HorizontalAlignment="Center" />
     </DataTemplate>
 
     <DataTemplate x:Key="TopPanelSortSettingsTemplate">
-        <StackPanel Orientation="Horizontal" Margin="11,0,11,0">
-            <TextBlock Text="&#xE8CB;" Style="{DynamicResource AtrioBarIcon}" />
-            <TextBlock Text="{DynamicResource LOCAtrioSort}" Style="{DynamicResource AtrioBarLabel}" />
-        </StackPanel>
+        <TextBlock Text="&#xE8CB;" Style="{DynamicResource AtrioBarIcon}" HorizontalAlignment="Center" />
     </DataTemplate>
 
     <DataTemplate x:Key="TopPanelSwitchDetailsViewTemplate">
@@ -65,10 +56,7 @@
     </DataTemplate>
 
     <DataTemplate x:Key="TopPanelSelectRandomGameButtonTemplate">
-        <StackPanel Orientation="Horizontal" Margin="11,0,11,0">
-            <TextBlock Text="&#xE8B1;" Style="{DynamicResource AtrioBarIcon}" />
-            <TextBlock Text="{DynamicResource LOCAtrioRandom}" Style="{DynamicResource AtrioBarLabel}" />
-        </StackPanel>
+        <TextBlock Text="&#xE8B1;" Style="{DynamicResource AtrioBarIcon}" HorizontalAlignment="Center" />
     </DataTemplate>
 
     <DataTemplate x:Key="TopPanelViewSelectRandomGameButtonTemplate">
@@ -125,54 +113,22 @@
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="{x:Type TopPanel}">
-                    <Grid Background="{TemplateBinding Background}"
-                          d:DataContext="{x:Static DesignMainViewModel.DesignIntance}">
-                        <DockPanel Margin="26,22,26,12">
-                            <!-- Big title on the left, the tools on the right. The search box takes what is left. -->
-                            <StackPanel Orientation="Horizontal" DockPanel.Dock="Left" VerticalAlignment="Bottom" Margin="0,0,18,0">
-                                <Border x:Name="PART_ElemMainMenu" Background="Transparent" Margin="0,0,10,0" Cursor="Hand"
-                                        WindowChrome.IsHitTestVisibleInChrome="True">
-                                    <Image Source="{ThemeFile 'Images/applogo.png'}" Height="30"
-                                           RenderOptions.BitmapScalingMode="Fant" />
-                                </Border>
-                                <TextBlock Text="{DynamicResource LOCLibrary}" Style="{DynamicResource AtrioPageTitle}" FontSize="30" />
-                                <TextBlock Text="{Binding StoreFilter.GamesCountText}" Style="{DynamicResource AtrioCaption}"
-                                           FontSize="14" VerticalAlignment="Bottom" Margin="12,0,0,8" />
-                            </StackPanel>
-
-                            <CheckBox x:Name="PART_ToggleNotifications" Height="38"
-                                      Style="{DynamicResource TopPanelNotificationsToggle}" DockPanel.Dock="Right" />
-
-                            <StackPanel x:Name="PART_PanelMainPluginItems" Orientation="Horizontal" Height="38"
-                                        Margin="6,0,0,0" DockPanel.Dock="Right" />
-
-                            <CheckBox x:Name="PART_ToggleFilter" ToolTip="{DynamicResource LOCFilters}" Height="38"
-                                      Style="{DynamicResource TopPanelFilterToggle}" DockPanel.Dock="Right" />
-
-                            <StackPanel x:Name="PART_PanelMainItems" Orientation="Horizontal" Height="38"
-                                        DockPanel.Dock="Right" Margin="6,0,0,0" />
-
+                    <StackPanel Orientation="Horizontal" Height="34"
+                                d:DataContext="{x:Static DesignMainViewModel.DesignIntance}">
+                        <!-- Progress of a library update, next to the tools -->
+                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,10,0">
                             <Grid>
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="*" />
-                                    <ColumnDefinition Width="12*" MinWidth="170" MaxWidth="400" />
-                                </Grid.ColumnDefinitions>
-                                <SearchBox x:Name="PART_TextMainSearch" Grid.Column="1" Height="38"
-                                           WindowChrome.IsHitTestVisibleInChrome="True" />
-                            </Grid>
-                        </DockPanel>
-
-                        <!-- Progress of a library update, a thin strip above the bar -->
-                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,3,150,0" Height="17">
-                            <Grid MaxWidth="420" MinWidth="240">
-                                <ProgressBar Name="PART_ProgressGlobal" />
+                                <ProgressBar Name="PART_ProgressGlobal" Height="16" Width="200" />
                                 <TextBlock Name="PART_TextProgressText" VerticalAlignment="Center" HorizontalAlignment="Center" FontSize="11"
-                                           Style="{DynamicResource BaseTextBlockStyle}" Margin="5,0,5,0" />
+                                           TextTrimming="CharacterEllipsis" Style="{DynamicResource BaseTextBlockStyle}" Margin="5,0,5,0" />
                             </Grid>
                             <Button Name="PART_ButtonProgressCancel" Content="{DynamicResource LOCCancelLabel}" FontSize="11" Padding="6,0,6,0"
                                     WindowChrome.IsHitTestVisibleInChrome="True" Margin="5,0,0,0" />
                         </StackPanel>
-                    </Grid>
+                        <StackPanel x:Name="PART_PanelMainItems" Orientation="Horizontal" />
+                        <StackPanel x:Name="PART_PanelMainPluginItems" Orientation="Horizontal" Margin="4,0,0,0" />
+                        <CheckBox x:Name="PART_ToggleNotifications" Style="{DynamicResource TopPanelNotificationsToggle}" />
+                    </StackPanel>
                 </ControlTemplate>
             </Setter.Value>
         </Setter>

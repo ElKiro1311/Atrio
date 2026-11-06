@@ -59,6 +59,22 @@ namespace Playnite.DesktopApp.Controls.Views
                 VirtualizingPanel.SetScrollUnit(ListGames, ScrollUnit.Pixel);
                 VirtualizingPanel.SetIsVirtualizingWhenGrouping(ListGames, true);
                 VirtualizingPanel.SetVirtualizationMode(ListGames, VirtualizationMode.Recycling);
+
+                // Any game picked from the list takes over the rest of the library, even the one already selected.
+                ListGames.PreviewMouseLeftButtonUp += (_, e) =>
+                {
+                    if (e.OriginalSource is DependencyObject source && ItemsControl.ContainerFromElement(ListGames, source) != null)
+                    {
+                        mainModel.Pane = LibraryPane.Game;
+                    }
+                };
+                ListGames.SelectionChanged += (_, e) =>
+                {
+                    if (e.AddedItems.Count > 0 && ListGames.IsKeyboardFocusWithin)
+                    {
+                        mainModel.Pane = LibraryPane.Game;
+                    }
+                };
             }
         }
     }

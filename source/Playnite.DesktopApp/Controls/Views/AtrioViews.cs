@@ -30,31 +30,44 @@ namespace Playnite.DesktopApp.Controls.Views
         }
     }
 
+    /// <summary>The start page of the library. It lives next to the list of games, so it opens and closes without being unloaded.</summary>
     public class HomeView : AtrioPage
     {
-        private readonly HomeViewModel model;
-
         static HomeView()
         {
             DefaultStyleKeyProperty.OverrideMetadata(typeof(HomeView), new FrameworkPropertyMetadata(typeof(HomeView)));
         }
 
+        private bool watching;
+
         public HomeView()
         {
-        }
-
-        public HomeView(HomeViewModel model)
-        {
-            this.model = model;
-            DataContext = model;
-            Unloaded += (_, __) => model.StopRotation();
+            IsVisibleChanged += (_, __) => Update();
+            DataContextChanged += (_, __) => Update();
         }
 
         protected override void OnPageOpened()
         {
-            // The sidebar item refreshes this page each time it opens, the first load comes too early for it.
-            model?.Refresh();
-            model?.StartRotation();
+            Update();
+        }
+
+        private void Update()
+        {
+            if (!(DataContext is HomeViewModel model) || watching == IsVisible)
+            {
+                return;
+            }
+
+            watching = IsVisible;
+            if (watching)
+            {
+                model.StartWatching();
+                model.Refresh();
+            }
+            else
+            {
+                model.StopWatching();
+            }
         }
     }
 

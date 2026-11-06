@@ -182,6 +182,13 @@ namespace Playnite.DesktopApp.Atrio
                     }
 
                     break;
+                case "selector":
+                    FindAll<System.Windows.Controls.Primitives.ToggleButton>(model.Window.Window).First(a => a.Name == "Picker").IsChecked = argument == "si";
+                    break;
+                case "panel":
+                    model.SwitchToLibraryView();
+                    model.Pane = argument == "juego" ? LibraryPane.Game : argument == "todos" ? LibraryPane.AllGames : LibraryPane.Home;
+                    break;
                 case "barra":
                     var item = model.SidebarItems.FirstOrDefault(a => a.Title == argument);
                     if (item == null)
@@ -199,7 +206,8 @@ namespace Playnite.DesktopApp.Atrio
                     break;
                 case "tienda":
                     model.StoreFilter.Refresh();
-                    var store = model.StoreFilter.Items.FirstOrDefault(a => a.Name == argument);
+                    var store = model.StoreFilter.Items.FirstOrDefault(a => a.Name == argument) ??
+                                (argument == "Todas" ? model.StoreFilter.Items.FirstOrDefault() : null);
                     model.StoreFilter.SelectCommand.Execute(store);
                     break;
                 case "preguntar":

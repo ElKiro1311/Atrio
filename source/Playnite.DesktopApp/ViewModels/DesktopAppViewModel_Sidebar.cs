@@ -260,7 +260,7 @@ namespace Playnite.DesktopApp.ViewModels
                     Orientation = Orientation.Horizontal,
                     HorizontalAlignment = HorizontalAlignment.Right,
                     VerticalAlignment = VerticalAlignment.Top,
-                    Margin = new Thickness(0, 10, 140, 0)
+                    Margin = new Thickness(0, 10, 16, 0)
                 };
                 buttons.Children.Add(refresh);
                 buttons.Children.Add(settings);
@@ -384,12 +384,6 @@ namespace Playnite.DesktopApp.ViewModels
             }, this);
             sideItems.Insert(0, storesSidebarItem);
             sideItems.Insert(0, new SidebarWrapperItem(libraryItem, this));
-            sideItems.Insert(0, new SidebarWrapperItem(new AtrioSidebarItem(new Controls.Views.HomeView(HomeModel), HomeModel.Refresh)
-            {
-                Icon = "SidebarHomeIcon",
-                Title = Resources.GetString("LOCAtrioHome")
-            }, this));
-
             sideItems.Add(new SidebarWrapperItem(new AtrioSidebarItem(new Controls.Views.ThemesView(themesModel), themesModel.Refresh)
             {
                 Icon = "SidebarThemesIcon",

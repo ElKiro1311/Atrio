@@ -16,6 +16,7 @@ namespace Playnite.DesktopApp.ViewModels
         public string Name { get; set; }
         public object Icon { get; set; }
         public string CountText { get; set; }
+        public RelayCommand<StoreFilterItem> SelectCommand { get; set; }
 
         private bool isSelected;
         public bool IsSelected
@@ -46,6 +47,45 @@ namespace Playnite.DesktopApp.ViewModels
             set => SetValue(ref gamesCountText, value);
         }
 
+        private string selectionText;
+        public string SelectionText
+        {
+            get => selectionText;
+            set => SetValue(ref selectionText, value);
+        }
+
+        /// <summary>The games played last go first in the list.</summary>
+        public bool RecentFirst
+        {
+            get => main.AppSettings.ViewSettings.SortingOrder == SortOrder.LastActivity;
+            set
+            {
+                var view = main.AppSettings.ViewSettings;
+                view.SortingOrder = value ? SortOrder.LastActivity : SortOrder.Name;
+                view.SortingOrderDirection = value ? SortOrderDirection.Descending : SortOrderDirection.Ascending;
+                OnPropertyChanged();
+            }
+        }
+
+        public bool GroupByInstalled
+        {
+            get => main.AppSettings.ViewSettings.GroupingOrder == GroupableField.InstallationStatus;
+            set => SetGrouping(value ? GroupableField.InstallationStatus : GroupableField.None);
+        }
+
+        public bool GroupByStore
+        {
+            get => main.AppSettings.ViewSettings.GroupingOrder == GroupableField.Library;
+            set => SetGrouping(value ? GroupableField.Library : GroupableField.None);
+        }
+
+        private void SetGrouping(GroupableField field)
+        {
+            main.AppSettings.ViewSettings.GroupingOrder = field;
+            OnPropertyChanged(nameof(GroupByInstalled));
+            OnPropertyChanged(nameof(GroupByStore));
+        }
+
         public bool InstalledOnly
         {
             get => main.AppSettings.FilterSettings.IsInstalled;
@@ -66,8 +106,10 @@ namespace Playnite.DesktopApp.ViewModels
             {
                 SyncSelection();
                 OnPropertyChanged(nameof(InstalledOnly));
-                UpdateCount();
                 main.CloseGamePage();
+
+                // The list refreshes after this event: counting right now would give the previous number.
+                System.Windows.Application.Current?.Dispatcher.BeginInvoke(new Action(UpdateCount), System.Windows.Threading.DispatcherPriority.Background);
             };
         }
 
@@ -87,13 +129,20 @@ namespace Playnite.DesktopApp.ViewModels
 
             main.GamesView.EmulatorFilter = null;
             var filter = main.AppSettings.FilterSettings;
-            if (item.PluginId == null || item.IsSelected)
+            if (item.PluginId == null)
             {
                 filter.Library = null;
             }
             else
             {
-                filter.Library = new IdItemFilterItemProperties(item.PluginId.Value);
+                // Several stores can be on at once, like the boxes of a list.
+                var ids = filter.Library?.Ids?.ToList() ?? new List<Guid>();
+                if (!ids.Remove(item.PluginId.Value))
+                {
+                    ids.Add(item.PluginId.Value);
+                }
+
+                filter.Library = ids.Count == 0 ? null : new IdItemFilterItemProperties(ids);
             }
 
             SyncSelection();
@@ -142,6 +191,12 @@ namespace Playnite.DesktopApp.ViewModels
             GamesCountText = count == 1 ?
                 ResourceProvider.GetString("LOCAtrioOneGame") :
                 string.Format(ResourceProvider.GetString("LOCAtrioGamesCount"), count.ToString("N0", Localization.ApplicationLanguageCultureInfo));
+
+            var selected = Items?.Where(a => a.IsSelected && (a.PluginId != null || a.EmulatorId != null)).ToList();
+            var name = selected?.Count == 1 ? selected[0].Name :
+                selected?.Count > 1 ? string.Format(ResourceProvider.GetString("LOCAtrioStoresCount"), selected.Count) :
+                ResourceProvider.GetString("LOCAtrioAllStores");
+            SelectionText = $"{name} ({count.ToString("N0", Localization.ApplicationLanguageCultureInfo)})";
         }
 
         /// <summary>Games of each emulator, leaving out the ones with none.</summary>
@@ -213,10 +268,14 @@ namespace Playnite.DesktopApp.ViewModels
                 });
             }
 
+            list.ForEach(a => a.SelectCommand = SelectCommand);
             Items = list;
             SyncSelection();
             UpdateCount();
             OnPropertyChanged(nameof(InstalledOnly));
+            OnPropertyChanged(nameof(RecentFirst));
+            OnPropertyChanged(nameof(GroupByInstalled));
+            OnPropertyChanged(nameof(GroupByStore));
         }
     }
 }

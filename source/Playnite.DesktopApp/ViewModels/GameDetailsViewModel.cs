@@ -14,8 +14,41 @@ using Playnite.Converters;
 
 namespace Playnite.DesktopApp.ViewModels
 {
+    public class GamePageLink
+    {
+        public string Name { get; set; }
+        public string Url { get; set; }
+    }
+
+    public class GameActivityEntry
+    {
+        public DateTime Date { get; set; }
+        public string DateText { get; set; }
+        public string Label { get; set; }
+        public string Title { get; set; }
+        public string Text { get; set; }
+        public string ImageUrl { get; set; }
+        public string Url { get; set; }
+
+        public static GameActivityEntry Create(DateTime date, string label, string title, string text = null, string imageUrl = null, string url = null)
+        {
+            return new GameActivityEntry
+            {
+                Date = date,
+                DateText = date.ToString("d MMMM yyyy", Localization.ApplicationLanguageCultureInfo),
+                Label = label,
+                Title = title,
+                Text = text,
+                ImageUrl = imageUrl,
+                Url = url
+            };
+        }
+    }
+
     public class GameDetailsViewModel : ObservableObject, IDisposable
     {
+        private readonly System.Threading.CancellationTokenSource contentToken = new System.Threading.CancellationTokenSource();
+
         private static readonly ILogger logger = LogManager.GetLogger();
         private IResourceProvider resources;
         private IDialogsFactory dialogs;
@@ -361,6 +394,58 @@ namespace Playnite.DesktopApp.ViewModels
             }
         }
 
+        private string heroImage;
+        public string HeroImage
+        {
+            get => heroImage;
+            set
+            {
+                heroImage = value;
+                OnPropertyChanged();
+            }
+        }
+
+        private string logoImage;
+        public string LogoImage
+        {
+            get => logoImage;
+            set
+            {
+                logoImage = value;
+                OnPropertyChanged();
+                OnPropertyChanged(nameof(HasLogo));
+            }
+        }
+
+        public bool HasLogo => !logoImage.IsNullOrEmpty();
+
+        private List<GameActivityEntry> activity;
+        public List<GameActivityEntry> Activity
+        {
+            get => activity;
+            set
+            {
+                activity = value;
+                OnPropertyChanged();
+            }
+        }
+
+        private string recentPlaytimeText;
+        public string RecentPlaytimeText
+        {
+            get => recentPlaytimeText;
+            set
+            {
+                recentPlaytimeText = value;
+                OnPropertyChanged();
+            }
+        }
+
+        public List<GamePageLink> PageLinks { get; private set; }
+        public string PlayedText { get; private set; }
+        public string ReviewUrl { get; private set; }
+
+        public RelayCommand<string> OpenPageCommand { get; }
         public RelayCommand<object> ShowAchievementsCommand { get; }
         public RelayCommand<object> HideAchievementsCommand { get; }
         public RelayCommand<GameCopyEntry> StartCopyCommand { get; }
@@ -404,6 +489,13 @@ namespace Playnite.DesktopApp.ViewModels
             SetVersionFilterCommand = new RelayCommand<string>((filter) => SetVersionFilter(filter));
             SetCompletionStatusFilterCommand = new RelayCommand<DatabaseObject>((a) => SetFilter(a, GameField.CompletionStatus));
             PlayCommand = new RelayCommand<DatabaseObject>((a) => Play());
+            OpenPageCommand = new RelayCommand<string>(a =>
+            {
+                if (!a.IsNullOrEmpty())
+                {
+                    GlobalCommands.NavigateUrl(a);
+                }
+            });
             ShowAchievementsCommand = new RelayCommand<object>(_ => ShowAchievements = true);
             HideAchievementsCommand = new RelayCommand<object>(_ => ShowAchievements = false);
             StartCopyCommand = new RelayCommand<GameCopyEntry>(StartCopy);
@@ -455,6 +547,7 @@ namespace Playnite.DesktopApp.ViewModels
             this.editor = editor;
             this.settings = settings;
             Game = game;
+            PreparePageContent();
             if (game != null)
             {
                 Game.PropertyChanged += Game_PropertyChanged;
@@ -463,8 +556,98 @@ namespace Playnite.DesktopApp.ViewModels
             settings.PropertyChanged += Settings_PropertyChanged;
         }
 
+        private static readonly Tuple<string, string>[] steamPages = new[]
+        {
+            Tuple.Create("LOCAtrioPageStore", "https://store.steampowered.com/app/{0}"),
+            Tuple.Create("LOCAtrioPageDlc", "https://store.steampowered.com/dlc/{0}"),
+            Tuple.Create("LOCAtrioPageCommunity", "https://steamcommunity.com/app/{0}"),
+            Tuple.Create("LOCAtrioPageDiscussions", "https://steamcommunity.com/app/{0}/discussions/"),
+            Tuple.Create("LOCAtrioPageGuides", "https://steamcommunity.com/app/{0}/guides/"),
+            Tuple.Create("LOCAtrioPageMarket", "https://steamcommunity.com/market/search?appid={0}"),
+            Tuple.Create("LOCAtrioPageSupport", "https://help.steampowered.com/wizard/HelpWithGame/?appid={0}")
+        };
+
+        private void PreparePageContent()
+        {
+            var appId = SteamContent.GetAppId(game.Copies.Select(a => a.Game));
+            PageLinks = appId != null ?
+                steamPages.Select(a => new GamePageLink { Name = resources.GetString(a.Item1), Url = string.Format(a.Item2, appId) }).ToList() :
+                game.Game.Links?.Select(a => new GamePageLink { Name = a.Name, Url = game.Game.ExpandVariables(a.Url) }).ToList();
+
+            var total = GameUnifier.Current?.GetGroup(game.Id)?.TotalPlaytime ?? game.Playtime;
+            if (total > 0)
+            {
+                var text = new PlayTimeToStringConverter().Convert(total, typeof(string), null, null);
+                PlayedText = string.Format(resources.GetString("LOCAtrioPlayedFor"), text);
+            }
+
+            ReviewUrl = appId == null ? null : $"https://store.steampowered.com/recommended/recommendgame/{appId}";
+            Activity = GetLocalActivity();
+            if (appId != null)
+            {
+                LoadSteamContent(appId);
+            }
+        }
+
+        private List<GameActivityEntry> GetLocalActivity()
+        {
+            var list = new List<GameActivityEntry>();
+            if (game.Game.LastActivity != null)
+            {
+                list.Add(GameActivityEntry.Create(game.Game.LastActivity.Value, resources.GetString("LOCAtrioActivityGame"), resources.GetString("LOCAtrioActivityPlayed")));
+            }
+
+            if (game.Game.Added != null)
+            {
+                list.Add(GameActivityEntry.Create(game.Game.Added.Value, resources.GetString("LOCAtrioActivityGame"), resources.GetString("LOCAtrioActivityAdded")));
+            }
+
+            return list;
+        }
+
+        /// <summary>The picture, the logo and the news of Steam arrive after the page is already showing.</summary>
+        private async void LoadSteamContent(string appId)
+        {
+            var token = contentToken.Token;
+            try
+            {
+                // Going through the list with the keyboard shouldn't ask for every game on the way.
+                await Task.Delay(TimeSpan.FromMilliseconds(250), token);
+                var minutes = SteamContent.GetRecentMinutes(appId);
+                if (minutes > 0)
+                {
+                    var text = new PlayTimeToStringConverter().Convert((ulong)minutes.Value * 60, typeof(string), null, null);
+                    RecentPlaytimeText = string.Format(resources.GetString("LOCAtrioPlaytimeRecent"), text);
+                }
+
+                var hero = await SteamContent.GetArtAsync(appId, SteamContent.WideHeroFile, token) ??
+                           await SteamContent.GetArtAsync(appId, SteamContent.HeroFile, token);
+                token.ThrowIfCancellationRequested();
+                HeroImage = hero;
+                var logo = await SteamContent.GetLogoAsync(appId, token);
+                token.ThrowIfCancellationRequested();
+                LogoImage = logo;
+
+                var news = await SteamContent.GetNewsAsync(appId, 5, token);
+                token.ThrowIfCancellationRequested();
+                Activity = GetLocalActivity().
+                    Concat(news.Select(a => GameActivityEntry.Create(a.Date, resources.GetString("LOCAtrioActivityNews"), a.Title, a.Text, a.ImageUrl, a.Url))).
+                    OrderByDescending(a => a.Date).
+                    ToList();
+            }
+            catch (OperationCanceledException)
+            {
+            }
+            catch (Exception e) when (!(e is OutOfMemoryException))
+            {
+                // Without internet the page stays with what the library knows.
+                logger.Debug(e, $"Failed to load the Steam content of {appId}.");
+            }
+        }
+
         public void Dispose()
         {
+            contentToken.Cancel();
             if (game != null)
             {
                 Game.PropertyChanged -= Game_PropertyChanged;

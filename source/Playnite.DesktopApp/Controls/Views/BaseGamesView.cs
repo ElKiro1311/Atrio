@@ -27,6 +27,11 @@ namespace Playnite.DesktopApp.Controls.Views
         internal Control ControlGameView;
         internal ExtendedListBox ListGames;
 
+        /// <summary>
+        /// For a layout that shows this view by itself, whatever is chosen as the view of the library.
+        /// </summary>
+        public bool AlwaysActive { get; set; }
+
         public BaseGamesView(DesktopView viewType) : this(viewType, DesktopApplication.Current?.MainModel)
         {
         }
@@ -67,7 +72,7 @@ namespace Playnite.DesktopApp.Controls.Views
 
         private void SetViewActiveBindings()
         {
-            if (mainModel.AppSettings.ViewSettings.GamesViewType == viewType ||
+            if (AlwaysActive || mainModel.AppSettings.ViewSettings.GamesViewType == viewType ||
                 DesignerProperties.GetIsInDesignMode(this))
             {
                 if (ListGames != null)

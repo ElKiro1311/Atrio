@@ -19,6 +19,10 @@
     <FontFamily x:Key="FontIcoFont">/Fonts/icofont.ttf#icofont</FontFamily>
 
     <pcon:AchievementIconConverter x:Key="AchievementIconConverter" />
+    <pcon:HeroHeightConverter x:Key="HeroHeightConverter" />
+    <pcon:HeroPictureHeightConverter x:Key="HeroPictureHeightConverter" />
+    <pcon:HeroPictureMarginConverter x:Key="HeroPictureMarginConverter" />
+    <pcon:RemoteImageConverter x:Key="RemoteImageConverter" />
     <pcon:AchievementPreviewConverter x:Key="AchievementPreviewConverter" />
     <pcon:AchievementOverflowConverter x:Key="AchievementOverflowConverter" />
     <pcon:AchievementMilestoneConverter x:Key="AchievementMilestoneConverter" />

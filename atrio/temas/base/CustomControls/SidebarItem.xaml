@@ -3,41 +3,24 @@
 
     <Style TargetType="{x:Type SidebarItem}">
         <Setter Property="WindowChrome.IsHitTestVisibleInChrome" Value="True" />
-        <Setter Property="HorizontalAlignment" Value="Stretch" />
-        <Setter Property="VerticalAlignment" Value="Stretch" />
         <Setter Property="Foreground" Value="{DynamicResource TextBrushDarker}" />
         <Setter Property="Background" Value="Transparent" />
         <Setter Property="FocusVisualStyle" Value="{x:Null}" />
-        <Setter Property="Height" Value="44" />
-        <Setter Property="Margin" Value="0,0,0,4" />
         <Setter Property="Cursor" Value="Hand" />
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="{x:Type SidebarItem}">
-                    <Grid>
-                        <Border x:Name="Back" Background="{TemplateBinding Background}" CornerRadius="11" />
-                        <ProgressBar x:Name="PART_ProgressStatus"
-                                     BorderThickness="0" Background="Transparent"
-                                     HorizontalAlignment="Stretch" VerticalAlignment="Stretch" />
-                        <DockPanel Margin="14,0,10,0">
-                            <Viewbox Width="18" Height="18" DockPanel.Dock="Left" Margin="0,0,14,0" VerticalAlignment="Center">
-                                <ContentPresenter HorizontalAlignment="Stretch" VerticalAlignment="Stretch" />
-                            </Viewbox>
-                            <TextBlock x:Name="Label" Text="{Binding Title}" VerticalAlignment="Center" FontSize="14"
-                                       FontFamily="{DynamicResource FontFamily}" TextTrimming="CharacterEllipsis"
-                                       Foreground="{TemplateBinding Foreground}" />
-                        </DockPanel>
+                    <Grid Background="Transparent">
+                        <ProgressBar x:Name="PART_ProgressStatus" BorderThickness="0" Background="Transparent" />
+                        <TextBlock Text="{Binding Title, Converter={StaticResource StringToUpperCaseConverter}}"
+                                   VerticalAlignment="Center" Margin="13,0,13,0" FontSize="@@tamanoMenu@@" FontWeight="SemiBold"
+                                   FontFamily="{DynamicResource AtrioDisplayFont}" Foreground="{TemplateBinding Foreground}" />
+                        <Border x:Name="Bar" Height="3" VerticalAlignment="Bottom" Margin="13,0,13,0"
+                                Background="{DynamicResource GlyphBrush}" Visibility="Collapsed" />
                     </Grid>
                     <ControlTemplate.Triggers>
                         <DataTrigger Binding="{Binding Selected}" Value="True">
-                            <Setter TargetName="Back" Property="Background" Value="{DynamicResource AtrioPlayBrush}" />
-                            <Setter TargetName="Back" Property="Effect">
-                                <Setter.Value>
-                                    <DropShadowEffect ShadowDepth="0" BlurRadius="20" Opacity="0.55"
-                                                      Color="{DynamicResource GlyphColor}" />
-                                </Setter.Value>
-                            </Setter>
-                            <Setter TargetName="Label" Property="FontWeight" Value="SemiBold" />
+                            <Setter TargetName="Bar" Property="Visibility" Value="Visible" />
                         </DataTrigger>
                     </ControlTemplate.Triggers>
                 </ControlTemplate>
@@ -45,11 +28,10 @@
         </Setter>
         <Style.Triggers>
             <Trigger Property="IsMouseOver" Value="True">
-                <Setter Property="Background" Value="#14FFFFFF" />
                 <Setter Property="Foreground" Value="{DynamicResource TextBrush}" />
             </Trigger>
             <DataTrigger Binding="{Binding Selected}" Value="True">
-                <Setter Property="Foreground" Value="{DynamicResource AtrioPlayTextBrush}" />
+                <Setter Property="Foreground" Value="{DynamicResource GlyphBrush}" />
             </DataTrigger>
         </Style.Triggers>
     </Style>

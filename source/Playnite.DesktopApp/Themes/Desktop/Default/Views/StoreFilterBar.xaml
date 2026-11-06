@@ -1,37 +1,80 @@
 <ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
 
+    <!-- Row of the store menu: a box to tick, the store and how many games it has -->
+    <Style x:Key="AtrioStoreMenuRow" TargetType="Button">
+        <Setter Property="OverridesDefaultStyle" Value="True" />
+        <Setter Property="Cursor" Value="Hand" />
+        <Setter Property="Focusable" Value="False" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Button">
+                    <Border x:Name="Root" Background="Transparent" CornerRadius="4" Padding="8,5,10,5">
+                        <ContentPresenter />
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="Root" Property="Background" Value="{DynamicResource AtrioCardHoverBrush}" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
     <Style TargetType="{x:Type StoreFilterBar}">
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="{x:Type StoreFilterBar}">
-                    <DockPanel Margin="26,0,26,12">
-                        <ToggleButton DockPanel.Dock="Right" Style="{DynamicResource AtrioPill}" Margin="8,0,0,0"
-                                      IsChecked="{Binding InstalledOnly}"
-                                      Content="{DynamicResource LOCAtrioInstalledOnly}" />
-                        <ItemsControl ItemsSource="{Binding Items}" Focusable="False">
-                            <ItemsControl.ItemsPanel>
-                                <ItemsPanelTemplate>
-                                    <WrapPanel />
-                                </ItemsPanelTemplate>
-                            </ItemsControl.ItemsPanel>
-                            <ItemsControl.ItemTemplate>
-                                <DataTemplate>
-                                    <ToggleButton Style="{DynamicResource AtrioPill}"
-                                                  IsChecked="{Binding IsSelected, Mode=OneWay}"
-                                                  Command="{Binding DataContext.SelectCommand, RelativeSource={RelativeSource AncestorType={x:Type StoreFilterBar}}}"
-                                                  CommandParameter="{Binding}">
-                                        <StackPanel Orientation="Horizontal">
-                                            <Image Source="{Binding Icon}" Width="15" Height="15" Margin="0,0,6,0"
-                                                   RenderOptions.BitmapScalingMode="Fant"
-                                                   Visibility="{Binding Icon, Converter={StaticResource NullToVisibilityConverter}}" />
-                                            <TextBlock Text="{Binding Name}" VerticalAlignment="Center" />
-                                            <TextBlock Text="{Binding CountText}" VerticalAlignment="Center" Margin="6,0,0,0" Opacity="0.7" />
-                                        </StackPanel>
-                                    </ToggleButton>
-                                </DataTemplate>
-                            </ItemsControl.ItemTemplate>
-                        </ItemsControl>
+                    <DockPanel Margin="10,0,10,8">
+                        <ToggleButton DockPanel.Dock="Right" Style="{DynamicResource AtrioIconToggle}" Margin="4,0,0,0"
+                                      Content="&#xE768;" ToolTip="{DynamicResource LOCAtrioInstalledOnly}" IsChecked="{Binding InstalledOnly}" />
+                        <ToggleButton DockPanel.Dock="Right" Style="{DynamicResource AtrioIconToggle}" Margin="4,0,0,0"
+                                      Content="&#xE823;" ToolTip="{DynamicResource LOCAtrioRecentFirst}" IsChecked="{Binding RecentFirst}" />
+                        <Grid>
+                            <ToggleButton x:Name="Picker" Style="{DynamicResource AtrioPickerToggle}"
+                                          IsHitTestVisible="{Binding IsOpen, ElementName=Menu, Converter={StaticResource NegateConverter}}">
+                                <DockPanel>
+                                    <TextBlock DockPanel.Dock="Right" Text="&#xE70D;" FontFamily="{DynamicResource AtrioIconFont}" FontSize="10"
+                                               VerticalAlignment="Center" Margin="8,0,0,0" />
+                                    <TextBlock Text="{Binding SelectionText}" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
+                                </DockPanel>
+                            </ToggleButton>
+                            <Popup x:Name="Menu" IsOpen="{Binding IsChecked, ElementName=Picker, Mode=TwoWay}" StaysOpen="False"
+                                   Placement="Bottom" PlacementTarget="{Binding ElementName=Picker}" AllowsTransparency="True"
+                                   VerticalOffset="4" PopupAnimation="Fade">
+                                <Border Background="{DynamicResource PopupBackgroundBrush}" MinWidth="280" Padding="6"
+                                        BorderThickness="1" BorderBrush="{DynamicResource PopupBorderBrush}"
+                                        CornerRadius="{DynamicResource ControlCornerRadius}">
+                                    <StackPanel>
+                                        <ItemsControl ItemsSource="{Binding Items}" Focusable="False">
+                                            <ItemsControl.ItemTemplate>
+                                                <DataTemplate>
+                                                    <Button Style="{DynamicResource AtrioStoreMenuRow}" Command="{Binding SelectCommand}" CommandParameter="{Binding}">
+                                                        <DockPanel>
+                                                            <TextBlock x:Name="Tick" Text="&#xE73E;" FontFamily="{DynamicResource AtrioIconFont}" FontSize="13" Width="20"
+                                                                       VerticalAlignment="Center" DockPanel.Dock="Left" Foreground="{DynamicResource GlyphBrush}" Visibility="Hidden" />
+                                                            <TextBlock Text="{Binding CountText}" DockPanel.Dock="Right" Style="{DynamicResource AtrioCaption}" VerticalAlignment="Center" Margin="16,0,0,0" />
+                                                            <Image Source="{Binding Icon}" Width="16" Height="16" DockPanel.Dock="Left" Margin="0,0,8,0" VerticalAlignment="Center"
+                                                                   RenderOptions.BitmapScalingMode="Fant" />
+                                                            <TextBlock Text="{Binding Name}" Style="{DynamicResource BaseTextBlockStyle}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+                                                        </DockPanel>
+                                                    </Button>
+                                                    <DataTemplate.Triggers>
+                                                        <DataTrigger Binding="{Binding IsSelected}" Value="True">
+                                                            <Setter TargetName="Tick" Property="Visibility" Value="Visible" />
+                                                        </DataTrigger>
+                                                    </DataTemplate.Triggers>
+                                                </DataTemplate>
+                                            </ItemsControl.ItemTemplate>
+                                        </ItemsControl>
+                                        <Border Height="1" Background="{DynamicResource AtrioBorderBrush}" Margin="4,6,4,6" />
+                                        <CheckBox Content="{DynamicResource LOCAtrioGroupByInstalled}" IsChecked="{Binding GroupByInstalled}" Margin="8,3,8,3" />
+                                        <CheckBox Content="{DynamicResource LOCAtrioGroupByStore}" IsChecked="{Binding GroupByStore}" Margin="8,3,8,3" />
+                                    </StackPanel>
+                                </Border>
+                            </Popup>
+                        </Grid>
                     </DockPanel>
                 </ControlTemplate>
             </Setter.Value>

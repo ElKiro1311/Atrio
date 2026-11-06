@@ -171,7 +171,14 @@ namespace Playnite.DesktopApp.Controls.Views
                 return;
             }
 
-            mainModel.AppSettings.GridViewSideBarVisible = true;
+            if (AlwaysActive)
+            {
+                mainModel.Pane = LibraryPane.Game;
+            }
+            else
+            {
+                mainModel.AppSettings.GridViewSideBarVisible = true;
+            }
         }
 
         private void LibraryGridView_PreviewKeyDown(object sender, KeyEventArgs e)

@@ -37,6 +37,14 @@ using Playnite.Emulators;
 
 namespace Playnite.DesktopApp.ViewModels
 {
+    /// <summary>What the library shows next to the list of games.</summary>
+    public enum LibraryPane
+    {
+        Home,
+        Game,
+        AllGames
+    }
+
     public partial class DesktopAppViewModel : MainViewModelBase, IDisposable, IMainViewModelBase
     {
         private static object gamesLock = new object();
@@ -68,9 +76,38 @@ namespace Playnite.DesktopApp.ViewModels
 
         public void UpdateAmbient()
         {
-            var entry = ActiveView is Controls.Views.HomeView ? HomeModel?.Hero?.Game : SelectedGame;
+            var entry = IsHomePane ? HomeModel?.AmbientGame : SelectedGame;
             AmbientImage = entry?.AmbientImageObject;
         }
+
+        private LibraryPane pane = LibraryPane.Home;
+        public LibraryPane Pane
+        {
+            get => pane;
+            set
+            {
+                if (pane == value)
+                {
+                    return;
+                }
+
+                pane = value;
+                OnPropertyChanged();
+                OnPropertyChanged(nameof(IsHomePane));
+                OnPropertyChanged(nameof(IsGamePane));
+                OnPropertyChanged(nameof(IsAllGamesPane));
+                if (pane != LibraryPane.AllGames)
+                {
+                    AppSettings.GridViewSideBarVisible = false;
+                }
+
+                UpdateAmbient();
+            }
+        }
+
+        public bool IsHomePane => Pane == LibraryPane.Home;
+        public bool IsGamePane => Pane == LibraryPane.Game;
+        public bool IsAllGamesPane => Pane == LibraryPane.AllGames;
 
         private Control activeView;
         public Control ActiveView
@@ -458,12 +495,12 @@ namespace Playnite.DesktopApp.ViewModels
             {
                 if (!SelectGameImpl(AppSettings.LastSelectedGame) && GamesView.CollectionView.Count > 0)
                 {
-                    SelectGame((GamesView.CollectionView.GetItemAt(0) as GamesCollectionViewEntry).Id);
+                    SelectGameImpl((GamesView.CollectionView.GetItemAt(0) as GamesCollectionViewEntry).Id);
                 }
             }
             else if (GamesView.CollectionView.Count > 0)
             {
-                SelectGame((GamesView.CollectionView.GetItemAt(0) as GamesCollectionViewEntry).Id);
+                SelectGameImpl((GamesView.CollectionView.GetItemAt(0) as GamesCollectionViewEntry).Id);
             }
             else
             {
@@ -825,6 +862,7 @@ namespace Playnite.DesktopApp.ViewModels
         public override void SelectGame(Guid id, bool restoreView = false)
         {
             SelectGameImpl(id, restoreView);
+            Pane = LibraryPane.Game;
         }
 
         public void SelectGames(IEnumerable<Guid> gameIds, bool restoreView = false)
@@ -1153,7 +1191,7 @@ namespace Playnite.DesktopApp.ViewModels
                 var target = GamesView.Unifier.GetGroup(gameId)?.Primary.Id ?? gameId;
                 if (SelectedGame?.Id != target)
                 {
-                    SelectGame(target);
+                    SelectGameImpl(target);
                 }
             }
 
@@ -1242,6 +1280,10 @@ namespace Playnite.DesktopApp.ViewModels
                 if (SelectedGameDetails == null)
                 {
                     CloseGamePage();
+                    if (IsGamePane)
+                    {
+                        Pane = LibraryPane.Home;
+                    }
                 }
             }), System.Windows.Threading.DispatcherPriority.Background);
         }

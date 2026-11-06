@@ -556,7 +556,7 @@ namespace Playnite
         public const double DefaultGridItemWidth = 200;
         public const double MaxGridItemWidth = 700;
 
-        private GroupableField groupingOrder = GroupableField.None;
+        private GroupableField groupingOrder = GroupableField.InstallationStatus;
         public GroupableField GroupingOrder
         {
             get

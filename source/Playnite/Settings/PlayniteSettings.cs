@@ -309,7 +309,7 @@ namespace Playnite
         public int Version
         {
             get; set;
-        } = 8;
+        } = 9;
 
         private DetailsVisibilitySettings detailsVisibility = new DetailsVisibilitySettings();
         public DetailsVisibilitySettings DetailsVisibility
@@ -546,7 +546,7 @@ namespace Playnite
             }
         }
 
-        private double detailsListWitdh = 350;
+        private double detailsListWitdh = 320;
         public double DetailsListWitdh
         {
             get
@@ -1482,7 +1482,7 @@ namespace Playnite
             }
         }
 
-        private double detailsViewListIconSize = 26;
+        private double detailsViewListIconSize = 20;
         public double DetailsViewListIconSize
         {
             get
@@ -1830,7 +1830,7 @@ namespace Playnite
             }
         }
 
-        private bool showTopPanelDetailsViewSwitch = true;
+        private bool showTopPanelDetailsViewSwitch = false;
         public bool ShowTopPanelDetailsViewSwitch
         {
             get => showTopPanelDetailsViewSwitch;
@@ -1841,7 +1841,7 @@ namespace Playnite
             }
         }
 
-        private bool showTopPanelGridViewSwitch = true;
+        private bool showTopPanelGridViewSwitch = false;
         public bool ShowTopPanelGridViewSwitch
         {
             get => showTopPanelGridViewSwitch;
@@ -1852,7 +1852,7 @@ namespace Playnite
             }
         }
 
-        private bool showTopPanelListViewSwitch = true;
+        private bool showTopPanelListViewSwitch = false;
         public bool ShowTopPanelListViewSwitch
         {
             get => showTopPanelListViewSwitch;
@@ -2552,6 +2552,23 @@ namespace Playnite
                 }
 
                 settings.Version = 8;
+            }
+
+            if (settings.Version == 8)
+            {
+                // The library of Atrio's themes became one layout, with the list of games always on the left.
+                settings.ViewSettings.GamesViewType = DesktopView.Details;
+                settings.ShowTopPanelDetailsViewSwitch = false;
+                settings.ShowTopPanelGridViewSwitch = false;
+                settings.ShowTopPanelListViewSwitch = false;
+                settings.DetailsViewListIconSize = 20;
+                settings.DetailsListWitdh = 320;
+                if (settings.ViewSettings.GroupingOrder == GroupableField.None)
+                {
+                    settings.ViewSettings.GroupingOrder = GroupableField.InstallationStatus;
+                }
+
+                settings.Version = 9;
             }
 
             settings.WindowPositions = LoadExternalConfig<WindowPositions>(PlaynitePaths.WindowPositionsPath, PlaynitePaths.BackupWindowPositionsPath);

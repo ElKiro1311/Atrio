@@ -10,19 +10,10 @@
                 <ControlTemplate TargetType="{x:Type Library}">
                     <Grid d:DesignWidth="1500" d:DesignHeight="960"
                           d:DataContext="{x:Static DesignMainViewModel.DesignIntance}">
-                        <Grid.RowDefinitions>
-                            <RowDefinition Height="Auto" />
-                            <RowDefinition Height="Auto" />
-                            <RowDefinition Height="*" />
-                        </Grid.RowDefinitions>
-
-                        <FadeImage x:Name="PART_ImageBackground" Grid.RowSpan="3"
+                        <FadeImage x:Name="PART_ImageBackground"
                                    HorizontalAlignment="Center" VerticalAlignment="Top" />
 
-                        <TopPanel Grid.Row="0" />
-                        <StoreFilterBar Grid.Row="1" />
-
-                        <DockPanel Grid.Row="2">
+                        <DockPanel>
                             <FilterPanel x:Name="PART_FilterPanel"
                                          DockPanel.Dock="{Settings FilterPanelPosition}"
                                          Width="{Settings FilterPanelWitdh}"
@@ -32,11 +23,8 @@
                                            DockPanel.Dock="{Settings ExplorerPanelPosition}"
                                            Width="{Settings ExplorerPanelWitdh}" />
 
-                            <Grid DockPanel.Dock="Left">
-                                <LibraryDetailsView x:Name="PART_ViewDetails" />
-                                <LibraryGridView x:Name="PART_ViewGrid" />
-                                <LibraryListView x:Name="PART_ViewList" />
-                            </Grid>
+                            <!-- Not a named part on purpose: this layout doesn't change with the view chosen elsewhere -->
+                            <LibraryDetailsView AlwaysActive="True" />
                         </DockPanel>
                     </Grid>
                 </ControlTemplate>

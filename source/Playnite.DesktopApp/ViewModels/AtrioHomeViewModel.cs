@@ -1,115 +1,61 @@
 using Playnite.Atrio;
+using Playnite.Commands;
 using Playnite.Common;
 using Playnite.Converters;
 using Playnite.SDK;
 using Playnite.SDK.Models;
-using Playnite.SDK.Plugins;
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
-using System.Windows.Media;
+using System.Threading;
+using System.Threading.Tasks;
 using System.Windows.Threading;
 
 namespace Playnite.DesktopApp.ViewModels
 {
+    public class HomeCard
+    {
+        public GamesCollectionViewEntry Game { get; set; }
+
+        /// <summary>Shown above the first card of each period, like the shelves of a library.</summary>
+        public string GroupLabel { get; set; }
+        public bool IsWide { get; set; }
+        public bool IsNew { get; set; }
+        public string Caption { get; set; }
+        public string RecentText { get; set; }
+        public string TotalText { get; set; }
+    }
+
+    public class HomeNewsCard
+    {
+        public string GroupLabel { get; set; }
+        public string Title { get; set; }
+        public string GameName { get; set; }
+        public string ImageUrl { get; set; }
+        public string Url { get; set; }
+    }
+
     public class HomeShelf
     {
         public string Title { get; set; }
-        public List<GamesCollectionViewEntry> Items { get; set; }
-    }
-
-    public class HomeRankedGame
-    {
-        public int Rank { get; set; }
-        public GamesCollectionViewEntry Game { get; set; }
-    }
-
-    public class HomeStoreTile
-    {
-        public Guid PluginId { get; set; }
-        public Guid? EmulatorId { get; set; }
-        public string Name { get; set; }
-        public object Icon { get; set; }
-        public string CountText { get; set; }
-        public Brush CardBrush { get; set; }
-        public Brush ColorBrush { get; set; }
-    }
-
-    public class HomeFeaturedGame : ObservableObject
-    {
-        public GamesCollectionViewEntry Game { get; set; }
-        public string Label { get; set; }
-        public string Details { get; set; }
-        public string ActionText { get; set; }
-
-        private bool isSelected;
-        public bool IsSelected
-        {
-            get => isSelected;
-            set => SetValue(ref isSelected, value);
-        }
+        public string Subtitle { get; set; }
+        public List<HomeCard> Cards { get; set; }
     }
 
     public class HomeViewModel : ObservableObject
     {
-        private const int ShelfSize = 20;
-        private const int FeaturedSize = 5;
-        private const int RankedSize = 10;
-        private static readonly TimeSpan rotationInterval = TimeSpan.FromSeconds(9);
+        private const int ShelfSize = 24;
+        private const int AllGamesPreview = 42;
+        private const int NewsGames = 8;
+        private const int NewsSize = 10;
+        private static readonly TimeSpan newGameAge = TimeSpan.FromDays(14);
         private static readonly PlayTimeToStringConverter playtimeConverter = new PlayTimeToStringConverter();
 
         private readonly DesktopAppViewModel main;
-        private readonly DispatcherTimer rotationTimer;
         private readonly DispatcherTimer refreshTimer;
-
-        private List<HomeFeaturedGame> featured;
-        public List<HomeFeaturedGame> Featured
-        {
-            get => featured;
-            set => SetValue(ref featured, value);
-        }
-
-        private HomeFeaturedGame hero;
-        public HomeFeaturedGame Hero
-        {
-            get => hero;
-            set
-            {
-                if (hero != null)
-                {
-                    hero.IsSelected = false;
-                }
-
-                SetValue(ref hero, value);
-                if (hero != null)
-                {
-                    hero.IsSelected = true;
-                }
-
-                main.UpdateAmbient();
-            }
-        }
-
-        private bool pauseRotation;
-        public bool PauseRotation
-        {
-            get => pauseRotation;
-            set => SetValue(ref pauseRotation, value);
-        }
-
-        private string greeting;
-        public string Greeting
-        {
-            get => greeting;
-            set => SetValue(ref greeting, value);
-        }
-
-        private string summary;
-        public string Summary
-        {
-            get => summary;
-            set => SetValue(ref summary, value);
-        }
+        private CancellationTokenSource newsToken;
+        private List<GamesCollectionViewEntry> entries = new List<GamesCollectionViewEntry>();
 
         private bool isEmpty;
         public bool IsEmpty
@@ -118,32 +64,14 @@ namespace Playnite.DesktopApp.ViewModels
             set => SetValue(ref isEmpty, value);
         }
 
-        private List<GamesCollectionViewEntry> recent;
-        public List<GamesCollectionViewEntry> Recent
-        {
-            get => recent;
-            set => SetValue(ref recent, value);
-        }
+        /// <summary>The game that gives its colors to the window while this page is showing.</summary>
+        public GamesCollectionViewEntry AmbientGame { get; private set; }
 
-        private HomeShelf ready;
-        public HomeShelf Ready
+        private List<HomeNewsCard> news;
+        public List<HomeNewsCard> News
         {
-            get => ready;
-            set => SetValue(ref ready, value);
-        }
-
-        private List<HomeStoreTile> stores;
-        public List<HomeStoreTile> Stores
-        {
-            get => stores;
-            set => SetValue(ref stores, value);
-        }
-
-        private List<HomeRankedGame> ranked;
-        public List<HomeRankedGame> Ranked
-        {
-            get => ranked;
-            set => SetValue(ref ranked, value);
+            get => news;
+            set => SetValue(ref news, value);
         }
 
         private List<HomeShelf> shelves;
@@ -153,11 +81,34 @@ namespace Playnite.DesktopApp.ViewModels
             set => SetValue(ref shelves, value);
         }
 
+        private List<GamesCollectionViewEntry> allGames;
+        public List<GamesCollectionViewEntry> AllGames
+        {
+            get => allGames;
+            set => SetValue(ref allGames, value);
+        }
+
+        private string allGamesTitle;
+        public string AllGamesTitle
+        {
+            get => allGamesTitle;
+            set => SetValue(ref allGamesTitle, value);
+        }
+
+        private int allGamesSort;
+        public int AllGamesSort
+        {
+            get => allGamesSort;
+            set
+            {
+                SetValue(ref allGamesSort, value);
+                UpdateAllGames();
+            }
+        }
+
         public RelayCommand<GamesCollectionViewEntry> OpenGameCommand { get; }
         public RelayCommand<GamesCollectionViewEntry> StartGameCommand { get; }
-        public RelayCommand<HomeFeaturedGame> SelectFeaturedCommand { get; }
-        public RelayCommand<HomeStoreTile> OpenStoreCommand { get; }
-        public RelayCommand<object> OpenLibraryCommand { get; }
+        public RelayCommand<HomeNewsCard> OpenNewsCommand { get; }
         public RelayCommand<object> OpenStoresCommand { get; }
 
         public HomeViewModel(DesktopAppViewModel main)
@@ -171,18 +122,14 @@ namespace Playnite.DesktopApp.ViewModels
                     main.StartGame(a.Game, true);
                 }
             });
-            SelectFeaturedCommand = new RelayCommand<HomeFeaturedGame>(a =>
+            OpenNewsCommand = new RelayCommand<HomeNewsCard>(a =>
             {
-                Hero = a;
-                rotationTimer.Stop();
-                rotationTimer.Start();
+                if (a?.Url.IsNullOrEmpty() == false)
+                {
+                    GlobalCommands.NavigateUrl(a.Url);
+                }
             });
-            OpenStoreCommand = new RelayCommand<HomeStoreTile>(OpenStore);
-            OpenLibraryCommand = new RelayCommand<object>(_ => main.SwitchToLibraryView());
             OpenStoresCommand = new RelayCommand<object>(_ => main.SwitchToStoresView());
-
-            rotationTimer = new DispatcherTimer { Interval = rotationInterval };
-            rotationTimer.Tick += (_, __) => ShowNextFeatured();
 
             // A sync adds games one by one: the page waits for them to stop arriving.
             refreshTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(1.5) };
@@ -202,108 +149,228 @@ namespace Playnite.DesktopApp.ViewModels
             }));
         }
 
-        /// <summary>Images arrive after the games do: the hero fills up as they come in.</summary>
-        private void Games_ItemUpdated(object sender, ItemUpdatedEventArgs<Game> e)
+        public void StartWatching()
         {
-            refreshTimer.Dispatcher.BeginInvoke(new Action(() =>
-            {
-                if (Featured?.Count(a => !a.Game.BackgroundImage.IsNullOrEmpty()) < FeaturedSize && !refreshTimer.IsEnabled)
-                {
-                    refreshTimer.Start();
-                }
-            }));
-        }
-
-        private void ShowNextFeatured()
-        {
-            if (PauseRotation || Featured == null || Featured.Count < 2)
-            {
-                return;
-            }
-
-            var index = Featured.IndexOf(Hero);
-            Hero = Featured[(index + 1) % Featured.Count];
-        }
-
-        public void StartRotation()
-        {
-            rotationTimer.Start();
-            if (main.Database?.Games != null)
-            {
-                main.Database.Games.ItemCollectionChanged += Games_ItemCollectionChanged;
-                main.Database.Games.ItemUpdated += Games_ItemUpdated;
-            }
-        }
-
-        public void StopRotation()
-        {
-            rotationTimer.Stop();
-            refreshTimer.Stop();
             if (main.Database?.Games != null)
             {
                 main.Database.Games.ItemCollectionChanged -= Games_ItemCollectionChanged;
-                main.Database.Games.ItemUpdated -= Games_ItemUpdated;
+                main.Database.Games.ItemCollectionChanged += Games_ItemCollectionChanged;
+            }
+        }
+
+        public void StopWatching()
+        {
+            refreshTimer.Stop();
+            newsToken?.Cancel();
+            if (main.Database?.Games != null)
+            {
+                main.Database.Games.ItemCollectionChanged -= Games_ItemCollectionChanged;
             }
         }
 
         public void OpenGame(GamesCollectionViewEntry entry)
         {
-            if (entry == null)
+            if (entry != null)
             {
-                return;
-            }
-
-            main.SwitchToLibraryView();
-            main.SelectGame(entry.Id);
-            if (main.AppSettings.ViewSettings.GamesViewType == DesktopView.Grid)
-            {
-                main.AppSettings.GridViewSideBarVisible = true;
+                main.SwitchToLibraryView();
+                main.SelectGame(entry.Id);
             }
         }
 
-        private void OpenStore(HomeStoreTile tile)
+        private static string GetPlaytime(ulong seconds)
         {
-            if (tile == null)
-            {
-                return;
-            }
-
-            if (tile.EmulatorId != null)
-            {
-                main.StoreFilter.ShowEmulator(tile.EmulatorId);
-            }
-            else
-            {
-                main.GamesView.EmulatorFilter = null;
-                main.AppSettings.FilterSettings.Library = new IdItemFilterItemProperties(tile.PluginId);
-            }
-
-            main.SwitchToLibraryView();
+            return playtimeConverter.Convert(seconds, typeof(string), null, null)?.ToString();
         }
 
-        private static string GetGreetingKey()
+        /// <summary>When something happened, in the words of a shelf: today, this week, October, 2024...</summary>
+        public static string GetPeriodLabel(DateTime date, DateTime today)
         {
-            var hour = DateTime.Now.Hour;
-            return hour < 6 ? "LOCAtrioGreetingNight" : hour < 13 ? "LOCAtrioGreetingMorning" : hour < 20 ? "LOCAtrioGreetingAfternoon" : "LOCAtrioGreetingNight";
+            var days = (today.Date - date.Date).TotalDays;
+            if (days <= 0)
+            {
+                return ResourceProvider.GetString("LOCAtrioPeriodToday");
+            }
+
+            if (days == 1)
+            {
+                return ResourceProvider.GetString("LOCAtrioPeriodYesterday");
+            }
+
+            if (days < 7)
+            {
+                return ResourceProvider.GetString("LOCAtrioPeriodWeek");
+            }
+
+            if (date.Year != today.Year)
+            {
+                return date.Year.ToString(CultureInfo.InvariantCulture);
+            }
+
+            if (date.Month == today.Month)
+            {
+                return ResourceProvider.GetString("LOCAtrioPeriodMonth");
+            }
+
+            var culture = Localization.ApplicationLanguageCultureInfo;
+            var month = date.ToString("MMMM", culture);
+            return culture.TextInfo.ToTitleCase(month);
         }
 
-        private HomeFeaturedGame CreateFeatured(GamesCollectionViewEntry entry, string labelKey)
+        private HomeCard CreateRecentCard(GamesCollectionViewEntry entry, string label, bool wide)
         {
-            var details = new List<string>();
+            var copies = entry.Copies.Select(a => a.Game).ToList();
+            var appId = SteamContent.GetAppId(copies);
+            var minutes = appId == null ? null : SteamContent.GetRecentMinutes(appId);
             var total = GameUnifier.Current?.GetGroup(entry.Id)?.TotalPlaytime ?? entry.Playtime;
-            if (total > 0)
-            {
-                details.Add(playtimeConverter.Convert(total, typeof(string), null, null)?.ToString());
-            }
-
-            details.Add(string.Join(" · ", entry.StoreBadges.Select(a => a.StoreName)));
-            return new HomeFeaturedGame
+            return new HomeCard
             {
                 Game = entry,
-                Label = ResourceProvider.GetString(labelKey),
-                Details = string.Join("   ·   ", details.Where(a => !a.IsNullOrEmpty())),
-                ActionText = ResourceProvider.GetString(entry.IsInstalled ? "LOCPlayGame" : "LOCInstallGame")
+                GroupLabel = label,
+                IsWide = wide,
+                RecentText = minutes > 0 ?
+                    string.Format(ResourceProvider.GetString("LOCAtrioPlaytimeRecent"), GetPlaytime((ulong)minutes.Value * 60)) :
+                    null,
+                TotalText = total > 0 ?
+                    string.Format(ResourceProvider.GetString("LOCAtrioPlaytimeTotal"), GetPlaytime(total)) :
+                    null
             };
+        }
+
+        private HomeShelf CreateRecentShelf(List<GamesCollectionViewEntry> played)
+        {
+            var today = DateTime.Today;
+            var cards = new List<HomeCard>();
+            string lastLabel = null;
+            foreach (var entry in played.Take(ShelfSize))
+            {
+                var label = GetPeriodLabel(entry.LastActivity.Value, today);
+                cards.Add(CreateRecentCard(entry, label == lastLabel ? " " : label, cards.Count == 0));
+                lastLabel = label;
+            }
+
+            return cards.Count == 0 ? null : new HomeShelf { Title = ResourceProvider.GetString("LOCAtrioHomeRecent"), Cards = cards };
+        }
+
+        private HomeShelf CreatePlayNextShelf()
+        {
+            var unplayed = entries.Where(a => a.Playtime == 0 && a.LastActivity == null).
+                OrderByDescending(a => a.IsInstalled).
+                ThenByDescending(a => a.CommunityScore ?? 0).
+                ThenByDescending(a => a.Added ?? DateTime.MinValue).
+                Take(ShelfSize).
+                ToList();
+            if (unplayed.Count == 0)
+            {
+                return null;
+            }
+
+            return new HomeShelf
+            {
+                Title = ResourceProvider.GetString("LOCAtrioHomePlayNext"),
+                Subtitle = ResourceProvider.GetString("LOCAtrioHomePlayNextHint"),
+                Cards = unplayed.Select((a, index) => new HomeCard
+                {
+                    Game = a,
+                    GroupLabel = " ",
+                    IsWide = index == 0,
+                    Caption = index == 0 ? ResourceProvider.GetString(a.IsInstalled ? "LOCAtrioHomeReadyToPlay" : "LOCAtrioHomeInYourLibrary") : null
+                }).ToList()
+            };
+        }
+
+        private HomeShelf CreateAddedShelf()
+        {
+            var limit = DateTime.Now - newGameAge;
+            var added = entries.Where(a => a.Added != null).OrderByDescending(a => a.Added).Take(ShelfSize).ToList();
+            if (added.Count == 0)
+            {
+                return null;
+            }
+
+            return new HomeShelf
+            {
+                Title = ResourceProvider.GetString("LOCAtrioHomeAdded"),
+                Cards = added.Select(a => new HomeCard { Game = a, GroupLabel = " ", IsNew = a.Added > limit }).ToList()
+            };
+        }
+
+        private void UpdateAllGames()
+        {
+            IEnumerable<GamesCollectionViewEntry> sorted;
+            switch (allGamesSort)
+            {
+                case 1:
+                    sorted = entries.OrderByDescending(a => a.Playtime).ThenBy(a => a.Name);
+                    break;
+                case 2:
+                    sorted = entries.OrderByDescending(a => a.LastActivity ?? DateTime.MinValue).ThenBy(a => a.Name);
+                    break;
+                case 3:
+                    sorted = entries.OrderByDescending(a => a.Added ?? DateTime.MinValue).ThenBy(a => a.Name);
+                    break;
+                default:
+                    sorted = entries.OrderBy(a => a.Name, StringComparer.CurrentCultureIgnoreCase);
+                    break;
+            }
+
+            AllGames = sorted.Take(AllGamesPreview).ToList();
+            AllGamesTitle = string.Format(
+                ResourceProvider.GetString("LOCAtrioHomeAllGames"),
+                entries.Count.ToString("N0", Localization.ApplicationLanguageCultureInfo));
+        }
+
+        private async void LoadNews(List<GamesCollectionViewEntry> played)
+        {
+            newsToken?.Cancel();
+            var source = new CancellationTokenSource();
+            newsToken = source;
+            var games = played.
+                Select(a => new { a.Name, AppId = SteamContent.GetAppId(a.Copies.Select(b => b.Game)) }).
+                Where(a => a.AppId != null).
+                Take(NewsGames).
+                ToList();
+
+            var found = new List<Tuple<string, string, SteamNewsItem>>();
+            await Task.WhenAll(games.Select(async game =>
+            {
+                try
+                {
+                    var items = await SteamContent.GetNewsAsync(game.AppId, 2, source.Token).ConfigureAwait(false);
+                    lock (found)
+                    {
+                        found.AddRange(items.Select(a => Tuple.Create(game.Name, game.AppId, a)));
+                    }
+                }
+                catch (Exception e) when (!(e is OutOfMemoryException))
+                {
+                    // Without internet or with the service down the page simply has no news.
+                    LogManager.GetLogger().Debug(e, $"Failed to read the news of {game.Name}.");
+                }
+            }));
+
+            if (source.IsCancellationRequested)
+            {
+                return;
+            }
+
+            var today = DateTime.Today;
+            var cards = new List<HomeNewsCard>();
+            string lastLabel = null;
+            foreach (var item in found.OrderByDescending(a => a.Item3.Date).Take(NewsSize))
+            {
+                var label = GetPeriodLabel(item.Item3.Date, today);
+                cards.Add(new HomeNewsCard
+                {
+                    GroupLabel = label == lastLabel ? " " : label,
+                    Title = item.Item3.Title,
+                    GameName = item.Item1,
+                    Url = item.Item3.Url,
+                    ImageUrl = item.Item3.ImageUrl ?? SteamContent.GetArtUrl(item.Item2, SteamContent.HeaderFile)
+                });
+                lastLabel = label;
+            }
+
+            News = cards;
         }
 
         public void Refresh()
@@ -314,138 +381,31 @@ namespace Playnite.DesktopApp.ViewModels
             }
 
             var unifier = GameUnifier.Current;
-            var culture = Localization.ApplicationLanguageCultureInfo;
             var seen = new HashSet<Guid>();
-            var entries = main.GamesView.Items.
+            entries = main.GamesView.Items.
                 Where(a => !a.Hidden && unifier?.IsSecondaryCopy(a.Id) != true && seen.Add(a.Id)).
                 ToList();
 
-            var recentGames = entries.Where(a => a.LastActivity != null).OrderByDescending(a => a.LastActivity).ToList();
-            var installed = entries.Where(a => a.IsInstalled).
-                OrderByDescending(a => a.LastActivity ?? DateTime.MinValue).
-                ThenBy(a => a.Name).ToList();
-
+            var played = entries.Where(a => a.LastActivity != null).OrderByDescending(a => a.LastActivity).ToList();
             IsEmpty = entries.Count == 0;
-            Greeting = ResourceProvider.GetString(GetGreetingKey());
-            Summary = string.Format(
-                ResourceProvider.GetString("LOCAtrioHomeSummary"),
-                entries.Count.ToString("N0", culture),
-                installed.Count.ToString("N0", culture),
-                main.Extensions.LibraryPlugins.Count);
-
-            var currentHero = Hero?.Game.Id;
-            var featuredGames = recentGames.Where(a => !a.BackgroundImage.IsNullOrEmpty()).Take(FeaturedSize).
-                Select(a => CreateFeatured(a, "LOCAtrioHeroContinue")).ToList();
-            foreach (var entry in installed.Where(a => !a.BackgroundImage.IsNullOrEmpty()))
-            {
-                if (featuredGames.Count >= FeaturedSize)
-                {
-                    break;
-                }
-
-                if (featuredGames.All(a => a.Game.Id != entry.Id))
-                {
-                    featuredGames.Add(CreateFeatured(entry, "LOCAtrioHeroInstalled"));
-                }
-            }
-
-            foreach (var entry in entries.Where(a => !a.BackgroundImage.IsNullOrEmpty()).OrderByDescending(a => a.Added ?? DateTime.MinValue))
-            {
-                if (featuredGames.Count >= FeaturedSize)
-                {
-                    break;
-                }
-
-                if (featuredGames.All(a => a.Game.Id != entry.Id))
-                {
-                    featuredGames.Add(CreateFeatured(entry, "LOCAtrioHeroLibrary"));
-                }
-            }
-
-            // Without any artwork yet, a plain hero is still better than an empty one.
-            if (featuredGames.Count == 0)
-            {
-                featuredGames.AddRange((installed.Count > 0 ? installed : entries).Take(FeaturedSize).
-                    Select(a => CreateFeatured(a, "LOCAtrioHeroLibrary")));
-            }
-
-            Featured = featuredGames;
-            Hero = featuredGames.FirstOrDefault(a => a.Game.Id == currentHero) ?? featuredGames.FirstOrDefault();
-
-            Recent = recentGames.Where(a => !a.BackgroundImage.IsNullOrEmpty() || !a.CoverImage.IsNullOrEmpty()).Take(10).ToList();
-            Ready = CreateShelf("LOCAtrioHomeInstalled", installed);
-            Ranked = entries.Where(a => a.Playtime > 0).
-                OrderByDescending(a => a.Playtime).
-                Take(RankedSize).
-                Select((a, index) => new HomeRankedGame { Rank = index + 1, Game = a }).
-                ToList();
+            AmbientGame = played.FirstOrDefault(a => !a.BackgroundImage.IsNullOrEmpty()) ?? played.FirstOrDefault();
 
             var list = new List<HomeShelf>();
-            AddShelf(list, "LOCAtrioHomeFavorites", entries.Where(a => a.Favorite).OrderBy(a => a.Name));
-            AddShelf(list, "LOCAtrioHomeMultiStore", entries.Where(a => a.HasMultipleCopies).OrderByDescending(a => a.IsInstalled).ThenByDescending(a => a.Added ?? DateTime.MinValue));
-            AddShelf(list, "LOCAtrioHomeAdded", entries.Where(a => a.Added != null).OrderByDescending(a => a.Added));
-            Shelves = list;
-
-            Stores = GetStoreTiles(culture);
-        }
-
-        private List<HomeStoreTile> GetStoreTiles(System.Globalization.CultureInfo culture)
-        {
-            var counts = new Dictionary<Guid, int>();
-            foreach (var game in main.Database.Games)
+            void add(HomeShelf shelf)
             {
-                if (!game.Hidden)
+                if (shelf != null)
                 {
-                    counts.TryGetValue(game.PluginId, out var count);
-                    counts[game.PluginId] = count + 1;
+                    list.Add(shelf);
                 }
             }
 
-            var tiles = new List<HomeStoreTile>();
-            foreach (LibraryPlugin plugin in main.Extensions.LibraryPlugins.
-                Where(a => counts.ContainsKey(a.Id)).
-                OrderBy(a => GameUnifier.Current.GetStoreRank(a.Id, a.Name)))
-            {
-                tiles.Add(new HomeStoreTile
-                {
-                    PluginId = plugin.Id,
-                    Name = plugin.Name,
-                    Icon = plugin.LibraryIcon == null ? null : ImageSourceManager.GetImage(plugin.LibraryIcon, true),
-                    CountText = string.Format(ResourceProvider.GetString("LOCAtrioGamesCount"), counts[plugin.Id].ToString("N0", culture)),
-                    CardBrush = StoreBranding.GetCardBrush(plugin.Name),
-                    ColorBrush = StoreBranding.GetBrush(plugin.Name)
-                });
-            }
-
-            foreach (var emulator in StoreFilterViewModel.GetEmulatorCounts(main.Database).OrderByDescending(a => a.Value))
-            {
-                tiles.Add(new HomeStoreTile
-                {
-                    EmulatorId = emulator.Key.Id,
-                    Name = emulator.Key.Name,
-                    Icon = EmulatorStores.GetIcon(emulator.Key.Name),
-                    CountText = string.Format(ResourceProvider.GetString("LOCAtrioGamesCount"), emulator.Value.ToString("N0", culture)),
-                    CardBrush = EmulatorStores.GetCardBrush(emulator.Key.Name),
-                    ColorBrush = EmulatorStores.GetBrush(emulator.Key.Name)
-                });
-            }
-
-            return tiles;
-        }
-
-        private static HomeShelf CreateShelf(string titleKey, IEnumerable<GamesCollectionViewEntry> items)
-        {
-            var games = items.Take(ShelfSize).ToList();
-            return games.Count == 0 ? null : new HomeShelf { Title = ResourceProvider.GetString(titleKey), Items = games };
-        }
-
-        private static void AddShelf(List<HomeShelf> list, string titleKey, IEnumerable<GamesCollectionViewEntry> items)
-        {
-            var shelf = CreateShelf(titleKey, items);
-            if (shelf != null)
-            {
-                list.Add(shelf);
-            }
+            add(CreateRecentShelf(played));
+            add(CreatePlayNextShelf());
+            add(CreateAddedShelf());
+            Shelves = list;
+            UpdateAllGames();
+            LoadNews(played);
+            main.UpdateAmbient();
         }
     }
 }
