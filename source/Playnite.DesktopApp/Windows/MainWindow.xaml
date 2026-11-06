@@ -32,6 +32,9 @@
     </i:Interaction.Triggers>
 
     <c:WindowBase.InputBindings>
+        <KeyBinding Command="{Binding LeaveGamePageCommand}"
+                Key ="{Binding LeaveGamePageCommand.Gesture.Key}"
+                Modifiers="{Binding LeaveGamePageCommand.Gesture.Modifiers}" />
         <KeyBinding Command="{Binding UpdateGamesCommand}"
                 Key ="{Binding UpdateGamesCommand.Gesture.Key}"
                 Modifiers="{Binding UpdateGamesCommand.Gesture.Modifiers}" />

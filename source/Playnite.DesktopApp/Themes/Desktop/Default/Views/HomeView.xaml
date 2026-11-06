@@ -142,7 +142,7 @@
 
                         <ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto" Focusable="False"
                                       Visibility="{Binding IsEmpty, Converter={StaticResource InvertedBooleanToVisibilityConverter}}">
-                            <StackPanel Margin="28,18,0,32">
+                            <StackPanel Margin="{DynamicResource AtrioHomeMargin}">
                                 <!-- News of the games played last -->
                                 <StackPanel Margin="0,0,0,24" Visibility="{Binding News, Converter={StaticResource ICollectionNullOrEmptyToVisibilityConverter}}">
                                     <DockPanel Margin="0,0,28,6">

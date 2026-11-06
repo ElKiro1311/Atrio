@@ -50,9 +50,6 @@
                                 <SliderWithPopup x:Name="PART_SliderZoom" />
                             </StackPanel>
                         </Grid>
-
-                        <!-- Page of the selected game, opened by clicking its cover -->
-                        <GridViewGameOverview x:Name="PART_ControlGameView" />
                     </Grid>
                 </ControlTemplate>
             </Setter.Value>

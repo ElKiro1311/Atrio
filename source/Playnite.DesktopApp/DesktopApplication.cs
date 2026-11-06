@@ -272,7 +272,6 @@ namespace Playnite.DesktopApp
             {
                 AppSettings.DatabasePath = defaultDbDir;
                 AppSettings.DisabledPlugins = Playnite.Atrio.AtrioInfo.OptionalAddons.ToList();
-                AppSettings.ViewSettings.GamesViewType = DesktopView.Grid;
                 AppSettings.SaveSettings();
                 OfferPlayniteImport();
                 Database.SetDatabasePath(AppSettings.DatabasePath);

@@ -63,9 +63,13 @@ namespace Playnite.DesktopApp.Controls.Views
             mainModel.AppSettings.FilterSettings.FilterChanged -= FilterSettings_FilterChanged;
         }
 
+        /// <summary>The list only exists once the view is shown for the first time, which may be never.</summary>
+        private bool IsListActive =>
+            ListGames != null && (AlwaysActive || mainModel.AppSettings.ViewSettings.GamesViewType == viewType);
+
         private void ViewSettings_PropertyChanged(object sender, PropertyChangedEventArgs e)
         {
-            if (mainModel.AppSettings.ViewSettings.GamesViewType != viewType)
+            if (!IsListActive)
             {
                 return;
             }
@@ -80,7 +84,7 @@ namespace Playnite.DesktopApp.Controls.Views
 
         private void FilterSettings_FilterChanged(object sender, FilterChangedEventArgs e)
         {
-            if (mainModel.AppSettings.ViewSettings.GamesViewType != viewType)
+            if (!IsListActive)
             {
                 return;
             }
@@ -116,10 +120,15 @@ namespace Playnite.DesktopApp.Controls.Views
                 VirtualizingPanel.SetVirtualizationMode(ListGames, VirtualizationMode.Recycling);
             }
 
-            if (ListGames != null && TryFindResource("AtrioGridClickOpensPage") is bool clickOpensPage && clickOpensPage)
+            if (ListGames != null && AlwaysActive)
             {
-                ListGames.PreviewMouseLeftButtonUp += ListGames_PreviewMouseLeftButtonUp;
-                PreviewKeyDown += LibraryGridView_PreviewKeyDown;
+                ListGames.PreviewMouseLeftButtonUp += (_, e) =>
+                {
+                    if (IsClickOnGame(e))
+                    {
+                        mainModel.Pane = LibraryPane.Game;
+                    }
+                };
             }
 
             if (ControlGameView != null)
@@ -147,54 +156,6 @@ namespace Playnite.DesktopApp.Controls.Views
                     nameof(PlayniteSettings.GridItemWidth),
                     converter: new CoversZoomToPercentageConverter(),
                     stringFormat: "{0}%");
-            }
-        }
-
-        private void ListGames_PreviewMouseLeftButtonUp(object sender, MouseButtonEventArgs e)
-        {
-            if (Keyboard.Modifiers != ModifierKeys.None || !(e.OriginalSource is DependencyObject source))
-            {
-                return;
-            }
-
-            // Buttons inside the card and the list scrollbar keep their own meaning.
-            for (var current = source; current != null && current != ListGames; current = VisualTreeHelper.GetParent(current))
-            {
-                if (current is ButtonBase || current is ScrollBar)
-                {
-                    return;
-                }
-            }
-
-            if (ItemsControl.ContainerFromElement(ListGames, source) == null)
-            {
-                return;
-            }
-
-            if (AlwaysActive)
-            {
-                mainModel.Pane = LibraryPane.Game;
-            }
-            else
-            {
-                mainModel.AppSettings.GridViewSideBarVisible = true;
-            }
-        }
-
-        private void LibraryGridView_PreviewKeyDown(object sender, KeyEventArgs e)
-        {
-            if (e.Key == Key.Escape && mainModel.AppSettings.GridViewSideBarVisible)
-            {
-                if (mainModel.SelectedGameDetails?.ShowAchievements == true)
-                {
-                    mainModel.SelectedGameDetails.ShowAchievements = false;
-                }
-                else
-                {
-                    mainModel.AppSettings.GridViewSideBarVisible = false;
-                }
-
-                e.Handled = true;
             }
         }
 

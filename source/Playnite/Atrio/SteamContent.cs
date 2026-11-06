@@ -53,11 +53,11 @@ namespace Playnite.Atrio
             new ConcurrentDictionary<string, Tuple<DateTime, List<SteamNewsItem>>>();
         private static readonly TimeSpan newsLifetime = TimeSpan.FromHours(1);
         private static readonly TimeSpan missingArtLifetime = TimeSpan.FromDays(7);
-        private static readonly Regex tagRegex = new Regex(@"\[/?[a-zA-Z0-9*]+(=[^\]]*)?\]|<[^>]+>", RegexOptions.Compiled);
-        private static readonly Regex imageRegex = new Regex(@"\[img\]\s*(?<url>[^\[\s]+)\s*\[/img\]|<img[^>]+src=""(?<url>[^""]+)""", RegexOptions.Compiled | RegexOptions.IgnoreCase);
-        private static readonly Regex recentRegex = new Regex(@"""(?<id>\d+)""\s*\{[^{}]*?""Playtime2wks""\s*""(?<minutes>\d+)""", RegexOptions.Compiled);
+        private static readonly Regex tagRegex = new Regex(@"\[/?[a-zA-Z0-9*]+(=[^\]]*|(\s+[a-zA-Z0-9_-]+=[^\]]*)+)?\]|<[^>]+>", RegexOptions.Compiled);
+        private static readonly Regex imageRegex = new Regex(@"\[img\]\s*(?<url>[^\[\s]+)\s*\[/img\]|\[img\s+src=""(?<url>[^""]+)""[^\]]*\](\s*\[/img\])?|<img[^>]+src=""(?<url>[^""]+)""", RegexOptions.Compiled | RegexOptions.IgnoreCase);
+        private static readonly Regex configTokenRegex = new Regex(@"""(?<text>(?:[^""\\]|\\.)*)""|[{}]", RegexOptions.Compiled);
         private const string ArtUrl = "https://cdn.akamai.steamstatic.com/steam/apps/{0}/{1}";
-        private const string NewsUrl = "https://api.steampowered.com/ISteamNews/GetNewsForApp/v2/?appid={0}&count={1}&maxlength=0&format=json";
+        private const string NewsUrl = "https://api.steampowered.com/ISteamNews/GetNewsForApp/v2/?appid={0}&count={1}&maxlength=0&format=json&feeds=steam_community_announcements";
         private const string ClanImages = "https://clan.akamai.steamstatic.com/images/";
 
         private static Dictionary<string, int> recentMinutes;
@@ -221,9 +221,39 @@ namespace Playnite.Atrio
         public static Dictionary<string, int> ParseRecentMinutes(string config)
         {
             var result = new Dictionary<string, int>();
-            foreach (Match match in recentRegex.Matches(config))
+            var parents = new Stack<string>();
+            string key = null;
+            foreach (Match token in configTokenRegex.Matches(config))
             {
-                result[match.Groups["id"].Value] = int.Parse(match.Groups["minutes"].Value);
+                if (token.Value == "{")
+                {
+                    parents.Push(key);
+                    key = null;
+                }
+                else if (token.Value == "}")
+                {
+                    if (parents.Count > 0)
+                    {
+                        parents.Pop();
+                    }
+
+                    key = null;
+                }
+                else if (key == null)
+                {
+                    key = token.Groups["text"].Value;
+                }
+                else
+                {
+                    // The entries of a game come in any order, some of them being whole blocks.
+                    if (key == "Playtime2wks" && parents.Count > 0 && int.TryParse(parents.Peek(), out _) &&
+                        int.TryParse(token.Groups["text"].Value, out var minutes))
+                    {
+                        result[parents.Peek()] = minutes;
+                    }
+
+                    key = null;
+                }
             }
 
             return result;

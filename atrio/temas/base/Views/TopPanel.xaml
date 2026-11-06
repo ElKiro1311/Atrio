@@ -67,64 +67,12 @@
         <TextBlock Text="&#xE721;" Style="{DynamicResource AtrioBarIcon}" HorizontalAlignment="Center" />
     </DataTemplate>
 
-    <Style x:Key="TopPanelFilterToggle" TargetType="CheckBox">
-        <Setter Property="MinWidth" Value="38" />
-        <Setter Property="WindowChrome.IsHitTestVisibleInChrome" Value="True" />
-        <Setter Property="Background" Value="{DynamicResource AtrioCardBrush}" />
-        <Setter Property="BorderBrush" Value="{DynamicResource AtrioBorderBrush}" />
-        <Setter Property="Focusable" Value="False" />
-        <Setter Property="Cursor" Value="Hand" />
-        <Setter Property="Margin" Value="6,0,0,0" />
-        <Setter Property="Foreground" Value="{DynamicResource TextBrushDarker}" />
-        <Setter Property="Template">
-            <Setter.Value>
-                <ControlTemplate TargetType="CheckBox">
-                    <Border x:Name="Root" Background="{TemplateBinding Background}" BorderThickness="1"
-                            BorderBrush="{TemplateBinding BorderBrush}"
-                            CornerRadius="{DynamicResource ControlCornerRadius}">
-                        <StackPanel Orientation="Horizontal" Margin="11,0,11,0">
-                            <TextBlock Text="&#xE71C;" Style="{DynamicResource AtrioBarIcon}"
-                                       Foreground="{TemplateBinding Foreground}" />
-                            <TextBlock Text="{DynamicResource LOCAtrioFilters}" Style="{DynamicResource AtrioBarLabel}"
-                                       Foreground="{TemplateBinding Foreground}" />
-                        </StackPanel>
-                    </Border>
-                    <ControlTemplate.Triggers>
-                        <Trigger Property="Tag" Value="{StaticResource True}">
-                            <Setter TargetName="Root" Property="Background" Value="{DynamicResource HighlightGlyphBrush}" />
-                            <Setter TargetName="Root" Property="BorderBrush" Value="{DynamicResource GlyphBrush}" />
-                            <Setter Property="Foreground" Value="{DynamicResource TextBrush}" />
-                        </Trigger>
-                        <Trigger Property="IsChecked" Value="True">
-                            <Setter TargetName="Root" Property="BorderBrush" Value="{DynamicResource GlyphBrush}" />
-                            <Setter Property="Foreground" Value="{DynamicResource TextBrush}" />
-                        </Trigger>
-                        <Trigger Property="IsMouseOver" Value="True">
-                            <Setter TargetName="Root" Property="BorderBrush" Value="{DynamicResource GlyphBrush}" />
-                            <Setter Property="Foreground" Value="{DynamicResource TextBrush}" />
-                        </Trigger>
-                    </ControlTemplate.Triggers>
-                </ControlTemplate>
-            </Setter.Value>
-        </Setter>
-    </Style>
-
     <Style TargetType="{x:Type TopPanel}">
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="{x:Type TopPanel}">
                     <StackPanel Orientation="Horizontal" Height="34"
                                 d:DataContext="{x:Static DesignMainViewModel.DesignIntance}">
-                        <!-- Progress of a library update, next to the tools -->
-                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,10,0">
-                            <Grid>
-                                <ProgressBar Name="PART_ProgressGlobal" Height="16" Width="200" />
-                                <TextBlock Name="PART_TextProgressText" VerticalAlignment="Center" HorizontalAlignment="Center" FontSize="11"
-                                           TextTrimming="CharacterEllipsis" Style="{DynamicResource BaseTextBlockStyle}" Margin="5,0,5,0" />
-                            </Grid>
-                            <Button Name="PART_ButtonProgressCancel" Content="{DynamicResource LOCCancelLabel}" FontSize="11" Padding="6,0,6,0"
-                                    WindowChrome.IsHitTestVisibleInChrome="True" Margin="5,0,0,0" />
-                        </StackPanel>
                         <StackPanel x:Name="PART_PanelMainItems" Orientation="Horizontal" />
                         <StackPanel x:Name="PART_PanelMainPluginItems" Orientation="Horizontal" Margin="4,0,0,0" />
                         <CheckBox x:Name="PART_ToggleNotifications" Style="{DynamicResource TopPanelNotificationsToggle}" />

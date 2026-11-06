@@ -6,6 +6,7 @@ using Playnite.SDK.Plugins;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Windows.Threading;
 
 namespace Playnite.DesktopApp.ViewModels
 {
@@ -32,6 +33,7 @@ namespace Playnite.DesktopApp.ViewModels
     public class StoreFilterViewModel : ObservableObject
     {
         private readonly DesktopAppViewModel main;
+        private readonly DispatcherTimer refreshTimer;
 
         private List<StoreFilterItem> items;
         public List<StoreFilterItem> Items
@@ -63,7 +65,6 @@ namespace Playnite.DesktopApp.ViewModels
                 var view = main.AppSettings.ViewSettings;
                 view.SortingOrder = value ? SortOrder.LastActivity : SortOrder.Name;
                 view.SortingOrderDirection = value ? SortOrderDirection.Descending : SortOrderDirection.Ascending;
-                OnPropertyChanged();
             }
         }
 
@@ -82,8 +83,6 @@ namespace Playnite.DesktopApp.ViewModels
         private void SetGrouping(GroupableField field)
         {
             main.AppSettings.ViewSettings.GroupingOrder = field;
-            OnPropertyChanged(nameof(GroupByInstalled));
-            OnPropertyChanged(nameof(GroupByStore));
         }
 
         public bool InstalledOnly
@@ -102,11 +101,36 @@ namespace Playnite.DesktopApp.ViewModels
         {
             this.main = main;
             SelectCommand = new RelayCommand<StoreFilterItem>(Select);
+
+            // A sync adds games one by one: the counts wait for them to stop arriving.
+            refreshTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(1.5) };
+            refreshTimer.Tick += (_, __) =>
+            {
+                refreshTimer.Stop();
+                if (!main.IsDisposing)
+                {
+                    Refresh();
+                }
+            };
+
+            // Sorting and grouping can also change from the buttons of the top row.
+            main.AppSettings.ViewSettings.PropertyChanged += (_, e) =>
+            {
+                if (e.PropertyName == nameof(ViewSettings.SortingOrder))
+                {
+                    OnPropertyChanged(nameof(RecentFirst));
+                }
+                else if (e.PropertyName == nameof(ViewSettings.GroupingOrder))
+                {
+                    OnPropertyChanged(nameof(GroupByInstalled));
+                    OnPropertyChanged(nameof(GroupByStore));
+                }
+            };
+
             main.AppSettings.FilterSettings.FilterChanged += (_, __) =>
             {
                 SyncSelection();
                 OnPropertyChanged(nameof(InstalledOnly));
-                main.CloseGamePage();
 
                 // The list refreshes after this event: counting right now would give the previous number.
                 System.Windows.Application.Current?.Dispatcher.BeginInvoke(new Action(UpdateCount), System.Windows.Threading.DispatcherPriority.Background);
@@ -120,7 +144,6 @@ namespace Playnite.DesktopApp.ViewModels
                 return;
             }
 
-            main.CloseGamePage();
             if (item.EmulatorId != null)
             {
                 ShowEmulator(item.IsSelected ? (Guid?)null : item.EmulatorId);
@@ -154,7 +177,6 @@ namespace Playnite.DesktopApp.ViewModels
         {
             main.AppSettings.FilterSettings.Library = null;
             main.GamesView.EmulatorFilter = emulatorId;
-            main.CloseGamePage();
             SyncSelection();
             UpdateCount();
         }
@@ -214,6 +236,15 @@ namespace Playnite.DesktopApp.ViewModels
             }
 
             return database.Emulators.Where(a => counts.ContainsKey(a.Id)).ToDictionary(a => a, a => counts[a.Id]);
+        }
+
+        public void RefreshSoon()
+        {
+            refreshTimer.Dispatcher.BeginInvoke(new Action(() =>
+            {
+                refreshTimer.Stop();
+                refreshTimer.Start();
+            }));
         }
 
         public void Refresh()

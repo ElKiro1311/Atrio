@@ -15,5 +15,8 @@
     <CornerRadius x:Key="AtrioCardRadius">@@radioTarjeta@@</CornerRadius>
     <sys:Double x:Key="AtrioCoverRadius">@@radioPortada@@</sys:Double>
     <sys:Double x:Key="AtrioSidebarWidth">@@anchoBarra@@</sys:Double>
-    <sys:Boolean x:Key="AtrioGridClickOpensPage">True</sys:Boolean>
+    <sys:Boolean x:Key="AtrioLibraryPanes">True</sys:Boolean>
+    <Visibility x:Key="AtrioViewChoiceVisibility">Collapsed</Visibility>
+    <Thickness x:Key="AtrioPageCornerMargin">0,0,14,4</Thickness>
+    <Thickness x:Key="AtrioHomeMargin">28,18,0,32</Thickness>
 </ResourceDictionary>

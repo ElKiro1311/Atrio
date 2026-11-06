@@ -2,6 +2,7 @@
 using Playnite.Atrio;
 using Playnite.DesktopApp.ViewModels;
 using Playnite.SDK;
+using Playnite.SDK.Models;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -178,7 +179,7 @@ namespace Playnite.DesktopApp.Atrio
                     }
                     else
                     {
-                        model.SelectGame(entry.Id);
+                        model.OpenGame(entry.Id);
                     }
 
                     break;
@@ -386,7 +387,103 @@ namespace Playnite.DesktopApp.Atrio
                     Log("ventanas abiertas: " + string.Join(" | ", Application.Current.Windows.Cast<Window>().Select(a => a.GetType().Name + (a.IsVisible ? "" : " (oculta)"))));
                     break;
                 case "estado":
-                    Log($"ficha abierta: {model.AppSettings.GridViewSideBarVisible}, juego: {model.SelectedGameDetails?.Game.Game.Name ?? "ninguno"}, visibles: {model.GamesView.CollectionView.Count}");
+                    Log($"panel: {model.Pane}, vista: {model.AppSettings.ViewSettings.GamesViewType}, grupo: {model.AppSettings.ViewSettings.GroupingOrder}, " +
+                        $"ficha: {model.SelectedGameDetails?.Game?.Name}, seleccion: {model.SelectedGame?.Name}, pestana: {model.SelectedGameDetails?.ShowAchievements}, " +
+                        $"visibles: {model.GamesView.CollectionView.Count}, selector: {model.StoreFilter.SelectionText}, bibliotecas: {model.StoreFilter.Items?.Count}");
+                    break;
+                case "esc":
+                    Log("esc disponible: " + model.LeaveGamePageCommand.CanExecute(null));
+                    if (model.LeaveGamePageCommand.CanExecute(null))
+                    {
+                        model.LeaveGamePageCommand.Execute(null);
+                    }
+
+                    break;
+                case "vistatipo":
+                    model.AppSettings.ViewSettings.GamesViewType = (DesktopView)Enum.Parse(typeof(DesktopView), argument);
+                    break;
+                case "agrupar":
+                    model.AppSettings.ViewSettings.GroupingOrder = (GroupableField)Enum.Parse(typeof(GroupableField), argument);
+                    Log($"por instalados: {model.StoreFilter.GroupByInstalled}, por tienda: {model.StoreFilter.GroupByStore}");
+                    break;
+                case "ordenar":
+                    model.AppSettings.ViewSettings.SortingOrder = (SortOrder)Enum.Parse(typeof(SortOrder), argument);
+                    Log($"recientes primero: {model.StoreFilter.RecentFirst}");
+                    break;
+                case "texto":
+                    model.AppSettings.FilterSettings.Name = argument;
+                    break;
+                case "instalacion":
+                    var changedGame = model.Database.Games.First(a => a.Name == argument);
+                    changedGame.IsInstalled = !changedGame.IsInstalled;
+                    model.Database.Games.Update(changedGame);
+                    break;
+                case "jugada":
+                    var playedGame = model.Database.Games.First(a => a.Name == argument);
+                    playedGame.Playtime += 3600;
+                    playedGame.LastActivity = DateTime.Now;
+                    model.Database.Games.Update(playedGame);
+                    Log($"jugado: {model.SelectedGameDetails?.PlayedText}, actividad: {model.SelectedGameDetails?.Activity?.Count}");
+                    break;
+                case "nuevo":
+                    model.Database.Games.Add(new Playnite.SDK.Models.Game(argument));
+                    break;
+                case "quitar":
+                    model.Database.Games.Remove(model.Database.Games.First(a => a.Name == argument));
+                    break;
+                case "preset":
+                    model.ActiveFilterPreset = model.SortedFilterPresets.First(a => a.Name == argument || argument.IsNullOrEmpty());
+                    break;
+                case "clicgrupo":
+                    ClickInList<System.Windows.Controls.GroupItem>(model);
+                    break;
+                case "clicjuego":
+                    ClickInList<System.Windows.Controls.ListBoxItem>(model);
+                    break;
+                case "pulsapanel":
+                    var paneButton = FindAll<System.Windows.Controls.Primitives.ToggleButton>(model.Window.Window).
+                        First(a => a.IsVisible && a.Command == (argument == "todos" ? model.ShowAllGamesCommand : model.ShowHomeCommand));
+                    ((System.Windows.Automation.Provider.IToggleProvider)new System.Windows.Automation.Peers.ToggleButtonAutomationPeer(paneButton)).Toggle();
+                    paneButton.Command.Execute(null);
+                    await Task.Delay(200);
+                    Log($"boton marcado: {paneButton.IsChecked}, panel: {model.Pane}");
+                    break;
+                case "fila":
+                    var row = FindAll<Playnite.DesktopApp.Controls.Views.Sidebar>(model.Window.Window).First();
+                    Log("no caben: " + string.Join(", ", row.GetHiddenItems().Select(a => a.Title)));
+                    if (argument == "mas")
+                    {
+                        row.ShowHiddenItems();
+                    }
+
+                    break;
+                case "progreso":
+                    model.ProgressStatus = argument;
+                    model.ProgressTotal = 100;
+                    model.ProgressValue = 40;
+                    model.ProgressActive = argument.Length > 0;
+                    break;
+                case "filtroboton":
+                    var filterButton = FindAll<System.Windows.Controls.Primitives.ToggleButton>(model.Window.Window).
+                        First(a => a.IsVisible && a.InputBindings.Count > 0);
+                    Log($"filtro activo: {filterButton.Tag}, panel abierto: {filterButton.IsChecked}");
+                    if (argument == "quitar")
+                    {
+                        ((MouseBinding)filterButton.InputBindings[0]).Command.Execute(null);
+                    }
+
+                    break;
+                case "menuvista":
+                    var mainMenu = new Playnite.DesktopApp.Controls.MainMenu(model);
+                    foreach (var viewEntry in mainMenu.Items.OfType<System.Windows.Controls.MenuItem>().Where(a => a.Header as string == ResourceProvider.GetString("LOCMenuView")))
+                    {
+                        Log("vista: " + string.Join(", ", viewEntry.Items.OfType<System.Windows.Controls.Control>().Select(a => (a as System.Windows.Controls.MenuItem)?.Header + ":" + a.Visibility)));
+                    }
+
+                    break;
+                case "fondo":
+                    var pictures = FindAll<Playnite.Controls.FadeImage>(model.Window.Window).Where(a => a.IsVisible && a.ActualWidth > 300).ToList();
+                    Log("fondos: " + string.Join(", ", pictures.Select(a => (a.Source != null) + "/" + (int)a.ActualWidth)));
                     break;
                 case "logrosdemo":
                     SeedAchievements(model, argument);
@@ -675,6 +772,20 @@ namespace Playnite.DesktopApp.Atrio
 
             GameUnifier.Current.RebuildAndNotify();
             Log($"demo: {items.Count} entradas");
+        }
+
+        /// <summary>A click where the user would make it: inside the list on the left, on the first element of that type.</summary>
+        private static void ClickInList<T>(DesktopAppViewModel model) where T : FrameworkElement
+        {
+            var list = FindAll<Playnite.Controls.ExtendedListBox>(model.Window.Window).First(a => a.IsVisible);
+            var target = FindAll<T>(list).First(a => a.IsVisible);
+            var inner = FindAll<System.Windows.Controls.TextBlock>(target).FirstOrDefault(a => a.IsVisible) as FrameworkElement ?? target;
+            var args = new MouseButtonEventArgs(Mouse.PrimaryDevice, Environment.TickCount, MouseButton.Left)
+            {
+                RoutedEvent = UIElement.PreviewMouseUpEvent
+            };
+            inner.RaiseEvent(args);
+            Log($"clic en {typeof(T).Name}: {model.Pane}");
         }
 
         private static IEnumerable<T> FindAll<T>(DependencyObject parent) where T : DependencyObject

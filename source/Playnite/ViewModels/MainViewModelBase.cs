@@ -338,28 +338,38 @@ namespace Playnite.ViewModels
             }
 
             IgnoreFilterChanges = true;
-            var filter = App.Mode == ApplicationMode.Desktop ? AppSettings.FilterSettings : AppSettings.Fullscreen.FilterSettings;
-            var view = App.Mode == ApplicationMode.Desktop ? AppSettings.ViewSettings : (ViewSettingsBase)AppSettings.Fullscreen.ViewSettings;
-            filter.ApplyFilter(preset.Settings);
-            if (preset.SortingOrder != null)
+            try
             {
-                view.SortingOrder = preset.SortingOrder.Value;
-            }
+                var filter = App.Mode == ApplicationMode.Desktop ? AppSettings.FilterSettings : AppSettings.Fullscreen.FilterSettings;
+                var view = App.Mode == ApplicationMode.Desktop ? AppSettings.ViewSettings : (ViewSettingsBase)AppSettings.Fullscreen.ViewSettings;
+                filter.ApplyFilter(preset.Settings);
+                if (preset.SortingOrder != null)
+                {
+                    view.SortingOrder = preset.SortingOrder.Value;
+                }
 
-            if (preset.SortingOrderDirection != null)
-            {
-                view.SortingOrderDirection = preset.SortingOrderDirection.Value;
-            }
+                if (preset.SortingOrderDirection != null)
+                {
+                    view.SortingOrderDirection = preset.SortingOrderDirection.Value;
+                }
 
-            if (App.Mode == ApplicationMode.Desktop && preset.GroupingOrder != null)
+                if (App.Mode == ApplicationMode.Desktop && preset.GroupingOrder != null)
+                {
+                    AppSettings.ViewSettings.GroupingOrder = preset.GroupingOrder.Value;
+                }
+            }
+            finally
             {
-                AppSettings.ViewSettings.GroupingOrder = preset.GroupingOrder.Value;
+                // Whatever listens to these changes can fail: the list must not stay frozen because of it.
+                IgnoreFilterChanges = false;
+                if (GamesView != null)
+                {
+                    GamesView.IgnoreViewConfigChanges = false;
+                }
             }
 
             if (GamesView != null)
             {
-                IgnoreFilterChanges = false;
-                GamesView.IgnoreViewConfigChanges = false;
                 GamesView.RefreshView();
                 if (GamesView.CollectionView.Count > 0)
                 {
@@ -887,6 +897,12 @@ namespace Playnite.ViewModels
 
         public virtual void SelectGame(Guid id, bool restoreView = false)
         {
+        }
+
+        /// <summary>Takes the user to a game, while <see cref="SelectGame"/> only marks it in the list.</summary>
+        public virtual void OpenGame(Guid id, bool restoreView = false)
+        {
+            SelectGame(id, restoreView);
         }
 
         private void RunAppScript(string script, string eventName)

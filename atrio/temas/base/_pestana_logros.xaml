@@ -32,7 +32,7 @@
                                                 </MultiBinding>
                                             </TextBlock.Text>
                                         </TextBlock>
-                                        <ProgressBar Height="6" Maximum="100" Value="{Binding ProgressPercentage, Mode=OneWay}" Margin="0,8,0,10" />
+                                        <ProgressBar Foreground="{DynamicResource GlyphBrush}" Height="6" Maximum="100" Value="{Binding ProgressPercentage, Mode=OneWay}" Margin="0,8,0,10" />
                                         <DockPanel>
                                             <TextBlock Text="{Binding LockedCount}" DockPanel.Dock="Right" Style="{DynamicResource BaseTextBlockStyle}" FontSize="13" />
                                             <TextBlock Text="{DynamicResource LOCAtrioAchievementsLocked}" Style="{DynamicResource AtrioCaption}" />
@@ -92,22 +92,22 @@
                                             <TextBlock Text="{Binding Common.Stats}" DockPanel.Dock="Right" Style="{DynamicResource BaseTextBlockStyle}" FontSize="13" />
                                             <TextBlock Text="{DynamicResource LOCAtrioRarityCommon}" Style="{DynamicResource AtrioCaption}" />
                                         </DockPanel>
-                                        <ProgressBar Height="4" Maximum="{Binding Common.Total, Mode=OneWay}" Value="{Binding Common.Unlocked, Mode=OneWay}" Margin="0,3,0,7" />
+                                        <ProgressBar Foreground="{DynamicResource GlyphBrush}" Height="4" Maximum="{Binding Common.Total, Mode=OneWay}" Value="{Binding Common.Unlocked, Mode=OneWay}" Margin="0,3,0,7" />
                                         <DockPanel>
                                             <TextBlock Text="{Binding Uncommon.Stats}" DockPanel.Dock="Right" Style="{DynamicResource BaseTextBlockStyle}" FontSize="13" />
                                             <TextBlock Text="{DynamicResource LOCAtrioRarityUncommon}" Style="{DynamicResource AtrioCaption}" />
                                         </DockPanel>
-                                        <ProgressBar Height="4" Maximum="{Binding Uncommon.Total, Mode=OneWay}" Value="{Binding Uncommon.Unlocked, Mode=OneWay}" Margin="0,3,0,7" />
+                                        <ProgressBar Foreground="{DynamicResource GlyphBrush}" Height="4" Maximum="{Binding Uncommon.Total, Mode=OneWay}" Value="{Binding Uncommon.Unlocked, Mode=OneWay}" Margin="0,3,0,7" />
                                         <DockPanel>
                                             <TextBlock Text="{Binding Rare.Stats}" DockPanel.Dock="Right" Style="{DynamicResource BaseTextBlockStyle}" FontSize="13" />
                                             <TextBlock Text="{DynamicResource LOCAtrioRarityRare}" Style="{DynamicResource AtrioCaption}" />
                                         </DockPanel>
-                                        <ProgressBar Height="4" Maximum="{Binding Rare.Total, Mode=OneWay}" Value="{Binding Rare.Unlocked, Mode=OneWay}" Margin="0,3,0,7" />
+                                        <ProgressBar Foreground="{DynamicResource GlyphBrush}" Height="4" Maximum="{Binding Rare.Total, Mode=OneWay}" Value="{Binding Rare.Unlocked, Mode=OneWay}" Margin="0,3,0,7" />
                                         <DockPanel>
                                             <TextBlock Text="{Binding UltraRare.Stats}" DockPanel.Dock="Right" Style="{DynamicResource BaseTextBlockStyle}" FontSize="13" />
                                             <TextBlock Text="{DynamicResource LOCAtrioRarityUltraRare}" Style="{DynamicResource AtrioCaption}" />
                                         </DockPanel>
-                                        <ProgressBar Height="4" Maximum="{Binding UltraRare.Total, Mode=OneWay}" Value="{Binding UltraRare.Unlocked, Mode=OneWay}" Margin="0,3,0,0" />
+                                        <ProgressBar Foreground="{DynamicResource GlyphBrush}" Height="4" Maximum="{Binding UltraRare.Total, Mode=OneWay}" Value="{Binding UltraRare.Unlocked, Mode=OneWay}" Margin="0,3,0,0" />
                                     </StackPanel>
                                 </Border>
 

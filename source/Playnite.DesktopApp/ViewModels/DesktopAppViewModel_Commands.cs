@@ -47,6 +47,7 @@ namespace Playnite.DesktopApp.ViewModels
         public RelayCommand<object> ReloadScriptsCommand { get; private set; }
         public RelayCommand<GamesCollectionViewEntry> ShowGameSideBarCommand { get; private set; }
         public RelayCommand<object> CloseGameSideBarCommand { get; private set; }
+        public RelayCommand<object> LeaveGamePageCommand { get; private set; }
         public RelayCommand<object> ShowHomeCommand { get; private set; }
         public RelayCommand<object> ShowAllGamesCommand { get; private set; }
         public RelayCommand<object> OpenSearchCommand { get; private set; }
@@ -319,6 +320,12 @@ namespace Playnite.DesktopApp.ViewModels
 
             ShowGameSideBarCommand = new RelayCommand<GamesCollectionViewEntry>((f) =>
             {
+                if (UsesLibraryPanes)
+                {
+                    OpenGame(f.Id);
+                    return;
+                }
+
                 AppSettings.GridViewSideBarVisible = true;
                 if (SelectedGame?.Game.Id != f.Id)
                 {
@@ -333,6 +340,7 @@ namespace Playnite.DesktopApp.ViewModels
 
             ShowHomeCommand = new RelayCommand<object>((f) => Pane = LibraryPane.Home);
             ShowAllGamesCommand = new RelayCommand<object>((f) => Pane = LibraryPane.AllGames);
+            LeaveGamePageCommand = new RelayCommand<object>((f) => LeaveGamePage(), (f) => IsGamePageOpen, new KeyGesture(Key.Escape));
 
             OpenSettingsCommand = new RelayCommand<object>((a) =>
             {

@@ -33,10 +33,13 @@
             <CheckBox IsChecked="{Binding Settings.ShowTopPanelFilterPresetsItem}"
                   Content="{DynamicResource LOCSettingsTopPanelFilterPresetsItem}" Margin="5" />
             <CheckBox IsChecked="{Binding Settings.ShowTopPanelDetailsViewSwitch}"
+                  Visibility="{DynamicResource AtrioViewChoiceVisibility}"
                   Content="{DynamicResource LOCDetailsViewLabel}" Margin="5" />
             <CheckBox IsChecked="{Binding Settings.ShowTopPanelGridViewSwitch}"
+                  Visibility="{DynamicResource AtrioViewChoiceVisibility}"
                   Content="{DynamicResource LOCGridViewLabel}" Margin="5" />
             <CheckBox IsChecked="{Binding Settings.ShowTopPanelListViewSwitch}"
+                  Visibility="{DynamicResource AtrioViewChoiceVisibility}"
                   Content="{DynamicResource LOCListViewLabel}" Margin="5" />
             <CheckBox IsChecked="{Binding Settings.ShowTopPanelExplorerSwitch}"
                   Content="{DynamicResource LOCTopPanelExplorerSwitch}" Margin="5" />

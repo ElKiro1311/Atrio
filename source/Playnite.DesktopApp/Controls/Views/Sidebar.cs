@@ -17,12 +17,16 @@ namespace Playnite.DesktopApp.Controls.Views
     [TemplatePart(Name = "PART_ElemMainMenu", Type = typeof(FrameworkElement))]
     [TemplatePart(Name = "PART_PanelSideBarItems", Type = typeof(Panel))]
     [TemplatePart(Name = "PART_PanelSideBarBottomItems", Type = typeof(Panel))]
+    [TemplatePart(Name = "PART_ScrollSideBarItems", Type = typeof(ScrollViewer))]
+    [TemplatePart(Name = "PART_ButtonSideBarMore", Type = typeof(ButtonBase))]
     public class Sidebar : Control
     {
         private readonly DesktopAppViewModel mainModel;
         private Panel PanelSideBarItems;
         private Panel PanelSideBarBottomItems;
         private FrameworkElement ElemMainMenu;
+        private ScrollViewer ScrollSideBarItems;
+        private ButtonBase ButtonSideBarMore;
 
         static Sidebar()
         {
@@ -101,12 +105,68 @@ namespace Playnite.DesktopApp.Controls.Views
                     Placement = PlacementMode.Bottom
                 };
                 ElemMainMenu.ContextMenu.SetResourceReference(ContextMenu.StyleProperty, "TopPanelMenu");
-                BindingTools.SetBinding(ElemMainMenu,
-                    FrameworkElement.VisibilityProperty,
-                    mainModel.AppSettings,
-                    nameof(PlayniteSettings.ShowMainMenuOnTopPanel),
-                    converter: new InvertedBooleanToVisibilityConverter());
+                if (!DesktopAppViewModel.UsesLibraryPanes)
+                {
+                    BindingTools.SetBinding(ElemMainMenu,
+                        FrameworkElement.VisibilityProperty,
+                        mainModel.AppSettings,
+                        nameof(PlayniteSettings.ShowMainMenuOnTopPanel),
+                        converter: new InvertedBooleanToVisibilityConverter());
+                }
             }
+
+            ScrollSideBarItems = Template.FindName("PART_ScrollSideBarItems", this) as ScrollViewer;
+            ButtonSideBarMore = Template.FindName("PART_ButtonSideBarMore", this) as ButtonBase;
+            if (ScrollSideBarItems != null && ButtonSideBarMore != null)
+            {
+                ScrollSideBarItems.ScrollChanged += (_, __) =>
+                    ButtonSideBarMore.Visibility = ScrollSideBarItems.ScrollableWidth > 0 ? Visibility.Visible : Visibility.Collapsed;
+                ScrollSideBarItems.PreviewMouseWheel += (_, e) =>
+                {
+                    ScrollSideBarItems.ScrollToHorizontalOffset(ScrollSideBarItems.HorizontalOffset - e.Delta);
+                    e.Handled = true;
+                };
+                ButtonSideBarMore.Click += (_, __) => ShowHiddenItems();
+            }
+        }
+
+        /// <summary>What doesn't fit in a row of navigation stays one click away.</summary>
+        public void ShowHiddenItems()
+        {
+            var menu = new ContextMenu
+            {
+                PlacementTarget = ButtonSideBarMore,
+                Placement = PlacementMode.Bottom,
+                StaysOpen = false
+            };
+            menu.SetResourceReference(ContextMenu.StyleProperty, "TopPanelMenu");
+            foreach (var item in GetHiddenItems())
+            {
+                menu.Items.Add(new MenuItem { Header = item.Title, Command = item.Command });
+            }
+
+            menu.IsOpen = true;
+        }
+
+        public List<SidebarWrapperItem> GetHiddenItems()
+        {
+            var hidden = new List<SidebarWrapperItem>();
+            var items = PanelSideBarItems.Children.OfType<SidebarItem>().ToList();
+            if (PanelSideBarBottomItems != null)
+            {
+                items.AddRange(PanelSideBarBottomItems.Children.OfType<SidebarItem>());
+            }
+
+            foreach (var item in items.Where(a => a.IsVisible))
+            {
+                var bounds = item.TransformToAncestor(ScrollSideBarItems).TransformBounds(new Rect(item.RenderSize));
+                if (bounds.Left < -0.5 || bounds.Right > ScrollSideBarItems.ViewportWidth + 0.5)
+                {
+                    hidden.Add((SidebarWrapperItem)item.DataContext);
+                }
+            }
+
+            return hidden;
         }
     }
 }

@@ -150,7 +150,14 @@ namespace Playnite.DesktopApp.Controls
 
             sideBarItem.Items.Add(new Separator());
             MenuHelpers.PopulateEnumOptions<Dock>(sideBarItem.Items, nameof(PlayniteSettings.SidebarPosition), mainModel.AppSettings);
-            viewItem.Items.Add(new Separator());
+            var sideBarSeparator = new Separator();
+            viewItem.Items.Add(sideBarSeparator);
+            if (DesktopAppViewModel.UsesLibraryPanes)
+            {
+                // The navigation of these themes is always there. The entries stay, as the first two of the menu.
+                sideBarItem.Visibility = Visibility.Collapsed;
+                sideBarSeparator.Visibility = Visibility.Collapsed;
+            }
 
             Items.Add(new Separator());
 

@@ -32,8 +32,13 @@
 
                                 <DockPanel DockPanel.Dock="Top" Margin="10,0,10,8">
                                     <ToggleButton DockPanel.Dock="Right" Style="{DynamicResource AtrioIconToggle}" Margin="4,0,0,0"
-                                                  Content="&#xE71C;" ToolTip="{DynamicResource LOCFilters}"
-                                                  IsChecked="{Settings FilterPanelVisible, Mode=TwoWay}" />
+                                                  Content="&#xE71C;" ToolTip="{DynamicResource LOCAtrioFiltersTip}"
+                                                  Tag="{Binding AppSettings.FilterSettings.IsActive}"
+                                                  IsChecked="{Settings FilterPanelVisible, Mode=TwoWay}">
+                                        <ToggleButton.InputBindings>
+                                            <MouseBinding Gesture="RightClick" Command="{Binding ClearFiltersCommand}" />
+                                        </ToggleButton.InputBindings>
+                                    </ToggleButton>
                                     <SearchBox Height="34" Text="{Binding AppSettings.FilterSettings.Name, Mode=TwoWay, Delay=100}"
                                                IsFocused="{Binding SearchOpened, Mode=TwoWay}" />
                                 </DockPanel>

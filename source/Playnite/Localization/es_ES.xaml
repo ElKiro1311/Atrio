@@ -1386,6 +1386,8 @@ Abre un nuevo problema en la página de GitHub de Playnite con una solicitud par
     <sys:String x:Key="LOCAtrioSort">Ordenar</sys:String>
     <sys:String x:Key="LOCAtrioGroup">Agrupar</sys:String>
     <sys:String x:Key="LOCAtrioFilters">Filtros</sys:String>
+    <sys:String x:Key="LOCAtrioFiltersTip">Filtros. Clic derecho para quitarlos</sys:String>
+    <sys:String x:Key="LOCAtrioMore">Más</sys:String>
     <sys:String x:Key="LOCAtrioView">Vista</sys:String>
     <sys:String x:Key="LOCAtrioRandom">Sorpréndeme</sys:String>
     <sys:String x:Key="LOCAtrioPlaytime">Tiempo jugado</sys:String>

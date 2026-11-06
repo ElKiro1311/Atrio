@@ -6,28 +6,49 @@
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="{x:Type Sidebar}">
-                    <Border Height="52" Background="{DynamicResource AtrioSidebarBrush}"
-                            BorderThickness="0,0,0,1" BorderBrush="{DynamicResource AtrioBorderBrush}">
-                        <DockPanel Margin="14,0,140,0">
-                            <Border x:Name="PART_ElemMainMenu" Background="Transparent" Cursor="Hand" DockPanel.Dock="Left"
-                                    Margin="0,0,14,0" VerticalAlignment="Center" WindowChrome.IsHitTestVisibleInChrome="True">
-                                <StackPanel Orientation="Horizontal">
-                                    <Image Source="{ThemeFile 'Images/applogo.png'}" Width="28" Height="28"
-                                           RenderOptions.BitmapScalingMode="Fant" />
-                                    <TextBlock Text="&#xE70D;" FontFamily="{DynamicResource AtrioIconFont}" FontSize="9" Margin="7,0,0,0"
-                                               Foreground="{DynamicResource TextBrushDarker}" VerticalAlignment="Center" />
-                                </StackPanel>
-                            </Border>
-                            <TopPanel DockPanel.Dock="Right" VerticalAlignment="Center" Margin="12,0,0,0" />
-                            <ScrollViewer HorizontalScrollBarVisibility="Hidden" VerticalScrollBarVisibility="Disabled"
-                                          x:Name="ScrollSidebarItems">
-                                <StackPanel Orientation="Horizontal">
-                                    <StackPanel x:Name="PART_PanelSideBarItems" Orientation="Horizontal" />
-                                    <StackPanel x:Name="PART_PanelSideBarBottomItems" Orientation="Horizontal" />
-                                </StackPanel>
-                            </ScrollViewer>
+                    <DockPanel Background="{DynamicResource AtrioSidebarBrush}">
+                        <Border DockPanel.Dock="Top" Height="52" BorderThickness="0,0,0,1" BorderBrush="{DynamicResource AtrioBorderBrush}">
+                            <DockPanel Margin="14,0,140,0">
+                                <Border x:Name="PART_ElemMainMenu" Background="Transparent" Cursor="Hand" DockPanel.Dock="Left"
+                                        Margin="0,0,14,0" VerticalAlignment="Center" WindowChrome.IsHitTestVisibleInChrome="True">
+                                    <StackPanel Orientation="Horizontal">
+                                        <Image Source="{ThemeFile 'Images/applogo.png'}" Width="28" Height="28"
+                                               RenderOptions.BitmapScalingMode="Fant" />
+                                        <TextBlock Text="&#xE70D;" FontFamily="{DynamicResource AtrioIconFont}" FontSize="9" Margin="7,0,0,0"
+                                                   Foreground="{DynamicResource TextBrushDarker}" VerticalAlignment="Center" />
+                                    </StackPanel>
+                                </Border>
+                                <TopPanel DockPanel.Dock="Right" VerticalAlignment="Center" Margin="12,0,0,0" />
+                                <!-- What doesn't fit in the row, on a window that isn't wide enough -->
+                                <Button x:Name="PART_ButtonSideBarMore" DockPanel.Dock="Right" Visibility="Collapsed"
+                                        Style="{DynamicResource AtrioGhostButton}" Padding="10,0,10,0" MinHeight="30" Margin="4,0,0,0"
+                                        VerticalAlignment="Center" ToolTip="{DynamicResource LOCAtrioMore}"
+                                        WindowChrome.IsHitTestVisibleInChrome="True">
+                                    <TextBlock Text="&#xE712;" FontFamily="{DynamicResource AtrioIconFont}" FontSize="14" />
+                                </Button>
+                                <ScrollViewer HorizontalScrollBarVisibility="Hidden" VerticalScrollBarVisibility="Disabled"
+                                              x:Name="PART_ScrollSideBarItems">
+                                    <StackPanel Orientation="Horizontal">
+                                        <StackPanel x:Name="PART_PanelSideBarItems" Orientation="Horizontal" />
+                                        <StackPanel x:Name="PART_PanelSideBarBottomItems" Orientation="Horizontal" />
+                                    </StackPanel>
+                                </ScrollViewer>
+                            </DockPanel>
+                        </Border>
+
+                        <!-- Progress of a library update: below the row, so that it never takes the place of the navigation -->
+                        <DockPanel DockPanel.Dock="Top" Margin="14,5,14,5"
+                                   Visibility="{Binding ProgressActive, Converter={StaticResource BooleanToVisibilityConverter}}">
+                            <Button DockPanel.Dock="Right" Style="{DynamicResource AtrioLinkButton}" Margin="14,0,0,0" FontSize="11"
+                                    Content="{DynamicResource LOCCancelLabel}" Command="{Binding CancelProgressCommand}"
+                                    WindowChrome.IsHitTestVisibleInChrome="True" />
+                            <TextBlock DockPanel.Dock="Left" MaxWidth="460" Margin="0,0,14,0" VerticalAlignment="Center"
+                                       Text="{Binding ProgressStatus}" TextTrimming="CharacterEllipsis"
+                                       Style="{DynamicResource AtrioCaption}" />
+                            <ProgressBar Foreground="{DynamicResource GlyphBrush}" Height="4" VerticalAlignment="Center" BorderThickness="0"
+                                         Maximum="{Binding ProgressTotal}" Value="{Binding ProgressValue}" />
                         </DockPanel>
-                    </Border>
+                    </DockPanel>
                 </ControlTemplate>
             </Setter.Value>
         </Setter>

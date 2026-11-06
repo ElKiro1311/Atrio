@@ -207,7 +207,7 @@ namespace Playnite.DesktopApp.ViewModels
             ShowEmulatorGamesCommand = new RelayCommand<EmulatorCard>(a =>
             {
                 main.StoreFilter.ShowEmulator(a?.Emulator?.Id);
-                main.SwitchToLibraryView();
+                main.ShowLibraryList();
             });
             ConnectAchievementsCommand = new RelayCommand<object>(_ => main.OpenPluginSettings(AtrioInfo.AchievementsPluginId));
             main.PropertyChanged += (_, e) =>

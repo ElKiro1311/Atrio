@@ -136,11 +136,14 @@ namespace Playnite.DesktopApp.ViewModels
             refreshTimer.Tick += (_, __) =>
             {
                 refreshTimer.Stop();
-                Refresh();
+                if (!main.IsDisposing)
+                {
+                    Refresh();
+                }
             };
         }
 
-        private void Games_ItemCollectionChanged(object sender, ItemCollectionChangedEventArgs<Game> e)
+        private void RefreshSoon()
         {
             refreshTimer.Dispatcher.BeginInvoke(new Action(() =>
             {
@@ -149,12 +152,28 @@ namespace Playnite.DesktopApp.ViewModels
             }));
         }
 
+        private void Games_ItemCollectionChanged(object sender, ItemCollectionChangedEventArgs<Game> e)
+        {
+            RefreshSoon();
+        }
+
+        private void Games_ItemUpdated(object sender, ItemUpdatedEventArgs<Game> e)
+        {
+            // Playing is what moves the shelves: anything else that changes in a game would only make them blink.
+            if (e.UpdatedItems.Any(a => a.OldData.LastActivity != a.NewData.LastActivity || a.OldData.Playtime != a.NewData.Playtime))
+            {
+                RefreshSoon();
+            }
+        }
+
         public void StartWatching()
         {
             if (main.Database?.Games != null)
             {
                 main.Database.Games.ItemCollectionChanged -= Games_ItemCollectionChanged;
                 main.Database.Games.ItemCollectionChanged += Games_ItemCollectionChanged;
+                main.Database.Games.ItemUpdated -= Games_ItemUpdated;
+                main.Database.Games.ItemUpdated += Games_ItemUpdated;
             }
         }
 
@@ -165,6 +184,7 @@ namespace Playnite.DesktopApp.ViewModels
             if (main.Database?.Games != null)
             {
                 main.Database.Games.ItemCollectionChanged -= Games_ItemCollectionChanged;
+                main.Database.Games.ItemUpdated -= Games_ItemUpdated;
             }
         }
 
@@ -172,8 +192,7 @@ namespace Playnite.DesktopApp.ViewModels
         {
             if (entry != null)
             {
-                main.SwitchToLibraryView();
-                main.SelectGame(entry.Id);
+                main.OpenGame(entry.Id);
             }
         }
 

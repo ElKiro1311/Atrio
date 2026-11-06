@@ -76,32 +76,50 @@ namespace Playnite.DesktopApp.ViewModels
 
         public void UpdateAmbient()
         {
-            var entry = IsHomePane ? HomeModel?.AmbientGame : SelectedGame;
+            var entry = IsHomePane ? HomeModel?.AmbientGame : SelectedGameDetails?.Game;
             AmbientImage = entry?.AmbientImageObject;
         }
 
+        /// <summary>
+        /// The Atrio themes lay the library out as a single page: the list on the left and, next to it, the
+        /// start page, every game or the page of a game, under a fixed row of navigation. Any other theme
+        /// has the usual views of the library.
+        /// </summary>
+        public static bool UsesLibraryPanes => Application.Current?.TryFindResource("AtrioLibraryPanes") is bool panes && panes;
+
         private LibraryPane pane = LibraryPane.Home;
+        private LibraryPane paneBeforeGame = LibraryPane.Home;
         public LibraryPane Pane
         {
             get => pane;
             set
             {
-                if (pane == value)
+                if (!UsesLibraryPanes || (value == LibraryPane.Game && SelectedGameDetails == null))
                 {
                     return;
                 }
 
+                var changed = pane != value;
+                if (changed && value == LibraryPane.Game)
+                {
+                    paneBeforeGame = pane;
+                }
+                else if (changed && SelectedGameDetails != null)
+                {
+                    SelectedGameDetails.ShowAchievements = false;
+                }
+
                 pane = value;
+
+                // Also when it stays the same: the button that asked for it has just switched itself off.
                 OnPropertyChanged();
                 OnPropertyChanged(nameof(IsHomePane));
                 OnPropertyChanged(nameof(IsGamePane));
                 OnPropertyChanged(nameof(IsAllGamesPane));
-                if (pane != LibraryPane.AllGames)
+                if (changed)
                 {
-                    AppSettings.GridViewSideBarVisible = false;
+                    UpdateAmbient();
                 }
-
-                UpdateAmbient();
             }
         }
 
@@ -169,14 +187,17 @@ namespace Playnite.DesktopApp.ViewModels
                 ambientPending = true;
                 if (SelectedGameDetails?.Game != toSelect)
                 {
-                    if (toSelect == null)
+                    if (toSelect != null)
                     {
-                        SelectedGameDetails = null;
-                        CloseEmptyGamePage();
+                        SelectedGameDetails = new GameDetailsViewModel(toSelect, AppSettings, GamesEditor, Dialogs, Resources);
+                    }
+                    else if (IsGamePane)
+                    {
+                        ReviewGamePage();
                     }
                     else
                     {
-                        SelectedGameDetails = new GameDetailsViewModel(toSelect, AppSettings, GamesEditor, Dialogs, Resources);
+                        SelectedGameDetails = null;
                     }
                 }
 
@@ -314,6 +335,11 @@ namespace Playnite.DesktopApp.ViewModels
             context = SynchronizationContext.Current;
             GamesEditor = gamesEditor;
             AppSettings = settings;
+            if (UsesLibraryPanes)
+            {
+                AppSettings.ViewSettings.GamesViewType = DesktopView.Details;
+            }
+
             App.Notifications.ActivationRequested += DesktopAppViewModel_ActivationRequested;
             App.Notifications.CloseRequested += Notifications_CloseRequested;
             if (AppSettings.ClearFiltersOnStartup)
@@ -369,6 +395,17 @@ namespace Playnite.DesktopApp.ViewModels
 
             if (e.PropertyName == nameof(ViewSettings.GamesViewType))
             {
+                if (UsesLibraryPanes)
+                {
+                    // These themes have a single layout, and nothing changes for a choice with no effect.
+                    if (AppSettings.ViewSettings.GamesViewType != DesktopView.Details)
+                    {
+                        AppSettings.ViewSettings.GamesViewType = DesktopView.Details;
+                    }
+
+                    return;
+                }
+
                 // This is done to keep behavior same as in P9 because it could otherwise break some plugins
                 // that set behavior of custom UI elements based on active view and they refresh on game seletion change.
                 if (SelectedGames != null)
@@ -459,11 +496,7 @@ namespace Playnite.DesktopApp.ViewModels
             }
 
             GamesCollectionViewEntry.InitItemViewProperties(App, AppSettings);
-            LibraryStats = new StatisticsViewModel(Database, Extensions, AppSettings, SwitchToLibraryView, (g) =>
-            {
-                SwitchToLibraryView();
-                SelectGame(g.Id);
-            });
+            LibraryStats = new StatisticsViewModel(Database, Extensions, AppSettings, ShowLibraryList, (g) => OpenGame(g.Id));
 
             LoadSideBarItems();
             DatabaseFilters = new DatabaseFilter(Database, Extensions, AppSettings, AppSettings.FilterSettings);
@@ -490,17 +523,16 @@ namespace Playnite.DesktopApp.ViewModels
             BindingOperations.EnableCollectionSynchronization(GamesView.Items, gamesLock);
             GamesView.UnifiedGroupsRefreshing += (_, __) => selectionBeforeUnification = SelectedGame?.Id;
             GamesView.UnifiedGroupsRefreshed += GamesView_UnifiedGroupsRefreshed;
-            CloseGamePage();
             if (AppSettings.LastSelectedGame != Guid.Empty)
             {
-                if (!SelectGameImpl(AppSettings.LastSelectedGame) && GamesView.CollectionView.Count > 0)
+                if (!TrySelectGame(AppSettings.LastSelectedGame) && GamesView.CollectionView.Count > 0)
                 {
-                    SelectGameImpl((GamesView.CollectionView.GetItemAt(0) as GamesCollectionViewEntry).Id);
+                    TrySelectGame((GamesView.CollectionView.GetItemAt(0) as GamesCollectionViewEntry).Id);
                 }
             }
             else if (GamesView.CollectionView.Count > 0)
             {
-                SelectGameImpl((GamesView.CollectionView.GetItemAt(0) as GamesCollectionViewEntry).Id);
+                TrySelectGame((GamesView.CollectionView.GetItemAt(0) as GamesCollectionViewEntry).Id);
             }
             else
             {
@@ -545,18 +577,19 @@ namespace Playnite.DesktopApp.ViewModels
 
         private void Games_ItemCollectionChanged(object sender, ItemCollectionChangedEventArgs<Game> e)
         {
+            StoreFilter?.RefreshSoon();
             if (e.RemovedItems.HasItems() && SelectedGameDetails != null)
             {
                 if (e.RemovedItems.Any(a => a.Id == SelectedGameDetails.Game.Id))
                 {
                     SelectedGameDetails = null;
-                    CloseEmptyGamePage();
+                    ReviewGamePage();
                     OnPropertyChanged(nameof(SelectedGameDetails));
-                if (ambientPending)
-                {
-                    ambientPending = false;
-                    UpdateAmbient();
-                }
+                    if (ambientPending)
+                    {
+                        ambientPending = false;
+                        UpdateAmbient();
+                    }
                 }
             }
         }
@@ -725,7 +758,7 @@ namespace Playnite.DesktopApp.ViewModels
             Database.Games.Add(newGame);
             if (GamesEditor.EditGame(newGame) == true)
             {
-                SelectGame(newGame.Id);
+                OpenGame(newGame.Id);
             }
             else
             {
@@ -843,7 +876,7 @@ namespace Playnite.DesktopApp.ViewModels
             model.OpenView();
         }
 
-        public bool SelectGameImpl(Guid id, bool restoreView = false)
+        private bool TrySelectGame(Guid id, bool restoreView = false)
         {
             var viewEntry = GamesView.Items.FirstOrDefault(a => a.Game.Id == id);
             if (viewEntry != null)
@@ -861,8 +894,21 @@ namespace Playnite.DesktopApp.ViewModels
 
         public override void SelectGame(Guid id, bool restoreView = false)
         {
-            SelectGameImpl(id, restoreView);
+            TrySelectGame(id, restoreView);
+        }
+
+        public override void OpenGame(Guid id, bool restoreView = false)
+        {
+            SwitchToLibraryView();
+            TrySelectGame(GamesView.Unifier.GetGroup(id)?.Primary.Id ?? id, restoreView);
             Pane = LibraryPane.Game;
+        }
+
+        /// <summary>For what ends in a list of games, like a filter set from somewhere else.</summary>
+        public void ShowLibraryList()
+        {
+            SwitchToLibraryView();
+            Pane = LibraryPane.AllGames;
         }
 
         public void SelectGames(IEnumerable<Guid> gameIds, bool restoreView = false)
@@ -974,7 +1020,7 @@ namespace Playnite.DesktopApp.ViewModels
                             Database.Games.Add(game);
                             if (GamesEditor.EditGame(game) == true)
                             {
-                                SelectGame(game.Id);
+                                OpenGame(game.Id);
                             }
                             else
                             {
@@ -1091,7 +1137,7 @@ namespace Playnite.DesktopApp.ViewModels
             model.OpenView();
             if (model.SelectedAction == RandomGameSelectAction.Play)
             {
-                SelectGame(model.SelectedGame.Id);
+                OpenGame(model.SelectedGame.Id);
                 GamesEditor.PlayGame(model.SelectedGame, true);
             }
             else if (model.SelectedAction == RandomGameSelectAction.Navigate)
@@ -1108,7 +1154,7 @@ namespace Playnite.DesktopApp.ViewModels
                     }
                 }
 
-                SelectGame(model.SelectedGame.Id);
+                OpenGame(model.SelectedGame.Id);
             }
         }
 
@@ -1117,7 +1163,7 @@ namespace Playnite.DesktopApp.ViewModels
             var count = GamesView.CollectionView.Count;
             if (count == 1)
             {
-                SelectGame((GamesView.CollectionView.GetItemAt(0) as GamesCollectionViewEntry).Id);
+                OpenGame((GamesView.CollectionView.GetItemAt(0) as GamesCollectionViewEntry).Id);
             }
             else if (count > 1)
             {
@@ -1127,7 +1173,7 @@ namespace Playnite.DesktopApp.ViewModels
                     var newGame = GamesView.CollectionView.GetItemAt(index) as GamesCollectionViewEntry;
                     if (SelectedGame == null || SelectedGame != newGame)
                     {
-                        SelectGame(newGame.Id);
+                        OpenGame(newGame.Id);
                         break;
                     }
                 }
@@ -1191,7 +1237,7 @@ namespace Playnite.DesktopApp.ViewModels
                 var target = GamesView.Unifier.GetGroup(gameId)?.Primary.Id ?? gameId;
                 if (SelectedGame?.Id != target)
                 {
-                    SelectGameImpl(target);
+                    TrySelectGame(target);
                 }
             }
 
@@ -1256,36 +1302,50 @@ namespace Playnite.DesktopApp.ViewModels
         }
 
         /// <summary>
-        /// In themes where the page of a game takes the place of the grid, it has to make way
-        /// when the user asks for a list of games.
+        /// The selection also goes away when the list rebuilds the entry of a game, after installing it for
+        /// example, or when a filter leaves the game out of the list. None of that closes the page the user
+        /// is reading: only a game that left the library does.
         /// </summary>
-        public void CloseGamePage()
+        private void ReviewGamePage()
         {
-            if (Application.Current?.TryFindResource("AtrioGridClickOpensPage") is bool clickOpensPage && clickOpensPage)
-            {
-                AppSettings.GridViewSideBarVisible = false;
-                if (SelectedGameDetails != null)
-                {
-                    SelectedGameDetails.ShowAchievements = false;
-                }
-            }
-        }
-
-        private void CloseEmptyGamePage()
-        {
-            // The selection also goes away for a moment while the list rebuilds itself after a sync,
-            // and that must not close the page the user is reading.
+            var page = SelectedGameDetails;
             Application.Current?.Dispatcher.BeginInvoke(new Action(() =>
             {
-                if (SelectedGameDetails == null)
+                if (IsDisposing || (SelectedGame != null && SelectedGameDetails != null))
                 {
-                    CloseGamePage();
-                    if (IsGamePane)
-                    {
-                        Pane = LibraryPane.Home;
-                    }
+                    return;
+                }
+
+                if (IsGamePane && page != null &&
+                    TrySelectGame(GamesView.Unifier.GetGroup(page.Game.Id)?.Primary.Id ?? page.Game.Id))
+                {
+                    return;
+                }
+
+                SelectedGameDetails = null;
+                SelectedGames = null;
+                OnPropertyChanged(nameof(SelectedGameDetails));
+                if (IsGamePane)
+                {
+                    Pane = paneBeforeGame;
                 }
             }), System.Windows.Threading.DispatcherPriority.Background);
+        }
+
+        /// <summary>The page of a game only counts while the library is the page on screen.</summary>
+        private bool IsGamePageOpen =>
+            IsGamePane && SidebarItems.Any(a => a.Selected && a.SideItem is MainSidebarViewItem item && item.AppView == ApplicationView.Library);
+
+        private void LeaveGamePage()
+        {
+            if (SelectedGameDetails?.ShowAchievements == true)
+            {
+                SelectedGameDetails.ShowAchievements = false;
+            }
+            else
+            {
+                Pane = paneBeforeGame;
+            }
         }
 
         public void SwitchToLibraryView()
@@ -1315,8 +1375,7 @@ namespace Playnite.DesktopApp.ViewModels
                         else
                         {
                             RestoreWindow();
-                            SwitchToLibraryView();
-                            SelectGame(game.Id);
+                            OpenGame(game.Id);
                         }
                     }
                     else

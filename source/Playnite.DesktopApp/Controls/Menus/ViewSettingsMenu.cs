@@ -1,4 +1,5 @@
-﻿using Playnite.Common;
+﻿using Playnite.DesktopApp.ViewModels;
+using Playnite.Common;
 using Playnite.Converters;
 using Playnite.Extensions.Markup;
 using Playnite.SDK;
@@ -83,8 +84,11 @@ namespace Playnite.DesktopApp.Controls
             Items.Add(new Separator());
 
             // View Type
-            MenuHelpers.PopulateEnumOptions<DesktopView>(Items, nameof(settings.ViewSettings.GamesViewType), settings.ViewSettings);
-            Items.Add(new Separator());
+            if (!DesktopAppViewModel.UsesLibraryPanes)
+            {
+                MenuHelpers.PopulateEnumOptions<DesktopView>(Items, nameof(settings.ViewSettings.GamesViewType), settings.ViewSettings);
+                Items.Add(new Separator());
+            }
 
             // View
             var filterItem = MainMenu.AddMenuChild(Items, "LOCMenuViewFilterPanel", null);

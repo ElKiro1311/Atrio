@@ -99,7 +99,7 @@
                                                     <TextBlock Text="{Binding AchievementCount, StringFormat=/{0}}" FontSize="15" Foreground="{DynamicResource TextBrushDarker}"
                                                                FontFamily="{DynamicResource AtrioDisplayFont}" />
                                                 </StackPanel>
-                                                <ProgressBar Width="96" Height="4" Maximum="100" Value="{Binding ProgressPercentage, Mode=OneWay}" Margin="0,3,0,0" HorizontalAlignment="Left" />
+                                                <ProgressBar Foreground="{DynamicResource GlyphBrush}" Width="96" Height="4" Maximum="100" Value="{Binding ProgressPercentage, Mode=OneWay}" Margin="0,3,0,0" HorizontalAlignment="Left" />
                                             </StackPanel>
                                         </Button>
                                     </WrapPanel>
@@ -381,7 +381,7 @@
                                                     </MultiBinding>
                                                 </TextBlock.Text>
                                             </TextBlock>
-                                            <ProgressBar Height="6" Maximum="100" Value="{Binding ProgressPercentage, Mode=OneWay}" Margin="0,6,0,0" />
+                                            <ProgressBar Foreground="{DynamicResource GlyphBrush}" Height="6" Maximum="100" Value="{Binding ProgressPercentage, Mode=OneWay}" Margin="0,6,0,0" />
 
                                             <DockPanel Margin="0,14,0,2" Visibility="{Binding HasLatestAchievementData, Converter={StaticResource BooleanToVisibilityConverter}}">
                                                 <Image Source="{Binding LatestAchievementData.UnlockedIconDisplay, Converter={StaticResource AchievementIconConverter}}"

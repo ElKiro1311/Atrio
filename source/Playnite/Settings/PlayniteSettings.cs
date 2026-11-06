@@ -2557,15 +2557,19 @@ namespace Playnite
             if (settings.Version == 8)
             {
                 // The library of Atrio's themes became one layout, with the list of games always on the left.
-                settings.ViewSettings.GamesViewType = DesktopView.Details;
-                settings.ShowTopPanelDetailsViewSwitch = false;
-                settings.ShowTopPanelGridViewSwitch = false;
-                settings.ShowTopPanelListViewSwitch = false;
-                settings.DetailsViewListIconSize = 20;
-                settings.DetailsListWitdh = 320;
-                if (settings.ViewSettings.GroupingOrder == GroupableField.None)
+                // Any other theme keeps its views, and what was chosen for them.
+                if (settings.Theme?.StartsWith("Atrio_") == true)
                 {
-                    settings.ViewSettings.GroupingOrder = GroupableField.InstallationStatus;
+                    settings.ViewSettings.GamesViewType = DesktopView.Details;
+                    settings.ShowTopPanelDetailsViewSwitch = false;
+                    settings.ShowTopPanelGridViewSwitch = false;
+                    settings.ShowTopPanelListViewSwitch = false;
+                    settings.DetailsViewListIconSize = 20;
+                    settings.DetailsListWitdh = 320;
+                    if (settings.ViewSettings.GroupingOrder == GroupableField.None)
+                    {
+                        settings.ViewSettings.GroupingOrder = GroupableField.InstallationStatus;
+                    }
                 }
 
                 settings.Version = 9;

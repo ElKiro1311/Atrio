@@ -76,18 +76,27 @@ namespace Playnite.Converters
     {
         public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
         {
-            if (!(value is string url) || !Uri.TryCreate(url, UriKind.Absolute, out var uri))
+            if (!(value is string url) || !Uri.TryCreate(url, UriKind.Absolute, out var uri) ||
+                (uri.Scheme != Uri.UriSchemeHttp && uri.Scheme != Uri.UriSchemeHttps))
             {
                 return null;
             }
 
-            var image = new BitmapImage();
-            image.BeginInit();
-            image.UriSource = uri;
-            image.DecodePixelWidth = System.Convert.ToInt32(parameter, CultureInfo.InvariantCulture);
-            image.CreateOptions = BitmapCreateOptions.IgnoreColorProfile;
-            image.EndInit();
-            return image;
+            try
+            {
+                var image = new BitmapImage();
+                image.BeginInit();
+                image.UriSource = uri;
+                image.DecodePixelWidth = System.Convert.ToInt32(parameter, CultureInfo.InvariantCulture);
+                image.CreateOptions = BitmapCreateOptions.IgnoreColorProfile;
+                image.EndInit();
+                return image;
+            }
+            catch (Exception e) when (!(e is OutOfMemoryException))
+            {
+                // A converter that throws takes the whole application with it, for a picture of a post.
+                return null;
+            }
         }
 
         public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)

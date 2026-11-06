@@ -12,8 +12,11 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Controls.Primitives;
 using System.Windows.Data;
 using System.Windows.Input;
+using System.Windows.Media;
+using System.Windows.Media.Media3D;
 
 namespace Playnite.DesktopApp.Controls.Views
 {
@@ -50,6 +53,29 @@ namespace Playnite.DesktopApp.Controls.Views
             this.viewType = viewType;
             Loaded += BaseGamesView_Loaded;
             Unloaded += BaseGamesView_Unloaded;
+        }
+
+        /// <summary>
+        /// Whether a click in the list picked a game. The header of a group, the buttons of an item and
+        /// the scrollbar keep their own meaning, and with a modifier the click only changes the selection.
+        /// </summary>
+        internal bool IsClickOnGame(MouseButtonEventArgs e)
+        {
+            if (Keyboard.Modifiers != ModifierKeys.None || !(e.OriginalSource is DependencyObject source))
+            {
+                return false;
+            }
+
+            for (var current = source; current != null && current != ListGames;
+                current = current is Visual || current is Visual3D ? VisualTreeHelper.GetParent(current) : LogicalTreeHelper.GetParent(current))
+            {
+                if (current is ButtonBase || current is ScrollBar)
+                {
+                    return false;
+                }
+            }
+
+            return ItemsControl.ContainerFromElement(ListGames, source) is ListBoxItem;
         }
 
         private void BaseGamesView_Loaded(object sender, RoutedEventArgs e)

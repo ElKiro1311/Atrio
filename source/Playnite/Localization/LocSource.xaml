@@ -1391,6 +1391,8 @@ Open new issue on Playnite's GitHub page with a request to fix corruption in you
     <sys:String x:Key="LOCAtrioSort">Sort</sys:String>
     <sys:String x:Key="LOCAtrioGroup">Group</sys:String>
     <sys:String x:Key="LOCAtrioFilters">Filters</sys:String>
+    <sys:String x:Key="LOCAtrioFiltersTip">Filters. Right-click to clear them</sys:String>
+    <sys:String x:Key="LOCAtrioMore">More</sys:String>
     <sys:String x:Key="LOCAtrioView">View</sys:String>
     <sys:String x:Key="LOCAtrioRandom">Surprise me</sys:String>
     <sys:String x:Key="LOCAtrioPlaytime">Time played</sys:String>

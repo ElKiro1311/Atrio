@@ -441,9 +441,31 @@ namespace Playnite.DesktopApp.ViewModels
             }
         }
 
-        public List<GamePageLink> PageLinks { get; private set; }
-        public string PlayedText { get; private set; }
+        private List<GamePageLink> pageLinks;
+        public List<GamePageLink> PageLinks
+        {
+            get => pageLinks;
+            private set
+            {
+                pageLinks = value;
+                OnPropertyChanged();
+            }
+        }
+
+        private string playedText;
+        public string PlayedText
+        {
+            get => playedText;
+            private set
+            {
+                playedText = value;
+                OnPropertyChanged();
+            }
+        }
+
         public string ReviewUrl { get; private set; }
+
+        private List<GameActivityEntry> newsActivity = new List<GameActivityEntry>();
 
         public RelayCommand<string> OpenPageCommand { get; }
         public RelayCommand<object> ShowAchievementsCommand { get; }
@@ -570,23 +592,31 @@ namespace Playnite.DesktopApp.ViewModels
         private void PreparePageContent()
         {
             var appId = SteamContent.GetAppId(game.Copies.Select(a => a.Game));
-            PageLinks = appId != null ?
-                steamPages.Select(a => new GamePageLink { Name = resources.GetString(a.Item1), Url = string.Format(a.Item2, appId) }).ToList() :
-                game.Game.Links?.Select(a => new GamePageLink { Name = a.Name, Url = game.Game.ExpandVariables(a.Url) }).ToList();
-
-            var total = GameUnifier.Current?.GetGroup(game.Id)?.TotalPlaytime ?? game.Playtime;
-            if (total > 0)
-            {
-                var text = new PlayTimeToStringConverter().Convert(total, typeof(string), null, null);
-                PlayedText = string.Format(resources.GetString("LOCAtrioPlayedFor"), text);
-            }
-
+            UpdatePageLinks(appId);
             ReviewUrl = appId == null ? null : $"https://store.steampowered.com/recommended/recommendgame/{appId}";
-            Activity = GetLocalActivity();
+            UpdatePlayedContent();
             if (appId != null)
             {
                 LoadSteamContent(appId);
             }
+        }
+
+        private void UpdatePageLinks(string appId)
+        {
+            PageLinks = appId != null ?
+                steamPages.Select(a => new GamePageLink { Name = resources.GetString(a.Item1), Url = string.Format(a.Item2, appId) }).ToList() :
+                game.Game.Links?.Select(a => new GamePageLink { Name = a.Name, Url = game.Game.ExpandVariables(a.Url) }).ToList();
+
+        }
+
+        /// <summary>Everything on the page that a play session changes.</summary>
+        private void UpdatePlayedContent()
+        {
+            var total = GameUnifier.Current?.GetGroup(game.Id)?.TotalPlaytime ?? game.Playtime;
+            PlayedText = total > 0 ?
+                string.Format(resources.GetString("LOCAtrioPlayedFor"), new PlayTimeToStringConverter().Convert(total, typeof(string), null, null)) :
+                null;
+            Activity = GetLocalActivity().Concat(newsActivity).OrderByDescending(a => a.Date).ToList();
         }
 
         private List<GameActivityEntry> GetLocalActivity()
@@ -630,10 +660,8 @@ namespace Playnite.DesktopApp.ViewModels
 
                 var news = await SteamContent.GetNewsAsync(appId, 5, token);
                 token.ThrowIfCancellationRequested();
-                Activity = GetLocalActivity().
-                    Concat(news.Select(a => GameActivityEntry.Create(a.Date, resources.GetString("LOCAtrioActivityNews"), a.Title, a.Text, a.ImageUrl, a.Url))).
-                    OrderByDescending(a => a.Date).
-                    ToList();
+                newsActivity = news.Select(a => GameActivityEntry.Create(a.Date, resources.GetString("LOCAtrioActivityNews"), a.Title, a.Text, a.ImageUrl, a.Url)).ToList();
+                UpdatePlayedContent();
             }
             catch (OperationCanceledException)
             {
@@ -663,6 +691,15 @@ namespace Playnite.DesktopApp.ViewModels
 
         private void Game_PropertyChanged(object sender, System.ComponentModel.PropertyChangedEventArgs e)
         {
+            if (e.PropertyName == nameof(Playnite.SDK.Models.Game.Playtime) || e.PropertyName == nameof(Playnite.SDK.Models.Game.LastActivity))
+            {
+                UpdatePlayedContent();
+            }
+            else if (e.PropertyName == nameof(Playnite.SDK.Models.Game.Links))
+            {
+                UpdatePageLinks(SteamContent.GetAppId(game.Copies.Select(a => a.Game)));
+            }
+
             OnPropertyChanged(nameof(IsRunning));
             OnPropertyChanged(nameof(IsInstalling));
             OnPropertyChanged(nameof(IsUninstalling));
@@ -727,7 +764,14 @@ namespace Playnite.DesktopApp.ViewModels
                     break;
             }
 
+            ShowFilteredGames();
+        }
+
+        /// <summary>What a link of the page leads to is the games it was asking for.</summary>
+        private void ShowFilteredGames()
+        {
             settings.FilterPanelVisible = true;
+            DesktopApplication.Current?.MainModel?.ShowLibraryList();
         }
 
         public void SetReleaseDateFilter(ReleaseDate? date)
@@ -735,7 +779,7 @@ namespace Playnite.DesktopApp.ViewModels
             if (date != null)
             {
                 settings.FilterSettings.ReleaseYear = new StringFilterItemProperties(date.Value.Year.ToString());
-                settings.FilterPanelVisible = true;
+                ShowFilteredGames();
             }
         }
 
@@ -744,7 +788,7 @@ namespace Playnite.DesktopApp.ViewModels
             if (!version.IsNullOrEmpty())
             {
                 settings.FilterSettings.Version = version;
-                settings.FilterPanelVisible = true;
+                ShowFilteredGames();
             }
         }
 
@@ -752,7 +796,7 @@ namespace Playnite.DesktopApp.ViewModels
         {
             var filter = new IdItemFilterItemProperties() { Ids = new List<Guid> { LibraryId } };
             settings.FilterSettings.Library = filter;
-            settings.FilterPanelVisible = true;
+            ShowFilteredGames();
         }
 
         public void Play()

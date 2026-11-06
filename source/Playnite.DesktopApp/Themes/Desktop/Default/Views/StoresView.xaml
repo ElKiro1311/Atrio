@@ -11,7 +11,7 @@
                         <StackPanel Margin="34,30,34,32">
                             <DockPanel Margin="0,0,0,22">
                                 <Button DockPanel.Dock="Right" Style="{DynamicResource AtrioGhostButton}" VerticalAlignment="Bottom"
-                                        Margin="0,0,14,4" Command="{Binding UpdateAllCommand}">
+                                        Margin="{DynamicResource AtrioPageCornerMargin}" Command="{Binding UpdateAllCommand}">
                                     <StackPanel Orientation="Horizontal">
                                         <TextBlock Text="&#xE72C;" FontFamily="{DynamicResource AtrioIconFont}" VerticalAlignment="Center" Margin="0,0,8,0" />
                                         <TextBlock Text="{DynamicResource LOCAtrioSyncAll}" VerticalAlignment="Center" />

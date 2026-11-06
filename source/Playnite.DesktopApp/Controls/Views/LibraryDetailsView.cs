@@ -63,14 +63,17 @@ namespace Playnite.DesktopApp.Controls.Views
                 // Any game picked from the list takes over the rest of the library, even the one already selected.
                 ListGames.PreviewMouseLeftButtonUp += (_, e) =>
                 {
-                    if (e.OriginalSource is DependencyObject source && ItemsControl.ContainerFromElement(ListGames, source) != null)
+                    if (IsClickOnGame(e))
                     {
                         mainModel.Pane = LibraryPane.Game;
                     }
                 };
+
+                // Only with the keyboard: filters and syncs also move the selection, and those pick nothing.
                 ListGames.SelectionChanged += (_, e) =>
                 {
-                    if (e.AddedItems.Count > 0 && ListGames.IsKeyboardFocusWithin)
+                    if (e.AddedItems.Count > 0 && ListGames.IsKeyboardFocusWithin && Keyboard.Modifiers == ModifierKeys.None &&
+                        InputManager.Current.MostRecentInputDevice is KeyboardDevice)
                     {
                         mainModel.Pane = LibraryPane.Game;
                     }

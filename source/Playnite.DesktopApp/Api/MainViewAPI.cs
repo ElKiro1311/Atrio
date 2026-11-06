@@ -90,6 +90,7 @@ namespace Playnite.DesktopApp.API
             else
             {
                 mainModel.SelectGame(game.Id);
+                mainModel.Pane = LibraryPane.Game;
             }
         }
 

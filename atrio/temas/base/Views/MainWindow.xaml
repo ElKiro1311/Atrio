@@ -44,7 +44,8 @@
                             </Rectangle>
 
                             <DockPanel>
-                                <Sidebar x:Name="PART_Sidebar" Panel.ZIndex="999" DockPanel.Dock="Top" />
+                                <!-- Not a named part on purpose: this row holds the menu and it can't be hidden -->
+                                <Sidebar Panel.ZIndex="999" DockPanel.Dock="Top" />
                                 <ContentControl Name="PART_ContentView" DockPanel.Dock="Top" />
                             </DockPanel>
                             <NotificationPanel x:Name="PART_Notifications"

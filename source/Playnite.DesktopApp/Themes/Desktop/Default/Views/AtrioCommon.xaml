@@ -20,7 +20,10 @@
     <SolidColorBrush x:Key="AtrioSidebarBrush" Color="Transparent" />
     <CornerRadius x:Key="AtrioCardRadius">8</CornerRadius>
     <sys:Double x:Key="AtrioCoverRadius">8</sys:Double>
-    <sys:Boolean x:Key="AtrioGridClickOpensPage">False</sys:Boolean>
+    <sys:Boolean x:Key="AtrioLibraryPanes">False</sys:Boolean>
+    <Visibility x:Key="AtrioViewChoiceVisibility">Visible</Visibility>
+    <Thickness x:Key="AtrioPageCornerMargin">0,0,110,4</Thickness>
+    <Thickness x:Key="AtrioHomeMargin">28,40,0,32</Thickness>
 
     <Style x:Key="AtrioPageTitle" TargetType="TextBlock" BasedOn="{StaticResource BaseTextBlockStyle}">
         <Setter Property="FontSize" Value="32" />
@@ -217,6 +220,15 @@
                     </Border>
                     <ControlTemplate.Triggers>
                         <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="Root" Property="BorderBrush" Value="{DynamicResource GlyphBrush}" />
+                            <Setter Property="Foreground" Value="{DynamicResource TextBrush}" />
+                        </Trigger>
+                        <!-- Tag says that what the button stands for is in effect, like a filter while its panel is closed -->
+                        <Trigger Property="Tag">
+                            <Trigger.Value>
+                                <sys:Boolean>True</sys:Boolean>
+                            </Trigger.Value>
+                            <Setter TargetName="Root" Property="Background" Value="{DynamicResource HighlightGlyphBrush}" />
                             <Setter TargetName="Root" Property="BorderBrush" Value="{DynamicResource GlyphBrush}" />
                             <Setter Property="Foreground" Value="{DynamicResource TextBrush}" />
                         </Trigger>
