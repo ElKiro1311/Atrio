@@ -19,13 +19,13 @@
     <sys:String x:Key="LOCAboutSendDiagButton">Enviar información diagnóstica</sys:String>
     <sys:String x:Key="LOCAboutWindowTitle">Acerca de Playnite</sys:String>
     <sys:String x:Key="LOCAboutAuthor">Creado por Josef Němec</sys:String>
-    <sys:String x:Key="LOCCategoryWindowTitle">Asignar categoría</sys:String>
-    <sys:String x:Key="LOCCategorySetButton">Establecer categorías</sys:String>
-    <sys:String x:Key="LOCCategoryAddCatButton">Añadir categoría</sys:String>
-    <sys:String x:Key="LOCCategoryTooltip" xml:space="preserve">Seleccionado - Asignar categoría
-No seleccionado - Eliminar categoría
+    <sys:String x:Key="LOCCategoryWindowTitle">Elegir colecciones</sys:String>
+    <sys:String x:Key="LOCCategorySetButton">Guardar colecciones</sys:String>
+    <sys:String x:Key="LOCCategoryAddCatButton">Añadir colección</sys:String>
+    <sys:String x:Key="LOCCategoryTooltip" xml:space="preserve">Seleccionado - Asignar colección
+No seleccionado - Eliminar colección
 Indeterminado - Sin cambios (al editar múltiples juegos)</sys:String>
-    <sys:String x:Key="LOCNoCategory">Sin categoría</sys:String>
+    <sys:String x:Key="LOCNoCategory">Sin colección</sys:String>
     <sys:String x:Key="LOCNoPlatform">Sin plataforma</sys:String>
     <sys:String x:Key="LOCCrashWindowTitle"></sys:String>
     <sys:String x:Key="LOCCrashDescription" xml:space="preserve">Por favor, describa brevemente las acciones realizadas antes del fallo y, a continuación, envíe la información de diagnóstico.
@@ -519,7 +519,7 @@ Actualmente está siendo utilizado por {1} juego(s) y {2} emulador(es).</sys:Str
     <sys:String x:Key="LOCMenuSortDescending">Descendente</sys:String>
     <sys:String x:Key="LOCMenuGroupDont">No agrupar</sys:String>
     <sys:String x:Key="LOCMenuGroupProvider">Agrupar por biblioteca</sys:String>
-    <sys:String x:Key="LOCMenuGroupCategory">Agrupar por categoría</sys:String>
+    <sys:String x:Key="LOCMenuGroupCategory">Agrupar por colección</sys:String>
     <sys:String x:Key="LOCMenuGroupPlatform">Agrupar por plataforma</sys:String>
     <sys:String x:Key="LOCViewType">Tipo de vista</sys:String>
     <sys:String x:Key="LOCMenuView">Vista</sys:String>
@@ -537,7 +537,7 @@ Actualmente está siendo utilizado por {1} juego(s) y {2} emulador(es).</sys:Str
     <sys:String x:Key="LOCInstallDriveTitle">Unidad de instalación</sys:String>
     <sys:String x:Key="LOCGameAccountNameTitle">Nombre de la cuenta</sys:String>
     <sys:String x:Key="LOCGamePlatformTitle">Plataforma</sys:String>
-    <sys:String x:Key="LOCGameCategoriesTitle">Categoría</sys:String>
+    <sys:String x:Key="LOCGameCategoriesTitle">Colección</sys:String>
     <sys:String x:Key="LOCGameGenresTitle">Género</sys:String>
     <sys:String x:Key="LOCGameReleaseDateTitle">Fecha de publicación</sys:String>
     <sys:String x:Key="LOCGameReleaseYearTitle">Año de lanzamiento</sys:String>
@@ -557,7 +557,7 @@ Si está deshabilitado, los juegos que usan cualquier elemento en cualquier filt
     <sys:String x:Key="LOCGameHdrTooltip">Si está activado, el HDR se habilitará en la pantalla principal antes de comenzar el juego.</sys:String>
     <sys:String x:Key="LOCGameHdrNotSupportedTooltip">Tenga en cuenta que el HDR no está soportado en su pantalla principal.</sys:String>
     <sys:String x:Key="LOCGameLastActivityTitle">Jugado por última vez</sys:String>
-    <sys:String x:Key="LOCGameCategoryTitle">Categoría</sys:String>
+    <sys:String x:Key="LOCGameCategoryTitle">Colección</sys:String>
     <sys:String x:Key="LOCGameDescriptionTitle">Descripción</sys:String>
     <sys:String x:Key="LOCGameInstallDirTitle">Directorio de instalación</sys:String>
     <sys:String x:Key="LOCGameCoverTitle">Carátula</sys:String>
@@ -571,8 +571,8 @@ Si está deshabilitado, los juegos que usan cualquier elemento en cualquier filt
     <sys:String x:Key="LOCDevelopersLabel">Desarrolladores</sys:String>
     <sys:String x:Key="LOCPublisherLabel">Editor</sys:String>
     <sys:String x:Key="LOCPublishersLabel">Editores</sys:String>
-    <sys:String x:Key="LOCCategoryLabel">Categoría</sys:String>
-    <sys:String x:Key="LOCCategoriesLabel">Categorías</sys:String>
+    <sys:String x:Key="LOCCategoryLabel">Colección</sys:String>
+    <sys:String x:Key="LOCCategoriesLabel">Colecciones</sys:String>
     <sys:String x:Key="LOCTagLabel">Etiqueta</sys:String>
     <sys:String x:Key="LOCTagsLabel">Etiquetas</sys:String>
     <sys:String x:Key="LOCFeatureLabel">Característica</sys:String>
@@ -760,7 +760,7 @@ Más información en https://playnite.link/cefstartup</sys:String>
     <sys:String x:Key="LOCCalculateGamesAllInstallSize">Calcular tamaño de instalación (todos los juegos)</sys:String>
     <sys:String x:Key="LOCCalculateGamesMissingInstallSize">Calcular tamaño de instalación (sólo datos faltantes)</sys:String>
     <sys:String x:Key="LOCInstallSizeMenuLabel">Tamaño de instalación</sys:String>
-    <sys:String x:Key="LOCSetGameCategory">Establecer categoría…</sys:String>
+    <sys:String x:Key="LOCSetGameCategory">Elegir colecciones…</sys:String>
     <sys:String x:Key="LOCSetCompletionStatus">Establecer estado de finalización</sys:String>
     <sys:String x:Key="LOCRemoveGame">Eliminar</sys:String>
     <sys:String x:Key="LOCPlayGame">Jugar</sys:String>
@@ -1488,4 +1488,30 @@ Abre un nuevo problema en la página de GitHub de Playnite con una solicitud par
     <sys:String x:Key="LOCAtrioImportRetry">Ya lo cerré, reintentar</sys:String>
     <sys:String x:Key="LOCAtrioImportProgress">Copiando tu biblioteca…</sys:String>
     <sys:String x:Key="LOCAtrioImportFailed">No se pudo importar la biblioteca: {0}</sys:String>
+    <sys:String x:Key="LOCAtrioCollections">Colecciones</sys:String>
+    <sys:String x:Key="LOCAtrioCollectionsHint">Arrastra juegos de la lista a una colección, o haz clic derecho en un juego y elige Añadir a colección.</sys:String>
+    <sys:String x:Key="LOCAtrioCollectionNew">Nueva colección</sys:String>
+    <sys:String x:Key="LOCAtrioCollectionNewItem">Nueva colección…</sys:String>
+    <sys:String x:Key="LOCAtrioCollectionNewDynamic">Nueva colección dinámica</sys:String>
+    <sys:String x:Key="LOCAtrioCollectionName">Nombre de la colección:</sys:String>
+    <sys:String x:Key="LOCAtrioCollectionNameTaken">Ya tienes una colección llamada «{0}».</sys:String>
+    <sys:String x:Key="LOCAtrioCollectionFavorites">Favoritos</sys:String>
+    <sys:String x:Key="LOCAtrioCollectionUncategorized">Sin colección</sys:String>
+    <sys:String x:Key="LOCAtrioCollectionHidden">Ocultos</sys:String>
+    <sys:String x:Key="LOCAtrioCollectionAddTo">Añadir a colección</sys:String>
+    <sys:String x:Key="LOCAtrioCollectionRemoveFrom">Quitar de «{0}»</sys:String>
+    <sys:String x:Key="LOCAtrioCollectionChooseGames">Elegir juegos</sys:String>
+    <sys:String x:Key="LOCAtrioCollectionGamesTitle">Juegos de «{0}»</sys:String>
+    <sys:String x:Key="LOCAtrioCollectionRename">Cambiar nombre</sys:String>
+    <sys:String x:Key="LOCAtrioCollectionDelete">Eliminar colección</sys:String>
+    <sys:String x:Key="LOCAtrioCollectionDeleteAsk">¿Eliminar la colección «{0}»? Sus juegos seguirán en tu biblioteca.</sys:String>
+    <sys:String x:Key="LOCAtrioCollectionShowOnHome">Mostrar en Inicio</sys:String>
+    <sys:String x:Key="LOCAtrioCollectionEditFilters">Cambiar filtros</sys:String>
+    <sys:String x:Key="LOCAtrioCollectionDynamicTag">Colección dinámica</sys:String>
+    <sys:String x:Key="LOCAtrioCollectionDraftNew">Elige los filtros. Los juegos que los cumplan entrarán solos en la colección, también los que añadas después.</sys:String>
+    <sys:String x:Key="LOCAtrioCollectionDraftEdit">Cambia los filtros de «{0}» y guárdalos.</sys:String>
+    <sys:String x:Key="LOCAtrioCollectionSave">Guardar colección</sys:String>
+    <sys:String x:Key="LOCAtrioCollectionSaveFilters">Guardar estos filtros como colección dinámica</sys:String>
+    <sys:String x:Key="LOCAtrioCollectionClose">Ver toda la biblioteca</sys:String>
+    <sys:String x:Key="LOCAtrioGroupByCollection">Agrupar por colección</sys:String>
 </ResourceDictionary>

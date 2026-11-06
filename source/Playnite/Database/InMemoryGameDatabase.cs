@@ -220,6 +220,11 @@ namespace Playnite.Database
             return true;
         }
 
+        public bool GetGameMatchesFilter(Game game, FilterSettings filterSettings, bool useFuzzyNameMatch, bool ignoreHidden)
+        {
+            return true;
+        }
+
         public IEnumerable<Game> GetFilteredGames(FilterSettings filterSettings, bool useFuzzyNameMatch)
         {
             yield break;

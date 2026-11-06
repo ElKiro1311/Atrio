@@ -1,8 +1,11 @@
 using Playnite.DesktopApp.ViewModels;
 using System;
 using System.ComponentModel;
+using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Input;
+using System.Windows.Media;
 
 namespace Playnite.DesktopApp.Controls.Views
 {
@@ -67,6 +70,121 @@ namespace Playnite.DesktopApp.Controls.Views
             else
             {
                 model.StopWatching();
+            }
+        }
+    }
+
+    /// <summary>
+    /// Every collection of the library. It lives next to the list of games, whose games can be dropped on a collection.
+    /// </summary>
+    public class CollectionsView : AtrioPage
+    {
+        /// <summary>The games being dragged, as a list of ids separated by commas.</summary>
+        public const string DragFormat = "AtrioGames";
+
+        private bool watching;
+
+        private CollectionsViewModel Model => DataContext as CollectionsViewModel;
+
+        static CollectionsView()
+        {
+            DefaultStyleKeyProperty.OverrideMetadata(typeof(CollectionsView), new FrameworkPropertyMetadata(typeof(CollectionsView)));
+        }
+
+        public CollectionsView()
+        {
+            AllowDrop = true;
+            IsVisibleChanged += (_, __) => Update();
+            DataContextChanged += (_, __) => Update();
+        }
+
+        protected override void OnPageOpened()
+        {
+            Update();
+        }
+
+        private void Update()
+        {
+            var model = Model;
+            if (model == null || watching == IsVisible)
+            {
+                return;
+            }
+
+            watching = IsVisible;
+            if (watching)
+            {
+                model.StartWatching();
+                model.Refresh();
+            }
+            else
+            {
+                model.StopWatching();
+            }
+        }
+
+        private static CollectionTile FindTile(object source)
+        {
+            for (var current = source as DependencyObject; current != null; current = VisualTreeHelper.GetParent(current))
+            {
+                if (current is FrameworkElement element && element.DataContext is CollectionTile tile)
+                {
+                    return tile;
+                }
+
+                if (!(current is Visual))
+                {
+                    return null;
+                }
+            }
+
+            return null;
+        }
+
+        private void Highlight(CollectionTile tile)
+        {
+            foreach (var other in Model?.Tiles ?? Enumerable.Empty<CollectionTile>())
+            {
+                other.IsDropTarget = other == tile;
+            }
+        }
+
+        protected override void OnDragOver(DragEventArgs e)
+        {
+            base.OnDragOver(e);
+            var tile = FindTile(e.OriginalSource);
+            var accepted = tile?.Collection.AcceptsGames == true && e.Data.GetDataPresent(DragFormat);
+            e.Effects = accepted ? DragDropEffects.Copy : DragDropEffects.None;
+            e.Handled = true;
+            Highlight(accepted ? tile : null);
+        }
+
+        protected override void OnDragLeave(DragEventArgs e)
+        {
+            base.OnDragLeave(e);
+            Highlight(null);
+        }
+
+        protected override void OnDrop(DragEventArgs e)
+        {
+            base.OnDrop(e);
+            Highlight(null);
+            var tile = FindTile(e.OriginalSource);
+            if (tile?.Collection.AcceptsGames == true && e.Data.GetData(DragFormat) is string ids)
+            {
+                Model?.AddGames(tile.Collection, ids.Split(',').Select(Guid.Parse));
+                e.Handled = true;
+            }
+        }
+
+        protected override void OnMouseRightButtonUp(MouseButtonEventArgs e)
+        {
+            base.OnMouseRightButtonUp(e);
+            var tile = FindTile(e.OriginalSource);
+            if (tile != null)
+            {
+                Model?.ShowMenu(tile.Collection, e.OriginalSource as FrameworkElement ?? this);
+                e.Handled = true;
             }
         }
     }

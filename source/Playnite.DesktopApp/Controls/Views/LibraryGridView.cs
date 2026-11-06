@@ -55,12 +55,22 @@ namespace Playnite.DesktopApp.Controls.Views
         {
             mainModel.AppSettings.ViewSettings.PropertyChanged += ViewSettings_PropertyChanged;
             mainModel.AppSettings.FilterSettings.FilterChanged += FilterSettings_FilterChanged;
+            mainModel.PropertyChanged += MainModel_PropertyChanged;
         }
 
         private void LibraryGridView_Unloaded(object sender, RoutedEventArgs e)
         {
             mainModel.AppSettings.ViewSettings.PropertyChanged -= ViewSettings_PropertyChanged;
             mainModel.AppSettings.FilterSettings.FilterChanged -= FilterSettings_FilterChanged;
+            mainModel.PropertyChanged -= MainModel_PropertyChanged;
+        }
+
+        private void MainModel_PropertyChanged(object sender, PropertyChangedEventArgs e)
+        {
+            if (e.PropertyName == nameof(DesktopAppViewModel.ActiveCollection) && IsListActive)
+            {
+                ElementTreeHelper.FindVisualChildren<ScrollViewer>(ListGames).FirstOrDefault()?.ScrollToTop();
+            }
         }
 
         /// <summary>The list only exists once the view is shown for the first time, which may be never.</summary>

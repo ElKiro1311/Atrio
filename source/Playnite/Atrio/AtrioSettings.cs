@@ -35,6 +35,12 @@ namespace Playnite.Atrio
         /// <summary>Manually joined games: game ID to manual group ID.</summary>
         public Dictionary<Guid, string> ManualGroups { get; set; } = new Dictionary<Guid, string>();
 
+        /// <summary>Filter presets that are dynamic collections. Any other preset stays out of that page.</summary>
+        public List<Guid> DynamicCollections { get; set; } = new List<Guid>();
+
+        /// <summary>Collections shown as a shelf of the start page, in that order.</summary>
+        public List<Guid> HomeCollections { get; set; } = new List<Guid>();
+
         /// <summary>Accent color override, for example #FF4F9DFF. Empty keeps the theme's own.</summary>
         public string AccentColor { get; set; }
 
@@ -70,6 +76,8 @@ namespace Playnite.Atrio
                         settings.PreferredCopies = settings.PreferredCopies ?? new Dictionary<string, Guid>();
                         settings.SplitGames = settings.SplitGames ?? new List<Guid>();
                         settings.ManualGroups = settings.ManualGroups ?? new Dictionary<Guid, string>();
+                        settings.DynamicCollections = settings.DynamicCollections ?? new List<Guid>();
+                        settings.HomeCollections = settings.HomeCollections ?? new List<Guid>();
                         return settings;
                     }
                 }

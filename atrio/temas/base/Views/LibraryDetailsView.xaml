@@ -19,6 +19,9 @@
                                     <ToggleButton DockPanel.Dock="Right" Style="{DynamicResource AtrioIconToggle}" Margin="4,0,0,0"
                                                   Content="&#xF0E2;" ToolTip="{DynamicResource LOCAtrioHomeSeeAll}"
                                                   IsChecked="{Binding IsAllGamesPane, Mode=OneWay}" Command="{Binding ShowAllGamesCommand}" />
+                                    <ToggleButton DockPanel.Dock="Right" Style="{DynamicResource AtrioIconToggle}" Margin="4,0,0,0"
+                                                  Content="&#xE8F1;" ToolTip="{DynamicResource LOCAtrioCollections}"
+                                                  IsChecked="{Binding IsCollectionSection, Mode=OneWay}" Command="{Binding ShowCollectionsCommand}" />
                                     <ToggleButton Style="{DynamicResource AtrioPickerToggle}"
                                                   IsChecked="{Binding IsHomePane, Mode=OneWay}" Command="{Binding ShowHomeCommand}">
                                         <StackPanel Orientation="Horizontal">
@@ -42,6 +45,27 @@
                                     <SearchBox Height="34" Text="{Binding AppSettings.FilterSettings.Name, Mode=TwoWay, Delay=100}"
                                                IsFocused="{Binding SearchOpened, Mode=TwoWay}" />
                                 </DockPanel>
+
+                                <!-- The list follows the collection that is open: the reason for a short list and the way out -->
+                                <Border DockPanel.Dock="Top" Margin="10,0,10,8" Padding="10,0,4,0" Height="30"
+                                        CornerRadius="{DynamicResource ControlCornerRadius}" Background="{DynamicResource AtrioCardBrush}"
+                                        Visibility="{Binding CollectionsModel.HasActive, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                    <DockPanel>
+                                        <Button DockPanel.Dock="Right" Style="{DynamicResource AtrioPlainButton}" Width="26" VerticalAlignment="Center"
+                                                ToolTip="{DynamicResource LOCAtrioCollectionClose}" Command="{Binding CollectionsModel.CloseCommand}">
+                                            <TextBlock Text="&#xE711;" FontFamily="{DynamicResource AtrioIconFont}" FontSize="11" HorizontalAlignment="Center"
+                                                       Foreground="{DynamicResource TextBrushDarker}" />
+                                        </Button>
+                                        <Button Style="{DynamicResource AtrioPlainButton}" VerticalAlignment="Center" Command="{Binding CollectionsModel.ReturnCommand}">
+                                            <DockPanel>
+                                                <TextBlock DockPanel.Dock="Left" Text="&#xE8F1;" FontFamily="{DynamicResource AtrioIconFont}" FontSize="13" Margin="0,0,8,0"
+                                                           VerticalAlignment="Center" Foreground="{DynamicResource GlyphBrush}" />
+                                                <TextBlock Text="{Binding CollectionsModel.ActiveName}" Style="{DynamicResource BaseTextBlockStyle}" TextTrimming="CharacterEllipsis"
+                                                           VerticalAlignment="Center" />
+                                            </DockPanel>
+                                        </Button>
+                                    </DockPanel>
+                                </Border>
 
                                 <Button DockPanel.Dock="Bottom" Style="{DynamicResource AtrioLinkButton}" Margin="14,6,10,10" HorizontalAlignment="Left"
                                         Content="{DynamicResource LOCAtrioAddGame}" Command="{Binding AddCustomGameCommand}" />
@@ -84,11 +108,15 @@
                             <Grid Visibility="{Binding IsGamePane, Converter={StaticResource BooleanToVisibilityConverter}}">
                                 <DetailsViewGameOverview x:Name="PART_ControlGameView" />
                             </Grid>
-                            <Grid Visibility="{Binding IsAllGamesPane, Converter={StaticResource BooleanToVisibilityConverter}}">
+                            <DockPanel Visibility="{Binding IsGridPane, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                <ContentControl DockPanel.Dock="Top" Focusable="False" Content="{Binding CollectionsModel}"
+                                                ContentTemplate="{DynamicResource AtrioCollectionBar}" />
                                 <LibraryGridView AlwaysActive="True" />
-                            </Grid>
+                            </DockPanel>
                             <HomeView DataContext="{Binding HomeModel}"
                                       Visibility="{Binding DataContext.IsHomePane, RelativeSource={RelativeSource AncestorType={x:Type LibraryDetailsView}}, Converter={StaticResource BooleanToVisibilityConverter}}" />
+                            <CollectionsView DataContext="{Binding CollectionsModel}"
+                                             Visibility="{Binding DataContext.IsCollectionsPane, RelativeSource={RelativeSource AncestorType={x:Type LibraryDetailsView}}, Converter={StaticResource BooleanToVisibilityConverter}}" />
                         </Grid>
                     </DockPanel>
                 </ControlTemplate>

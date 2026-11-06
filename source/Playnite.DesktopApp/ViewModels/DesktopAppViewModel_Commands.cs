@@ -50,6 +50,7 @@ namespace Playnite.DesktopApp.ViewModels
         public RelayCommand<object> LeaveGamePageCommand { get; private set; }
         public RelayCommand<object> ShowHomeCommand { get; private set; }
         public RelayCommand<object> ShowAllGamesCommand { get; private set; }
+        public RelayCommand<object> ShowCollectionsCommand { get; private set; }
         public RelayCommand<object> OpenSearchCommand { get; private set; }
         public RelayCommand OpenGlobalSearchCommand { get; private set; }
         public RelayCommand<object> CheckForUpdateCommand { get; private set; }
@@ -339,7 +340,8 @@ namespace Playnite.DesktopApp.ViewModels
             });
 
             ShowHomeCommand = new RelayCommand<object>((f) => Pane = LibraryPane.Home);
-            ShowAllGamesCommand = new RelayCommand<object>((f) => Pane = LibraryPane.AllGames);
+            ShowAllGamesCommand = new RelayCommand<object>((f) => ShowLibraryList());
+            ShowCollectionsCommand = new RelayCommand<object>((f) => Pane = LibraryPane.Collections);
             LeaveGamePageCommand = new RelayCommand<object>((f) => LeaveGamePage(), (f) => IsGamePageOpen, new KeyGesture(Key.Escape));
 
             OpenSettingsCommand = new RelayCommand<object>((a) =>

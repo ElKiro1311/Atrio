@@ -20,6 +20,9 @@ namespace Playnite.DesktopApp.Controls.Views
 {
     public class LibraryDetailsView : BaseGamesView
     {
+        private Point? dragStart;
+        private ListBoxItem pressedOnSelection;
+
         static LibraryDetailsView()
         {
             DefaultStyleKeyProperty.OverrideMetadata(typeof(LibraryDetailsView), new FrameworkPropertyMetadata(typeof(LibraryDetailsView)));
@@ -63,11 +66,21 @@ namespace Playnite.DesktopApp.Controls.Views
                 // Any game picked from the list takes over the rest of the library, even the one already selected.
                 ListGames.PreviewMouseLeftButtonUp += (_, e) =>
                 {
+                    dragStart = null;
+                    if (pressedOnSelection != null)
+                    {
+                        ListGames.SelectedItem = pressedOnSelection.DataContext;
+                        pressedOnSelection = null;
+                    }
+
                     if (IsClickOnGame(e))
                     {
                         mainModel.Pane = LibraryPane.Game;
                     }
                 };
+
+                ListGames.PreviewMouseLeftButtonDown += ListGames_PreviewMouseLeftButtonDown;
+                ListGames.PreviewMouseMove += ListGames_PreviewMouseMove;
 
                 // Only with the keyboard: filters and syncs also move the selection, and those pick nothing.
                 ListGames.SelectionChanged += (_, e) =>
@@ -78,6 +91,50 @@ namespace Playnite.DesktopApp.Controls.Views
                         mainModel.Pane = LibraryPane.Game;
                     }
                 };
+            }
+        }
+
+        /// <summary>Next to the page of the collections, a game of the list can be dragged onto one of them.</summary>
+        private void ListGames_PreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+        {
+            dragStart = null;
+            pressedOnSelection = null;
+            if (!mainModel.IsCollectionsPane || !IsClickOnGame(e))
+            {
+                return;
+            }
+
+            dragStart = e.GetPosition(ListGames);
+            if (ItemsControl.ContainerFromElement(ListGames, (DependencyObject)e.OriginalSource) is ListBoxItem item &&
+                item.IsSelected && ListGames.SelectedItems.Count > 1)
+            {
+                // The list would keep only this game: the press may be the start of dragging all of them.
+                pressedOnSelection = item;
+                e.Handled = true;
+            }
+        }
+
+        private void ListGames_PreviewMouseMove(object sender, MouseEventArgs e)
+        {
+            if (dragStart == null || e.LeftButton != MouseButtonState.Pressed)
+            {
+                return;
+            }
+
+            var moved = e.GetPosition(ListGames) - dragStart.Value;
+            if (Math.Abs(moved.X) < SystemParameters.MinimumHorizontalDragDistance &&
+                Math.Abs(moved.Y) < SystemParameters.MinimumVerticalDragDistance)
+            {
+                return;
+            }
+
+            dragStart = null;
+            pressedOnSelection = null;
+            var games = ListGames.SelectedItems.OfType<GamesCollectionViewEntry>().Select(a => a.Id).Distinct().ToList();
+            if (games.Count > 0)
+            {
+                ListGames.ReleaseMouseCapture();
+                DragDrop.DoDragDrop(ListGames, new DataObject(CollectionsView.DragFormat, string.Join(",", games)), DragDropEffects.Copy);
             }
         }
     }

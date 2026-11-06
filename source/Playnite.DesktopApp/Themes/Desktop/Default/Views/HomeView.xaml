@@ -81,6 +81,10 @@
         <StackPanel Margin="0,0,0,24">
             <DockPanel Margin="0,0,28,6">
                 <StackPanel Orientation="Horizontal" DockPanel.Dock="Right" VerticalAlignment="Center">
+                    <Button Style="{DynamicResource AtrioLinkButton}" Content="{DynamicResource LOCAtrioHomeSeeAll}" Margin="0,0,6,0" VerticalAlignment="Center"
+                            CommandParameter="{Binding}"
+                            Command="{Binding DataContext.OpenShelfCommand, RelativeSource={RelativeSource AncestorType={x:Type HomeView}}}"
+                            Visibility="{Binding HasCollection, Converter={StaticResource BooleanToVisibilityConverter}}" />
                     <Button Style="{DynamicResource AtrioShelfArrow}" Content="&#xE76B;"
                             Command="ScrollBar.PageLeftCommand" CommandTarget="{Binding ElementName=Scroller}" />
                     <Button Style="{DynamicResource AtrioShelfArrow}" Content="&#xE76C;"

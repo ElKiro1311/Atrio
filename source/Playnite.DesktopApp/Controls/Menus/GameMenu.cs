@@ -258,6 +258,7 @@ namespace Playnite.DesktopApp.Controls
             };
 
             Items.Add(favoriteItem);
+            AddCollectionItems(new List<Game>(1) { game });
 
             // Toggle Hide
             var hideItem = new MenuItem()
@@ -281,17 +282,6 @@ namespace Playnite.DesktopApp.Controls
             };
 
             Items.Add(editItem);
-
-            // Set Category
-            var categoryItem = new MenuItem()
-            {
-                Header = ResourceProvider.GetString(LOC.SetGameCategory),
-                //Icon = Images.GetEmptyImage(),
-                Command = model.AssignGameCategoryCommand,
-                CommandParameter = game
-            };
-
-            Items.Add(categoryItem);
 
             // Set Completion Status
             Items.Add(LoadCompletionStatusItem(game));
@@ -324,6 +314,51 @@ namespace Playnite.DesktopApp.Controls
                 };
 
                 Items.Add(uninstallItem);
+            }
+        }
+
+        /// <summary>The collections with the games ticked. Choosing one puts them in it, or takes them out if they all were.</summary>
+        private void AddCollectionItems(List<Game> games)
+        {
+            var unifier = GameUnifier.Current;
+            var addItem = new MenuItem { Header = ResourceProvider.GetString("LOCAtrioCollectionAddTo") };
+            var newItem = new MenuItem { Header = ResourceProvider.GetString("LOCAtrioCollectionNewItem") };
+            newItem.Click += (_, __) => model.CollectionsModel.CreateCollection(games);
+            addItem.Items.Add(newItem);
+
+            var collections = model.Database.Categories.OrderBy(a => a.Name, StringComparer.CurrentCultureIgnoreCase).ToList();
+            if (collections.Count > 0)
+            {
+                addItem.Items.Add(new Separator());
+            }
+
+            foreach (var collection in collections)
+            {
+                var isIn = games.All(a => GameCollections.IsMember(collection.Id, a, unifier));
+                var item = new MenuItem { Header = collection.Name, IsChecked = isIn };
+                item.Click += (_, __) =>
+                {
+                    if (isIn)
+                    {
+                        GameCollections.RemoveGames(model.Database, collection.Id, games, unifier);
+                    }
+                    else
+                    {
+                        GameCollections.AddGames(model.Database, collection.Id, games, unifier);
+                    }
+                };
+
+                addItem.Items.Add(item);
+            }
+
+            Items.Add(addItem);
+
+            var active = model.ActiveCollection;
+            if (active?.Kind == GameCollectionKind.Manual)
+            {
+                var removeItem = new MenuItem { Header = string.Format(ResourceProvider.GetString("LOCAtrioCollectionRemoveFrom"), active.Name) };
+                removeItem.Click += (_, __) => GameCollections.RemoveGames(model.Database, active.Id, games, unifier);
+                Items.Add(removeItem);
             }
         }
 
@@ -388,6 +423,7 @@ namespace Playnite.DesktopApp.Controls
             };
 
             Items.Add(shortcutItem);
+            AddCollectionItems(games);
 
             if (!games.All(a => a.Favorite))
             {
@@ -478,17 +514,6 @@ namespace Playnite.DesktopApp.Controls
             };
 
             Items.Add(editItem);
-
-            // Set Category
-            var categoryItem = new MenuItem()
-            {
-                Header = ResourceProvider.GetString(LOC.SetGameCategory),
-                //Icon = Images.GetEmptyImage(),
-                Command = model.AssignGamesCategoryCommand,
-                CommandParameter = games
-            };
-
-            Items.Add(categoryItem);
 
             // Set Completion Status
             Items.Add(LoadCompletionStatusItem(games));

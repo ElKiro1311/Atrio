@@ -41,6 +41,10 @@ namespace Playnite.DesktopApp.ViewModels
         public string Title { get; set; }
         public string Subtitle { get; set; }
         public List<HomeCard> Cards { get; set; }
+
+        /// <summary>Null for the shelves that aren't a collection.</summary>
+        public GameCollection Collection { get; set; }
+        public bool HasCollection => Collection != null;
     }
 
     public class HomeViewModel : ObservableObject
@@ -110,6 +114,7 @@ namespace Playnite.DesktopApp.ViewModels
         public RelayCommand<GamesCollectionViewEntry> StartGameCommand { get; }
         public RelayCommand<HomeNewsCard> OpenNewsCommand { get; }
         public RelayCommand<object> OpenStoresCommand { get; }
+        public RelayCommand<HomeShelf> OpenShelfCommand { get; }
 
         public HomeViewModel(DesktopAppViewModel main)
         {
@@ -130,6 +135,7 @@ namespace Playnite.DesktopApp.ViewModels
                 }
             });
             OpenStoresCommand = new RelayCommand<object>(_ => main.SwitchToStoresView());
+            OpenShelfCommand = new RelayCommand<HomeShelf>(a => main.CollectionsModel.Open(a?.Collection));
 
             // A sync adds games one by one: the page waits for them to stop arriving.
             refreshTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(1.5) };
@@ -313,6 +319,23 @@ namespace Playnite.DesktopApp.ViewModels
             };
         }
 
+        private HomeShelf CreateCollectionShelf(GameCollection collection)
+        {
+            var games = main.CollectionsModel.GetMembers(collection);
+            if (games.Count == 0)
+            {
+                return null;
+            }
+
+            return new HomeShelf
+            {
+                Title = collection.Name,
+                Subtitle = CollectionsViewModel.GetCountText(games.Count),
+                Collection = collection,
+                Cards = games.Take(ShelfSize).Select(a => new HomeCard { Game = a, GroupLabel = " " }).ToList()
+            };
+        }
+
         private void UpdateAllGames()
         {
             IEnumerable<GamesCollectionViewEntry> sorted;
@@ -419,6 +442,7 @@ namespace Playnite.DesktopApp.ViewModels
             }
 
             add(CreateRecentShelf(played));
+            main.CollectionsModel.GetHomeCollections().ForEach(a => add(CreateCollectionShelf(a)));
             add(CreatePlayNextShelf());
             add(CreateAddedShelf());
             Shelves = list;

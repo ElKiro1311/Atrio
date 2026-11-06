@@ -18,6 +18,8 @@ Un solo sitio para los juegos de todas tus tiendas. Atrio es un lanzador portát
 - **Navegador propio.** Los enlaces de tiendas, noticias y fichas se abren dentro de Atrio, en todas las tiendas.
   En Ajustes puedes elegir otro navegador. Los tráileres con H.264 no se reproducen en él.
 - **Amigos en la ficha.** Con tu sesión de Steam en ese navegador, la ficha enseña qué amigos juegan a cada juego.
+- **Colecciones.** Como en Steam: las llenas tú, con clic derecho, arrastrando o eligiendo juegos de una lista, o se llenan solas
+  con unos filtros. Cada una tiene su página y puede salir como estante en Inicio.
 - **Interfaz nueva.** Menú arriba y biblioteca a la izquierda, con un selector de tiendas y buscador.
   Inicio con novedades, juegos recientes y qué jugar después. Ficha con cabecera, barra de juego,
   actividad y logros, que se adapta desde portátiles hasta pantallas ultrapanorámicas. Siete temas.

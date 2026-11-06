@@ -71,6 +71,7 @@
                                         <Border Height="1" Background="{DynamicResource AtrioBorderBrush}" Margin="4,6,4,6" />
                                         <CheckBox Content="{DynamicResource LOCAtrioGroupByInstalled}" IsChecked="{Binding GroupByInstalled}" Margin="8,3,8,3" />
                                         <CheckBox Content="{DynamicResource LOCAtrioGroupByStore}" IsChecked="{Binding GroupByStore}" Margin="8,3,8,3" />
+                                        <CheckBox Content="{DynamicResource LOCAtrioGroupByCollection}" IsChecked="{Binding GroupByCollection}" Margin="8,3,8,3" />
                                     </StackPanel>
                                 </Border>
                             </Popup>

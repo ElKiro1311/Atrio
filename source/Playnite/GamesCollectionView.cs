@@ -117,6 +117,27 @@ namespace Playnite
             }
         }
 
+        private GameCollection collection;
+
+        /// <summary>Shows only the games of a collection, with the other filters still applying on top.</summary>
+        public GameCollection Collection
+        {
+            get => collection;
+            set
+            {
+                if (collection != value)
+                {
+                    collection = value;
+                    CollectionView.Refresh();
+                }
+            }
+        }
+
+        private bool MatchesFilters(Game game)
+        {
+            return Database.GetGameMatchesFilter(game, filterSettings, settings.FuzzyMatchingInNameFilter, collection?.ShowsHiddenGames == true);
+        }
+
         private bool Filter(object item)
         {
             if (!(item is GamesCollectionViewEntry entry))
@@ -140,10 +161,15 @@ namespace Playnite
                         return false;
                     }
 
+                    if (collection?.Contains(group.Copies) == false)
+                    {
+                        return false;
+                    }
+
                     // The game has to show up in the filters of every store that sells it.
                     foreach (var copy in group.Copies)
                     {
-                        if (Database.GetGameMatchesFilter(copy, filterSettings, settings.FuzzyMatchingInNameFilter))
+                        if (MatchesFilters(copy))
                         {
                             return true;
                         }
@@ -153,7 +179,7 @@ namespace Playnite
                 }
             }
 
-            return Database.GetGameMatchesFilter(entry.Game, filterSettings, settings.FuzzyMatchingInNameFilter);
+            return collection?.Contains(new[] { entry.Game }) != false && MatchesFilters(entry.Game);
         }
 
         private void FilterSettings_FilterChanged(object sender, FilterChangedEventArgs e)

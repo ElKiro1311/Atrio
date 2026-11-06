@@ -1,4 +1,5 @@
 ﻿using Playnite.API;
+using Playnite.Atrio;
 using Playnite.Common;
 using Playnite.Database;
 using Playnite.Metadata;
@@ -42,7 +43,8 @@ namespace Playnite.DesktopApp.ViewModels
     {
         Home,
         Game,
-        AllGames
+        AllGames,
+        Collections
     }
 
     public partial class DesktopAppViewModel : MainViewModelBase, IDisposable, IMainViewModelBase
@@ -58,6 +60,30 @@ namespace Playnite.DesktopApp.ViewModels
         public DesktopGamesEditor GamesEditor { get; }
         public StoreFilterViewModel StoreFilter { get; private set; }
         public HomeViewModel HomeModel { get; private set; }
+        public CollectionsViewModel CollectionsModel { get; private set; }
+
+        private GameCollection activeCollection;
+
+        /// <summary>The collection whose games the library shows, on its own page.</summary>
+        public GameCollection ActiveCollection
+        {
+            get => activeCollection;
+            private set
+            {
+                if (activeCollection == value)
+                {
+                    return;
+                }
+
+                activeCollection = value;
+                GamesView.Collection = value;
+                OnPropertyChanged();
+                OnPropertyChanged(nameof(IsAllGamesPane));
+                OnPropertyChanged(nameof(IsCollectionSection));
+                CollectionsModel.OnActiveCollectionChanged();
+                StoreFilter.UpdateCount();
+            }
+        }
 
         private object ambientImage;
 
@@ -111,11 +137,22 @@ namespace Playnite.DesktopApp.ViewModels
 
                 pane = value;
 
+                // These two are about the whole library.
+                if (value == LibraryPane.Home || value == LibraryPane.Collections)
+                {
+                    CollectionsModel?.CancelDraft();
+                    ActiveCollection = null;
+                }
+
                 // Also when it stays the same: the button that asked for it has just switched itself off.
                 OnPropertyChanged();
                 OnPropertyChanged(nameof(IsHomePane));
                 OnPropertyChanged(nameof(IsGamePane));
                 OnPropertyChanged(nameof(IsAllGamesPane));
+                OnPropertyChanged(nameof(IsGridPane));
+                OnPropertyChanged(nameof(IsCollectionsPane));
+                OnPropertyChanged(nameof(IsCollectionSection));
+                CollectionsModel?.UpdateBar();
                 if (changed)
                 {
                     UpdateAmbient();
@@ -125,7 +162,14 @@ namespace Playnite.DesktopApp.ViewModels
 
         public bool IsHomePane => Pane == LibraryPane.Home;
         public bool IsGamePane => Pane == LibraryPane.Game;
-        public bool IsAllGamesPane => Pane == LibraryPane.AllGames;
+        public bool IsAllGamesPane => Pane == LibraryPane.AllGames && ActiveCollection == null;
+        public bool IsCollectionsPane => Pane == LibraryPane.Collections;
+
+        /// <summary>The grid of covers, with every game or with the ones of a collection.</summary>
+        public bool IsGridPane => Pane == LibraryPane.AllGames;
+
+        /// <summary>The list of collections or one of them.</summary>
+        public bool IsCollectionSection => IsCollectionsPane || (IsGridPane && ActiveCollection != null);
 
         private Control activeView;
         public Control ActiveView
@@ -572,6 +616,7 @@ namespace Playnite.DesktopApp.ViewModels
             if (Database.IsOpen)
             {
                 Database.Games.ItemCollectionChanged += Games_ItemCollectionChanged;
+                CollectionsModel.WatchDatabase();
             }
         }
 
@@ -908,7 +953,31 @@ namespace Playnite.DesktopApp.ViewModels
         public void ShowLibraryList()
         {
             SwitchToLibraryView();
+            ActiveCollection = null;
             Pane = LibraryPane.AllGames;
+        }
+
+        public void ShowCollection(GameCollection collection)
+        {
+            SwitchToLibraryView();
+            CollectionsModel.CancelDraft();
+            ActiveCollection = collection;
+            Pane = LibraryPane.AllGames;
+        }
+
+        /// <summary>Back to the whole library. The page of a game stays open: only the list changes.</summary>
+        public void CloseCollection()
+        {
+            ActiveCollection = null;
+        }
+
+        /// <summary>The collection that is open changed its name.</summary>
+        public void ReplaceCollection(GameCollection collection)
+        {
+            if (ActiveCollection?.Id == collection.Id)
+            {
+                ActiveCollection = collection;
+            }
         }
 
         public void SelectGames(IEnumerable<Guid> gameIds, bool restoreView = false)

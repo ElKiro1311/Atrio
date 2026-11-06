@@ -329,6 +329,7 @@ namespace Playnite.DesktopApp.ViewModels
             statsView = new Controls.LibraryStatistics(LibraryStats);
             StoreFilter = new StoreFilterViewModel(this);
             HomeModel = new HomeViewModel(this);
+            CollectionsModel = new CollectionsViewModel(this);
             BrowserModel = new BrowserViewModel(this);
             var storesModel = new StoresViewModel(this);
             var themesModel = new ThemesViewModel(this);
@@ -387,7 +388,12 @@ namespace Playnite.DesktopApp.ViewModels
             sideItems.Insert(0, new SidebarWrapperItem(libraryItem, this));
             if (!UsesLibraryPanes)
             {
-                // Without the panes of the library, the start page is a page like the others.
+                // Without the panes of the library, these are pages like the others.
+                sideItems.Insert(1, new SidebarWrapperItem(new AtrioSidebarItem(new Controls.Views.CollectionsView { DataContext = CollectionsModel }, CollectionsModel.Refresh)
+                {
+                    Icon = "SidebarCollectionsIcon",
+                    Title = Resources.GetString("LOCAtrioCollections")
+                }, this));
                 sideItems.Insert(0, new SidebarWrapperItem(new AtrioSidebarItem(new Controls.Views.HomeView { DataContext = HomeModel }, HomeModel.Refresh)
                 {
                     Icon = "SidebarHomeIcon",

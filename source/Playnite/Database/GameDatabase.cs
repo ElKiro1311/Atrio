@@ -77,6 +77,7 @@ namespace Playnite.Database
         HashSet<string> GetImportedRomFiles(string emulatorDir);
         HashSet<string> GetImportedExeFiles();
         bool GetGameMatchesFilter(Game game, FilterSettings filterSettings, bool useFuzzyNameMatch);
+        bool GetGameMatchesFilter(Game game, FilterSettings filterSettings, bool useFuzzyNameMatch, bool ignoreHidden);
         IEnumerable<Game> GetFilteredGames(FilterSettings filterSettings, bool useFuzzyNameMatch);
     }
 

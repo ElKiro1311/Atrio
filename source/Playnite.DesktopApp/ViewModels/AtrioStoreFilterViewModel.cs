@@ -80,6 +80,12 @@ namespace Playnite.DesktopApp.ViewModels
             set => SetGrouping(value ? GroupableField.Library : GroupableField.None);
         }
 
+        public bool GroupByCollection
+        {
+            get => main.AppSettings.ViewSettings.GroupingOrder == GroupableField.Category;
+            set => SetGrouping(value ? GroupableField.Category : GroupableField.None);
+        }
+
         private void SetGrouping(GroupableField field)
         {
             main.AppSettings.ViewSettings.GroupingOrder = field;
@@ -124,6 +130,7 @@ namespace Playnite.DesktopApp.ViewModels
                 {
                     OnPropertyChanged(nameof(GroupByInstalled));
                     OnPropertyChanged(nameof(GroupByStore));
+                    OnPropertyChanged(nameof(GroupByCollection));
                 }
             };
 
@@ -207,7 +214,7 @@ namespace Playnite.DesktopApp.ViewModels
             }
         }
 
-        private void UpdateCount()
+        public void UpdateCount()
         {
             var count = main.GamesView?.CollectionView?.Count ?? 0;
             GamesCountText = count == 1 ?
@@ -307,6 +314,7 @@ namespace Playnite.DesktopApp.ViewModels
             OnPropertyChanged(nameof(RecentFirst));
             OnPropertyChanged(nameof(GroupByInstalled));
             OnPropertyChanged(nameof(GroupByStore));
+            OnPropertyChanged(nameof(GroupByCollection));
         }
     }
 }

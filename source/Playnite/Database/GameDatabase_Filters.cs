@@ -34,6 +34,11 @@ namespace Playnite.Database
             return new FilterMatcher(filterSettings, useFuzzyNameMatch).Match(game);
         }
 
+        public bool GetGameMatchesFilter(Game game, FilterSettings filterSettings, bool useFuzzyNameMatch, bool ignoreHidden)
+        {
+            return new FilterMatcher(filterSettings, useFuzzyNameMatch, ignoreHidden).Match(game);
+        }
+
         public IEnumerable<Game> GetFilteredGames(FilterSettings filterSettings, bool useFuzzyNameMatch)
         {
             var fm = new FilterMatcher(filterSettings, useFuzzyNameMatch);
@@ -51,11 +56,13 @@ namespace Playnite.Database
     {
         private readonly FilterSettings filterSettings;
         private readonly bool useFuzzyNameMatch;
+        private readonly bool ignoreHidden;
 
-        public FilterMatcher(FilterSettings filterSettings, bool useFuzzyNameMatch)
+        public FilterMatcher(FilterSettings filterSettings, bool useFuzzyNameMatch, bool ignoreHidden = false)
         {
             this.filterSettings = filterSettings;
             this.useFuzzyNameMatch = useFuzzyNameMatch;
+            this.ignoreHidden = ignoreHidden;
         }
 
         public bool Match(Game game)
@@ -163,7 +170,7 @@ namespace Playnite.Database
 
         private bool MatchFavorite(Game game) => !filterSettings.Favorite || (filterSettings.Favorite && game.Favorite);
 
-        private bool MatchHidden(Game game) => filterSettings.Hidden == game.Hidden;
+        private bool MatchHidden(Game game) => ignoreHidden || filterSettings.Hidden == game.Hidden;
 
         private bool MatchLibrary(Game game)
         {

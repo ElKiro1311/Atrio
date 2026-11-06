@@ -188,7 +188,11 @@ namespace Playnite.DesktopApp.Atrio
                     break;
                 case "panel":
                     model.SwitchToLibraryView();
-                    model.Pane = argument == "juego" ? LibraryPane.Game : argument == "todos" ? LibraryPane.AllGames : LibraryPane.Home;
+                    model.Pane = argument == "juego" ? LibraryPane.Game : argument == "todos" ? LibraryPane.AllGames :
+                        argument == "colecciones" ? LibraryPane.Collections : LibraryPane.Home;
+                    break;
+                case "coleccion":
+                    await CollectionOrder(model, argument);
                     break;
                 case "barra":
                     var item = model.SidebarItems.FirstOrDefault(a => a.Title == argument);
@@ -387,7 +391,7 @@ namespace Playnite.DesktopApp.Atrio
                     Log("ventanas abiertas: " + string.Join(" | ", Application.Current.Windows.Cast<Window>().Select(a => a.GetType().Name + (a.IsVisible ? "" : " (oculta)"))));
                     break;
                 case "estado":
-                    Log($"panel: {model.Pane}, vista: {model.AppSettings.ViewSettings.GamesViewType}, grupo: {model.AppSettings.ViewSettings.GroupingOrder}, " +
+                    Log($"panel: {model.Pane}, coleccion: {model.ActiveCollection?.Name}, vista: {model.AppSettings.ViewSettings.GamesViewType}, grupo: {model.AppSettings.ViewSettings.GroupingOrder}, " +
                         $"ficha: {model.SelectedGameDetails?.Game?.Name}, seleccion: {model.SelectedGame?.Name}, pestana: {model.SelectedGameDetails?.ShowAchievements}, " +
                         $"visibles: {model.GamesView.CollectionView.Count}, selector: {model.StoreFilter.SelectionText}, bibliotecas: {model.StoreFilter.Items?.Count}");
                     break;
@@ -442,7 +446,8 @@ namespace Playnite.DesktopApp.Atrio
                     break;
                 case "pulsapanel":
                     var paneButton = FindAll<System.Windows.Controls.Primitives.ToggleButton>(model.Window.Window).
-                        First(a => a.IsVisible && a.Command == (argument == "todos" ? model.ShowAllGamesCommand : model.ShowHomeCommand));
+                        First(a => a.IsVisible && a.Command == (argument == "todos" ? model.ShowAllGamesCommand :
+                            argument == "colecciones" ? model.ShowCollectionsCommand : model.ShowHomeCommand));
                     ((System.Windows.Automation.Provider.IToggleProvider)new System.Windows.Automation.Peers.ToggleButtonAutomationPeer(paneButton)).Toggle();
                     paneButton.Command.Execute(null);
                     await Task.Delay(200);
@@ -896,8 +901,157 @@ namespace Playnite.DesktopApp.Atrio
             var menu = new Controls.GameMenu(model) { DataContext = model.SelectedGame, ShowStartSection = true };
             menu.InitializeItems();
             var lines = menu.Items.OfType<System.Windows.Controls.MenuItem>().
-                Select(a => a.Header + (a.Items.Count > 0 ? " > " + string.Join(", ", a.Items.OfType<System.Windows.Controls.MenuItem>().Select(b => b.Header)) : string.Empty));
+                Select(a => a.Header + (a.Items.Count > 0 ? " > " + string.Join(", ", a.Items.OfType<System.Windows.Controls.MenuItem>().Select(b => (b.IsChecked ? "[x] " : string.Empty) + b.Header)) : string.Empty));
             Log("menu: " + string.Join(" | ", lines));
+        }
+
+        private static GameCollection FindCollection(DesktopAppViewModel model, string name)
+        {
+            return GameCollections.GetAll(model.Database, GameUnifier.Current.Settings).First(a => a.Name == name);
+        }
+
+        private static async Task CollectionOrder(DesktopAppViewModel model, string argument)
+        {
+            var parts = argument.Split(new char[] { ' ' }, 2);
+            var data = parts.Length > 1 ? parts[1].Split('|') : new string[] { string.Empty };
+            var collections = model.CollectionsModel;
+            var unifier = GameUnifier.Current;
+            Game game() => model.Database.Games.First(a => a.Name == data[1]);
+            switch (parts[0])
+            {
+                case "lista":
+                    collections.Refresh();
+                    Log("colecciones: " + string.Join(" | ", collections.Tiles.Select(a => $"{a.Collection.Name} ({a.CountText})")));
+                    break;
+                case "nueva":
+                    model.Database.Categories.Add(data[0]);
+                    break;
+                case "abrir":
+                    collections.Open(FindCollection(model, data[0]));
+                    break;
+                case "poner":
+                    GameCollections.AddGames(model.Database, FindCollection(model, data[0]).Id, new[] { game() }, unifier);
+                    break;
+                case "sacar":
+                    GameCollections.RemoveGames(model.Database, FindCollection(model, data[0]).Id, new[] { game() }, unifier);
+                    break;
+                case "soltar":
+                    collections.Refresh();
+                    await Task.Delay(300);
+                    var tile = FindAll<System.Windows.Controls.Button>(model.Window.Window).
+                        First(a => a.IsVisible && a.DataContext is CollectionTile b && b.Collection.Name == data[0]);
+                    var dropped = new DataObject(Controls.Views.CollectionsView.DragFormat, game().Id.ToString());
+                    var drop = (DragEventArgs)typeof(DragEventArgs).GetConstructors(BindingFlags.Instance | BindingFlags.NonPublic).First().
+                        Invoke(new object[] { dropped, DragDropKeyStates.None, DragDropEffects.Copy, tile, new Point(10, 10) });
+                    drop.RoutedEvent = DragDrop.DropEvent;
+                    tile.RaiseEvent(drop);
+                    break;
+                case "encima":
+                    var over = FindAll<System.Windows.Controls.Button>(model.Window.Window).
+                        First(a => a.IsVisible && a.DataContext is CollectionTile b && b.Collection.Name == data[0]);
+                    var dragged = new DataObject(Controls.Views.CollectionsView.DragFormat, game().Id.ToString());
+                    var hover = (DragEventArgs)typeof(DragEventArgs).GetConstructors(BindingFlags.Instance | BindingFlags.NonPublic).First().
+                        Invoke(new object[] { dragged, DragDropKeyStates.None, DragDropEffects.Copy, over, new Point(10, 10) });
+                    hover.RoutedEvent = DragDrop.DragOverEvent;
+                    over.RaiseEvent(hover);
+                    Log($"encima: {hover.Effects}, resaltado: {string.Join(", ", collections.Tiles.Where(a => a.IsDropTarget).Select(a => a.Collection.Name))}");
+                    break;
+                case "renombrar":
+                    collections.Rename(FindCollection(model, data[0]), data[1]);
+                    break;
+                case "borrar":
+                    collections.Delete(FindCollection(model, data[0]));
+                    break;
+                case "inicio":
+                    collections.ToggleHomeShelf(FindCollection(model, data[0]));
+                    break;
+                case "dinamica":
+                    collections.CreateDynamic(data[0], new FilterPresetSettings { IsInstalled = true });
+                    break;
+                case "filtros":
+                    collections.BeginDraft(data[0].Length == 0 ? null : FindCollection(model, data[0]));
+                    break;
+                case "cancelar":
+                    collections.CancelDraftCommand.Execute(null);
+                    break;
+                case "guardar":
+                    collections.SaveFiltersCommand.Execute(null);
+                    break;
+                case "elegir":
+                    _ = Application.Current.Dispatcher.BeginInvoke(new Action(() => collections.ChooseGames(FindCollection(model, data[0]))));
+                    break;
+                case "menu":
+                    collections.ShowMenu(FindCollection(model, data[0]), model.Window.Window);
+                    break;
+                case "clic":
+                    var tileButton = FindAll<System.Windows.Controls.Button>(model.Window.Window).
+                        First(a => a.IsVisible && a.DataContext is CollectionTile b && b.Collection.Name == data[0]);
+                    Log("orden del recuadro: " + (tileButton.Command != null));
+                    tileButton.Command?.Execute(tileButton.CommandParameter);
+                    break;
+                case "clicderecho":
+                    var rightTile = FindAll<System.Windows.Controls.Button>(model.Window.Window).
+                        First(a => a.IsVisible && a.DataContext is CollectionTile b && b.Collection.Name == data[0]);
+                    FindAll<System.Windows.Controls.TextBlock>(rightTile).First(a => a.IsVisible).
+                        RaiseEvent(new MouseButtonEventArgs(Mouse.PrimaryDevice, Environment.TickCount, MouseButton.Right) { RoutedEvent = Mouse.MouseUpEvent });
+                    break;
+                case "boton":
+                    var command = data[0] == "cerrar" ? collections.CloseCommand : data[0] == "volver" ? collections.ReturnCommand : (ICommand)collections.BackCommand;
+                    var bound = FindAll<System.Windows.Controls.Button>(model.Window.Window).FirstOrDefault(a => a.IsVisible && a.Command == command);
+                    Log("boton encontrado: " + (bound != null));
+                    bound?.Command.Execute(bound.CommandParameter);
+                    break;
+                case "mas":
+                    var more = FindAll<System.Windows.Controls.Button>(model.Window.Window).FirstOrDefault(a => a.IsVisible && a.Command == collections.MoreCommand);
+                    Log("boton mas: " + (more != null) + ", parametro: " + more?.CommandParameter?.GetType().Name);
+                    more?.Command.Execute(more.CommandParameter);
+                    break;
+                case "marcar":
+                    var chooser = Application.Current.Windows.Cast<Window>().Last(a => a != model.Window.Window && a.IsVisible).DataContext as CollectionGamesViewModel;
+                    chooser.SearchText = data[0];
+                    await Task.Delay(300);
+                    var shown = chooser.Games.Cast<CollectionGameOption>().ToList();
+                    Log($"coinciden: {shown.Count}, marcados: {chooser.SelectionText}");
+                    shown.First().IsSelected = !shown.First().IsSelected;
+                    Log("tras marcar: " + chooser.SelectionText);
+                    break;
+                case "confirmar":
+                    var confirmed = Application.Current.Windows.Cast<Window>().Last(a => a != model.Window.Window && a.IsVisible).DataContext as CollectionGamesViewModel;
+                    confirmed.ConfirmCommand.Execute(null);
+                    break;
+                case "copias":
+                    var copies = GameCollections.GetCopies(game(), unifier);
+                    var id = FindCollection(model, data[0]).Id;
+                    Log($"copias: {copies.Count}, en la coleccion: {copies.Count(a => a.CategoryIds?.Contains(id) == true)}");
+                    break;
+                case "ocultar":
+                    var hiddenGame = model.Database.Games.First(a => a.Name == data[0]);
+                    hiddenGame.Hidden = !hiddenGame.Hidden;
+                    model.Database.Games.Update(hiddenGame);
+                    break;
+                case "seleccionar":
+                    // Two games selected and a press on the second one, which must not lose the selection by itself.
+                    var list = FindAll<Playnite.Controls.ExtendedListBox>(model.Window.Window).First(a => a.IsVisible && a.ItemContainerStyle != null);
+                    var items = FindAll<System.Windows.Controls.ListBoxItem>(list).Where(a => a.IsVisible).Take(2).ToList();
+                    items.ForEach(a => a.IsSelected = true);
+                    await Task.Delay(200);
+                    var pressed = FindAll<System.Windows.Controls.TextBlock>(items[1]).First(a => a.IsVisible);
+                    pressed.RaiseEvent(new MouseButtonEventArgs(Mouse.PrimaryDevice, Environment.TickCount, MouseButton.Left) { RoutedEvent = UIElement.PreviewMouseDownEvent });
+                    await Task.Delay(100);
+                    Log($"al pulsar: {list.SelectedItems.Count} seleccionados");
+                    pressed.RaiseEvent(new MouseButtonEventArgs(Mouse.PrimaryDevice, Environment.TickCount, MouseButton.Left) { RoutedEvent = UIElement.PreviewMouseUpEvent });
+                    await Task.Delay(300);
+                    Log($"al soltar: {list.SelectedItems.Count} seleccionados, panel: {model.Pane}");
+                    break;
+                case "barra":
+                    Log($"abierta: {collections.ActiveName}, {collections.ActiveDetails}, elegir: {collections.CanChooseGames}, " +
+                        $"borrador: {collections.IsDrafting}, guardar: {collections.CanSaveFilters}, oferta: {collections.OffersSavingFilters}, " +
+                        $"todos: {model.IsAllGamesPane}, seccion: {model.IsCollectionSection}, filtros: {model.AppSettings.FilterSettings.IsActive}, panel filtros: {model.AppSettings.FilterPanelVisible}");
+                    break;
+                default:
+                    Log("orden de coleccion desconocida: " + parts[0]);
+                    break;
+            }
         }
 
         private static void SetProperty(object target, string argument)
