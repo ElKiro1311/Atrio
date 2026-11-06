@@ -1226,6 +1226,10 @@ namespace Playnite.DesktopApp.ViewModels
             if (Application.Current?.TryFindResource("AtrioGridClickOpensPage") is bool clickOpensPage && clickOpensPage)
             {
                 AppSettings.GridViewSideBarVisible = false;
+                if (SelectedGameDetails != null)
+                {
+                    SelectedGameDetails.ShowAchievements = false;
+                }
             }
         }
 

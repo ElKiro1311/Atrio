@@ -1,0 +1,239 @@
+                    <!-- Every achievement of the game. The list has its own scroll so that only the rows on screen exist -->
+                    <Grid Background="{DynamicResource NormalBrushDark}"
+                          Visibility="{Binding ShowAchievements, Converter={StaticResource BooleanToVisibilityConverter}}">
+                        <DockPanel Margin="40,12,28,0" DataContext="{PluginSettings Plugin=PlayniteAchievements, Path=ModernTheme}">
+                            <Button DockPanel.Dock="Top" Style="{DynamicResource AtrioGhostButton}" HorizontalAlignment="Left"
+                                    Command="{Binding DataContext.HideAchievementsCommand, RelativeSource={RelativeSource AncestorType={x:Type GameOverview}}}"
+                                    WindowChrome.IsHitTestVisibleInChrome="True">
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="&#xE72B;" FontFamily="{DynamicResource AtrioIconFont}" FontSize="13" VerticalAlignment="Center" />
+                                    <TextBlock Text="{DynamicResource LOCAtrioBack}" Margin="8,0,0,0" VerticalAlignment="Center" />
+                                </StackPanel>
+                            </Button>
+
+                            <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="0,14,12,14">
+                                <TextBlock Text="{DynamicResource LOCAtrioAchievements}" Style="{DynamicResource AtrioPageTitle}" />
+                                <TextBlock Text="{Binding DataContext.Game.Name, RelativeSource={RelativeSource AncestorType={x:Type GameOverview}}}"
+                                           Style="{DynamicResource AtrioCaption}" FontSize="16" Margin="14,0,0,4" VerticalAlignment="Bottom" />
+                            </StackPanel>
+
+                            <UniformGrid DockPanel.Dock="Top" Rows="1" Margin="0,0,0,14">
+                                <!-- How far the player is -->
+                                <Border Style="{DynamicResource AtrioCard}" Margin="0,0,12,0">
+                                    <StackPanel>
+                                        <TextBlock Text="{Binding ProgressPercentage, StringFormat={}{0:0} %}" FontSize="40" FontWeight="SemiBold"
+                                                   FontFamily="{DynamicResource AtrioDisplayFont}" Foreground="{DynamicResource TextBrush}" />
+                                        <TextBlock Style="{DynamicResource BaseTextBlockStyle}" FontSize="14">
+                                            <TextBlock.Text>
+                                                <MultiBinding Converter="{StaticResource AchievementProgressTextConverter}">
+                                                    <Binding Path="UnlockedCount" />
+                                                    <Binding Path="AchievementCount" />
+                                                    <Binding Path="ProgressPercentage" />
+                                                </MultiBinding>
+                                            </TextBlock.Text>
+                                        </TextBlock>
+                                        <ProgressBar Height="6" Maximum="100" Value="{Binding ProgressPercentage, Mode=OneWay}" Margin="0,8,0,10" />
+                                        <DockPanel>
+                                            <TextBlock Text="{Binding LockedCount}" DockPanel.Dock="Right" Style="{DynamicResource BaseTextBlockStyle}" FontSize="13" />
+                                            <TextBlock Text="{DynamicResource LOCAtrioAchievementsLocked}" Style="{DynamicResource AtrioCaption}" />
+                                        </DockPanel>
+                                    </StackPanel>
+                                </Border>
+
+                                <!-- The ones worth remembering -->
+                                <Border Style="{DynamicResource AtrioCard}" Margin="0,0,12,0">
+                                    <StackPanel>
+                                        <TextBlock Text="{DynamicResource LOCAtrioAchievementsMilestones}" Style="{DynamicResource AtrioSectionTitle}" FontSize="15" Margin="0,0,0,8" />
+                                        <StackPanel Margin="0,0,0,7" DataContext="{Binding AllAchievementDisplayItems, Converter={StaticResource AchievementMilestoneConverter}, ConverterParameter=latest}"
+                                                    Visibility="{Binding Converter={StaticResource NullToVisibilityConverter}}">
+                                            <DockPanel>
+                                                <TextBlock Text="{Binding UnlockTimeText}" DockPanel.Dock="Right" Style="{DynamicResource AtrioCaption}" Margin="8,0,0,0" />
+                                                <TextBlock Text="{DynamicResource LOCAtrioAchievementsLatest}" Style="{DynamicResource AtrioCaption}" />
+                                            </DockPanel>
+                                            <TextBlock Text="{Binding DisplayNameResolved}" Style="{DynamicResource BaseTextBlockStyle}" FontSize="13" TextTrimming="CharacterEllipsis" />
+                                        </StackPanel>
+                                        <StackPanel Margin="0,0,0,7" DataContext="{Binding AllAchievementDisplayItems, Converter={StaticResource AchievementMilestoneConverter}, ConverterParameter=first}"
+                                                    Visibility="{Binding Converter={StaticResource NullToVisibilityConverter}}">
+                                            <DockPanel>
+                                                <TextBlock Text="{Binding UnlockTimeText}" DockPanel.Dock="Right" Style="{DynamicResource AtrioCaption}" Margin="8,0,0,0" />
+                                                <TextBlock Text="{DynamicResource LOCAtrioAchievementsFirst}" Style="{DynamicResource AtrioCaption}" />
+                                            </DockPanel>
+                                            <TextBlock Text="{Binding DisplayNameResolved}" Style="{DynamicResource BaseTextBlockStyle}" FontSize="13" TextTrimming="CharacterEllipsis" />
+                                        </StackPanel>
+                                        <StackPanel Margin="0,0,0,7" DataContext="{Binding AllAchievementDisplayItems, Converter={StaticResource AchievementMilestoneConverter}, ConverterParameter=rarest}"
+                                                    Visibility="{Binding Converter={StaticResource NullToVisibilityConverter}}">
+                                            <DockPanel>
+                                                <TextBlock Text="{Binding GlobalPercentText}" DockPanel.Dock="Right" Style="{DynamicResource AtrioCaption}" Margin="8,0,0,0" />
+                                                <TextBlock Text="{DynamicResource LOCAtrioAchievementsRarest}" Style="{DynamicResource AtrioCaption}" />
+                                            </DockPanel>
+                                            <TextBlock Text="{Binding DisplayNameResolved}" Style="{DynamicResource BaseTextBlockStyle}" FontSize="13" TextTrimming="CharacterEllipsis" />
+                                        </StackPanel>
+                                        <Border>
+                                            <Border.Style>
+                                                <Style TargetType="Border">
+                                                    <Setter Property="Visibility" Value="Collapsed" />
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding UnlockedCount}" Value="0">
+                                                            <Setter Property="Visibility" Value="Visible" />
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </Border.Style>
+                                            <TextBlock Text="{DynamicResource LOCAtrioAchievementsNoneYet}" Style="{DynamicResource AtrioCaption}" TextWrapping="Wrap" />
+                                        </Border>
+                                    </StackPanel>
+                                </Border>
+
+                                <!-- By rarity -->
+                                <Border Style="{DynamicResource AtrioCard}" Margin="0,0,12,0">
+                                    <StackPanel>
+                                        <TextBlock Text="{DynamicResource LOCAtrioRarityTitle}" Style="{DynamicResource AtrioSectionTitle}" FontSize="15" Margin="0,0,0,8" />
+                                        <DockPanel>
+                                            <TextBlock Text="{Binding Common.Stats}" DockPanel.Dock="Right" Style="{DynamicResource BaseTextBlockStyle}" FontSize="13" />
+                                            <TextBlock Text="{DynamicResource LOCAtrioRarityCommon}" Style="{DynamicResource AtrioCaption}" />
+                                        </DockPanel>
+                                        <ProgressBar Height="4" Maximum="{Binding Common.Total, Mode=OneWay}" Value="{Binding Common.Unlocked, Mode=OneWay}" Margin="0,3,0,7" />
+                                        <DockPanel>
+                                            <TextBlock Text="{Binding Uncommon.Stats}" DockPanel.Dock="Right" Style="{DynamicResource BaseTextBlockStyle}" FontSize="13" />
+                                            <TextBlock Text="{DynamicResource LOCAtrioRarityUncommon}" Style="{DynamicResource AtrioCaption}" />
+                                        </DockPanel>
+                                        <ProgressBar Height="4" Maximum="{Binding Uncommon.Total, Mode=OneWay}" Value="{Binding Uncommon.Unlocked, Mode=OneWay}" Margin="0,3,0,7" />
+                                        <DockPanel>
+                                            <TextBlock Text="{Binding Rare.Stats}" DockPanel.Dock="Right" Style="{DynamicResource BaseTextBlockStyle}" FontSize="13" />
+                                            <TextBlock Text="{DynamicResource LOCAtrioRarityRare}" Style="{DynamicResource AtrioCaption}" />
+                                        </DockPanel>
+                                        <ProgressBar Height="4" Maximum="{Binding Rare.Total, Mode=OneWay}" Value="{Binding Rare.Unlocked, Mode=OneWay}" Margin="0,3,0,7" />
+                                        <DockPanel>
+                                            <TextBlock Text="{Binding UltraRare.Stats}" DockPanel.Dock="Right" Style="{DynamicResource BaseTextBlockStyle}" FontSize="13" />
+                                            <TextBlock Text="{DynamicResource LOCAtrioRarityUltraRare}" Style="{DynamicResource AtrioCaption}" />
+                                        </DockPanel>
+                                        <ProgressBar Height="4" Maximum="{Binding UltraRare.Total, Mode=OneWay}" Value="{Binding UltraRare.Unlocked, Mode=OneWay}" Margin="0,3,0,0" />
+                                    </StackPanel>
+                                </Border>
+
+                                <!-- By trophy, when the sources gave the game one -->
+                                <Border Style="{DynamicResource AtrioCard}" Margin="0,0,12,0"
+                                        Visibility="{Binding SelectedGameSummary.HasTrophyTypes, Converter={StaticResource BooleanToVisibilityConverter}, FallbackValue=Collapsed}">
+                                    <StackPanel>
+                                        <TextBlock Text="{DynamicResource LOCAtrioTrophyTitle}" Style="{DynamicResource AtrioSectionTitle}" FontSize="15" Margin="0,0,0,8" />
+                                        <DockPanel Margin="0,0,0,8">
+                                            <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+                                                <TextBlock Text="{Binding SelectedGameSummary.TrophyPlatinumCount}" Style="{DynamicResource BaseTextBlockStyle}" FontSize="13" />
+                                                <TextBlock Text="{Binding SelectedGameSummary.TrophyPlatinumTotal, StringFormat=' / {0}'}" Style="{DynamicResource BaseTextBlockStyle}" FontSize="13" />
+                                            </StackPanel>
+                                            <TextBlock Text="{DynamicResource LOCAtrioTrophyPlatinum}" Style="{DynamicResource AtrioCaption}" />
+                                        </DockPanel>
+                                        <DockPanel Margin="0,0,0,8">
+                                            <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+                                                <TextBlock Text="{Binding SelectedGameSummary.TrophyGoldCount}" Style="{DynamicResource BaseTextBlockStyle}" FontSize="13" />
+                                                <TextBlock Text="{Binding SelectedGameSummary.TrophyGoldTotal, StringFormat=' / {0}'}" Style="{DynamicResource BaseTextBlockStyle}" FontSize="13" />
+                                            </StackPanel>
+                                            <TextBlock Text="{DynamicResource LOCAtrioTrophyGold}" Style="{DynamicResource AtrioCaption}" />
+                                        </DockPanel>
+                                        <DockPanel Margin="0,0,0,8">
+                                            <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+                                                <TextBlock Text="{Binding SelectedGameSummary.TrophySilverCount}" Style="{DynamicResource BaseTextBlockStyle}" FontSize="13" />
+                                                <TextBlock Text="{Binding SelectedGameSummary.TrophySilverTotal, StringFormat=' / {0}'}" Style="{DynamicResource BaseTextBlockStyle}" FontSize="13" />
+                                            </StackPanel>
+                                            <TextBlock Text="{DynamicResource LOCAtrioTrophySilver}" Style="{DynamicResource AtrioCaption}" />
+                                        </DockPanel>
+                                        <DockPanel>
+                                            <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+                                                <TextBlock Text="{Binding SelectedGameSummary.TrophyBronzeCount}" Style="{DynamicResource BaseTextBlockStyle}" FontSize="13" />
+                                                <TextBlock Text="{Binding SelectedGameSummary.TrophyBronzeTotal, StringFormat=' / {0}'}" Style="{DynamicResource BaseTextBlockStyle}" FontSize="13" />
+                                            </StackPanel>
+                                            <TextBlock Text="{DynamicResource LOCAtrioTrophyBronze}" Style="{DynamicResource AtrioCaption}" />
+                                        </DockPanel>
+                                    </StackPanel>
+                                </Border>
+                            </UniformGrid>
+
+                            <DockPanel DockPanel.Dock="Top" Margin="0,0,12,10">
+                                <ComboBox x:Name="AchievementsSort" DockPanel.Dock="Right" MinWidth="190" SelectedIndex="0" VerticalAlignment="Center">
+                                    <ComboBoxItem Content="{DynamicResource LOCAtrioAchievementsSortGame}" />
+                                    <ComboBoxItem Content="{DynamicResource LOCAtrioAchievementsSortRecent}" />
+                                    <ComboBoxItem Content="{DynamicResource LOCAtrioAchievementsSortRare}" />
+                                    <ComboBoxItem Content="{DynamicResource LOCAtrioAchievementsSortCommon}" />
+                                    <ComboBoxItem Content="{DynamicResource LOCAtrioAchievementsSortName}" />
+                                </ComboBox>
+                                <StackPanel Orientation="Horizontal">
+                                    <RadioButton Style="{DynamicResource AtrioPill}" GroupName="AchievementsFilter" IsChecked="True">
+                                        <StackPanel Orientation="Horizontal">
+                                            <TextBlock Text="{DynamicResource LOCAtrioAchievementsAll}" VerticalAlignment="Center" />
+                                            <TextBlock Text="{Binding AchievementCount}" Margin="6,0,0,0" Opacity="0.7" VerticalAlignment="Center" />
+                                        </StackPanel>
+                                    </RadioButton>
+                                    <RadioButton x:Name="AchievementsUnlocked" Style="{DynamicResource AtrioPill}" GroupName="AchievementsFilter">
+                                        <StackPanel Orientation="Horizontal">
+                                            <TextBlock Text="{DynamicResource LOCAtrioAchievementsUnlocked}" VerticalAlignment="Center" />
+                                            <TextBlock Text="{Binding UnlockedCount}" Margin="6,0,0,0" Opacity="0.7" VerticalAlignment="Center" />
+                                        </StackPanel>
+                                    </RadioButton>
+                                    <RadioButton x:Name="AchievementsLocked" Style="{DynamicResource AtrioPill}" GroupName="AchievementsFilter">
+                                        <StackPanel Orientation="Horizontal">
+                                            <TextBlock Text="{DynamicResource LOCAtrioAchievementsLocked}" VerticalAlignment="Center" />
+                                            <TextBlock Text="{Binding LockedCount}" Margin="6,0,0,0" Opacity="0.7" VerticalAlignment="Center" />
+                                        </StackPanel>
+                                    </RadioButton>
+                                </StackPanel>
+                            </DockPanel>
+
+                            <ItemsControl Focusable="False" VirtualizingPanel.IsVirtualizing="True" VirtualizingPanel.VirtualizationMode="Recycling"
+                                          VirtualizingPanel.ScrollUnit="Pixel" ScrollViewer.CanContentScroll="True">
+                                <ItemsControl.ItemsSource>
+                                    <MultiBinding Converter="{StaticResource AchievementListConverter}">
+                                        <Binding Path="AllAchievementDisplayItems" />
+                                        <Binding ElementName="AchievementsUnlocked" Path="IsChecked" />
+                                        <Binding ElementName="AchievementsLocked" Path="IsChecked" />
+                                        <Binding ElementName="AchievementsSort" Path="SelectedIndex" />
+                                    </MultiBinding>
+                                </ItemsControl.ItemsSource>
+                                <ItemsControl.Template>
+                                    <ControlTemplate TargetType="ItemsControl">
+                                        <ScrollViewer Focusable="False" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
+                                            <ItemsPresenter />
+                                        </ScrollViewer>
+                                    </ControlTemplate>
+                                </ItemsControl.Template>
+                                <ItemsControl.ItemsPanel>
+                                    <ItemsPanelTemplate>
+                                        <VirtualizingStackPanel />
+                                    </ItemsPanelTemplate>
+                                </ItemsControl.ItemsPanel>
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <!-- A click shows what a hidden achievement is about -->
+                                        <ToggleButton IsChecked="{Binding IsRevealed}" Focusable="False">
+                                            <ToggleButton.Template>
+                                                <ControlTemplate TargetType="ToggleButton">
+                                                    <ContentPresenter />
+                                                </ControlTemplate>
+                                            </ToggleButton.Template>
+                                            <Border x:Name="Row" Height="76" Margin="0,0,12,8" Padding="12,8,16,8"
+                                                    CornerRadius="{DynamicResource AtrioCardRadius}" Background="{DynamicResource AtrioCardBrush}"
+                                                    BorderThickness="1" BorderBrush="{DynamicResource AtrioBorderBrush}">
+                                                <DockPanel>
+                                                    <Image Source="{Binding DisplayIcon, Converter={StaticResource AchievementIconConverter}}" Width="58" Height="58"
+                                                           DockPanel.Dock="Left" Margin="0,0,14,0" Stretch="UniformToFill" RenderOptions.BitmapScalingMode="Fant" />
+                                                    <StackPanel DockPanel.Dock="Right" Width="210" VerticalAlignment="Center" Margin="16,0,0,0">
+                                                        <TextBlock Text="{Binding UnlockTimeText}" Style="{DynamicResource AtrioCaption}" HorizontalAlignment="Right" TextTrimming="CharacterEllipsis" />
+                                                        <TextBlock Text="{Binding GlobalPercentText}" Style="{DynamicResource AtrioCaption}" HorizontalAlignment="Right" />
+                                                    </StackPanel>
+                                                    <StackPanel VerticalAlignment="Center">
+                                                        <TextBlock Text="{Binding DisplayNameResolved}" Style="{DynamicResource BaseTextBlockStyle}" FontSize="15"
+                                                                   FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
+                                                        <TextBlock Text="{Binding DescriptionResolved}" Style="{DynamicResource AtrioCaption}" TextTrimming="CharacterEllipsis" />
+                                                    </StackPanel>
+                                                </DockPanel>
+                                            </Border>
+                                        </ToggleButton>
+                                        <DataTemplate.Triggers>
+                                            <DataTrigger Binding="{Binding Unlocked}" Value="False">
+                                                <Setter TargetName="Row" Property="Opacity" Value="0.6" />
+                                            </DataTrigger>
+                                        </DataTemplate.Triggers>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </DockPanel>
+                    </Grid>

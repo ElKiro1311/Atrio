@@ -178,7 +178,15 @@ namespace Playnite.DesktopApp.Controls.Views
         {
             if (e.Key == Key.Escape && mainModel.AppSettings.GridViewSideBarVisible)
             {
-                mainModel.AppSettings.GridViewSideBarVisible = false;
+                if (mainModel.SelectedGameDetails?.ShowAchievements == true)
+                {
+                    mainModel.SelectedGameDetails.ShowAchievements = false;
+                }
+                else
+                {
+                    mainModel.AppSettings.GridViewSideBarVisible = false;
+                }
+
                 e.Handled = true;
             }
         }

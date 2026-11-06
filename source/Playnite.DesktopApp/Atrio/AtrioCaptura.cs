@@ -355,6 +355,25 @@ namespace Playnite.DesktopApp.Atrio
                         refreshButton.ContextMenu.IsOpen = false;
                     }
                     break;
+                case "sondajuego":
+                    var watch = WatchUiThread(3500);
+                    await Task.Delay(300);
+                    await Execute(model, "juego", argument);
+                    await watch;
+                    break;
+                case "detalles":
+                    model.SelectedGameDetails.DetailsExpanded = argument == "si";
+                    break;
+                case "radio":
+                    FindAll<System.Windows.Controls.RadioButton>(model.Window.Window).First(a => a.Name == argument).IsChecked = true;
+                    break;
+                case "pestana":
+                    model.SelectedGameDetails.ShowAchievements = argument == "si";
+                    break;
+                case "memoria":
+                    var process = System.Diagnostics.Process.GetCurrentProcess();
+                    Log($"memoria: trabajo {process.WorkingSet64 / 1048576} MB, privada {process.PrivateMemorySize64 / 1048576} MB, virtual {process.VirtualMemorySize64 / 1048576} MB, administrada {GC.GetTotalMemory(false) / 1048576} MB");
+                    break;
                 case "ventanas":
                     Log("ventanas abiertas: " + string.Join(" | ", Application.Current.Windows.Cast<Window>().Select(a => a.GetType().Name + (a.IsVisible ? "" : " (oculta)"))));
                     break;

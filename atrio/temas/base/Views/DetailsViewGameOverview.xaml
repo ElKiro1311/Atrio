@@ -6,7 +6,10 @@
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="{x:Type DetailsViewGameOverview}">
+                    <Grid>
 @@incluir:_pagina_juego.xaml@@
+@@incluir:_pestana_logros.xaml@@
+                    </Grid>
                 </ControlTemplate>
             </Setter.Value>
         </Setter>

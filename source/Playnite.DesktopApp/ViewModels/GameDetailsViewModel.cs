@@ -340,6 +340,29 @@ namespace Playnite.DesktopApp.ViewModels
         public RelayCommand<object> CheckExecutionCommand { get; }
         public RelayCommand<object> EditGameCommand { get; }
         public RelayCommand<object> ContextActionCommand { get; }
+        public bool DetailsExpanded
+        {
+            get => settings.GameDetailsExpanded;
+            set
+            {
+                settings.GameDetailsExpanded = value;
+                OnPropertyChanged();
+            }
+        }
+
+        private bool showAchievements;
+        public bool ShowAchievements
+        {
+            get => showAchievements;
+            set
+            {
+                showAchievements = value;
+                OnPropertyChanged();
+            }
+        }
+
+        public RelayCommand<object> ShowAchievementsCommand { get; }
+        public RelayCommand<object> HideAchievementsCommand { get; }
         public RelayCommand<GameCopyEntry> StartCopyCommand { get; }
         public RelayCommand<GameCopyEntry> PreferCopyCommand { get; }
         public RelayCommand<GameCopyEntry> SplitCopyCommand { get; }
@@ -381,6 +404,8 @@ namespace Playnite.DesktopApp.ViewModels
             SetVersionFilterCommand = new RelayCommand<string>((filter) => SetVersionFilter(filter));
             SetCompletionStatusFilterCommand = new RelayCommand<DatabaseObject>((a) => SetFilter(a, GameField.CompletionStatus));
             PlayCommand = new RelayCommand<DatabaseObject>((a) => Play());
+            ShowAchievementsCommand = new RelayCommand<object>(_ => ShowAchievements = true);
+            HideAchievementsCommand = new RelayCommand<object>(_ => ShowAchievements = false);
             StartCopyCommand = new RelayCommand<GameCopyEntry>(StartCopy);
             PreferCopyCommand = new RelayCommand<GameCopyEntry>(a =>
             {

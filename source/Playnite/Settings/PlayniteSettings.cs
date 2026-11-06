@@ -997,6 +997,17 @@ namespace Playnite
             }
         }
 
+        private bool gameDetailsExpanded = false;
+        public bool GameDetailsExpanded
+        {
+            get => gameDetailsExpanded;
+            set
+            {
+                gameDetailsExpanded = value;
+                OnPropertyChanged();
+            }
+        }
+
         private bool gridViewSideBarVisible = false;
         public bool GridViewSideBarVisible
         {

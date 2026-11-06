@@ -19,6 +19,11 @@
     <FontFamily x:Key="FontIcoFont">/Fonts/icofont.ttf#icofont</FontFamily>
 
     <pcon:AchievementIconConverter x:Key="AchievementIconConverter" />
+    <pcon:AchievementPreviewConverter x:Key="AchievementPreviewConverter" />
+    <pcon:AchievementOverflowConverter x:Key="AchievementOverflowConverter" />
+    <pcon:AchievementMilestoneConverter x:Key="AchievementMilestoneConverter" />
+    <pcon:AchievementListConverter x:Key="AchievementListConverter" />
+    <pcon:AchievementProgressTextConverter x:Key="AchievementProgressTextConverter" />
     <pcon:BidirectionalEnumAndNumberConverter x:Key="BidirectionalEnumAndNumberConverter" />
     <pcon:BooleanToHiddenConverter x:Key="BooleanToHiddenConverter" />
     <pcon:BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />

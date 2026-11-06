@@ -9,6 +9,7 @@
                     <Grid Background="{DynamicResource NormalBrushDark}">
 @@incluir:_pagina_juego.xaml@@
                         <Button Style="{DynamicResource AtrioGhostButton}" HorizontalAlignment="Left" VerticalAlignment="Top"
+                                Background="#B3101218" Foreground="White"
                                 Margin="36,12,0,0" Command="{MainViewModel CloseGameSideBarCommand}"
                                 WindowChrome.IsHitTestVisibleInChrome="True">
                             <StackPanel Orientation="Horizontal">
@@ -16,6 +17,7 @@
                                 <TextBlock Text="{DynamicResource LOCAtrioBack}" Margin="8,0,0,0" VerticalAlignment="Center" />
                             </StackPanel>
                         </Button>
+@@incluir:_pestana_logros.xaml@@
                     </Grid>
                 </ControlTemplate>
             </Setter.Value>
