@@ -47,9 +47,7 @@ namespace Playnite.FullscreenApp.ViewModels
                 }
                 else if (InstallingCopy != null)
                 {
-                    var percent = SteamInstallProgress.Get(InstallingCopy.Id);
-                    var installing = resources.GetString("LOCSetupRunning");
-                    return percent > 0 ? $"{installing} {percent} %" : installing;
+                    return DirectInstallProgress.GetNotice(InstallingCopy.Id) ?? GetInstallingText(InstallingCopy.Id);
                 }
                 else if (Game?.IsUninstalling == true)
                 {
@@ -94,14 +92,14 @@ namespace Playnite.FullscreenApp.ViewModels
             Game = gameView;
             copies = Game.Copies.Select(a => a.Game).ToList();
             copies.ForEach(a => a.PropertyChanged += Game_PropertyChanged);
-            SteamInstallProgress.Changed += SteamInstallProgress_Changed;
+            DirectInstallProgress.Changed += DirectInstallProgress_Changed;
             InitializeCommands();
         }
 
         public void Dispose()
         {
             copies.ForEach(a => a.PropertyChanged -= Game_PropertyChanged);
-            SteamInstallProgress.Changed -= SteamInstallProgress_Changed;
+            DirectInstallProgress.Changed -= DirectInstallProgress_Changed;
         }
 
         private void Game_PropertyChanged(object sender, System.ComponentModel.PropertyChangedEventArgs e)
@@ -109,7 +107,14 @@ namespace Playnite.FullscreenApp.ViewModels
             OnPropertyChanged(nameof(ContextActionDescription));
         }
 
-        private void SteamInstallProgress_Changed(object sender, Guid game)
+        private string GetInstallingText(Guid game)
+        {
+            var percent = DirectInstallProgress.Get(game);
+            var installing = resources.GetString("LOCSetupRunning");
+            return percent > 0 ? $"{installing} {percent} %" : installing;
+        }
+
+        private void DirectInstallProgress_Changed(object sender, Guid game)
         {
             if (copies.Any(a => a.Id == game))
             {

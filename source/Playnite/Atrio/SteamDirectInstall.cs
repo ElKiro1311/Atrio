@@ -1,10 +1,9 @@
-using Microsoft.Win32;
+﻿using Microsoft.Win32;
 using Playnite.Common;
 using Playnite.SDK;
 using Playnite.SDK.Models;
 using Playnite.SDK.Plugins;
 using System;
-using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
@@ -341,86 +340,20 @@ namespace Playnite.Atrio
         }
     }
 
-    /// <summary>How the downloads started from Atrio are going, by the id of the game.</summary>
-    public static class SteamInstallProgress
+    /// <summary>Installs a game of Steam without opening Steam.</summary>
+    public class SteamDirectInstallController : DirectInstallController
     {
-        private static readonly ConcurrentDictionary<Guid, int> percents = new ConcurrentDictionary<Guid, int>();
-
-        public static event EventHandler<Guid> Changed;
-
-        public static int? Get(Guid game)
-        {
-            return percents.TryGetValue(game, out var percent) ? percent : (int?)null;
-        }
-
-        internal static void Set(Guid game, int? percent)
-        {
-            if (percent == null)
-            {
-                percents.TryRemove(game, out _);
-            }
-            else
-            {
-                percents[game] = percent.Value;
-            }
-
-            Changed?.Invoke(null, game);
-        }
-    }
-
-    /// <summary>
-    /// Installs a game of Steam without opening Steam. Whatever goes wrong ends in the install of the
-    /// add-on, which opens the window of the client: the worst case is what always happened.
-    /// </summary>
-    public class SteamDirectInstallController : InstallController
-    {
-        private const string AddonAssembly = "SteamLibrary";
-
         // How long the client gets to show that it took the order. It's usually a second or two.
         private static readonly TimeSpan startPatience = TimeSpan.FromSeconds(15);
         private static readonly TimeSpan checkPause = TimeSpan.FromSeconds(2);
 
-        private static readonly ILogger logger = LogManager.GetLogger();
-        private readonly InstallController store;
-        private readonly CancellationTokenSource watcher = new CancellationTokenSource();
-        private bool usesStore;
-
-        public SteamDirectInstallController(Game game, InstallController store) : base(game)
+        public SteamDirectInstallController(Game game, InstallController store) : base(game, store)
         {
-            this.store = store;
-            Name = store.Name;
         }
 
-        /// <summary>Only for what the add-on of Steam installs, others can have their own way of doing it.</summary>
-        public static InstallController Wrap(Game game, InstallController controller)
+        protected override async Task<bool> InstallDirectlyAsync(InstallActionArgs args)
         {
-            var isSteam = game.PluginId == SteamContent.SteamPluginId &&
-                          int.TryParse(game.GameId, out _) &&
-                          controller.GetType().Assembly.GetName().Name == AddonAssembly;
-            return isSteam && GameUnifier.Current?.Settings.SteamDirectInstall != false ? new SteamDirectInstallController(game, controller) : controller;
-        }
-
-        public override async void Install(InstallActionArgs args)
-        {
-            try
-            {
-                SteamInstallProgress.Set(Game.Id, 0);
-                if (await SteamRemoteInstall.RequestAsync(Game.GameId, watcher.Token) && await WatchInstallAsync())
-                {
-                    return;
-                }
-            }
-            catch (OperationCanceledException)
-            {
-                return;
-            }
-            catch (Exception e) when (!PlayniteEnvironment.ThrowAllErrors)
-            {
-                logger.Warn(e, $"Failed to install {Game.GameId} directly.");
-            }
-
-            SteamInstallProgress.Set(Game.Id, null);
-            UseStore(args);
+            return await SteamRemoteInstall.RequestAsync(Game.GameId, Cancellation) && await WatchInstallAsync();
         }
 
         /// <summary>False if the client never showed that it took the order.</summary>
@@ -431,11 +364,11 @@ namespace Playnite.Atrio
             var missing = 0;
             while (true)
             {
-                await Task.Delay(checkPause, watcher.Token);
+                await Task.Delay(checkPause, Cancellation);
                 SteamAppManifest manifest;
                 try
                 {
-                    manifest = await Task.Run(() => SteamClientFiles.FindManifest(Game.GameId), watcher.Token);
+                    manifest = await Task.Run(() => SteamClientFiles.FindManifest(Game.GameId), Cancellation);
                 }
                 catch (IOException)
                 {
@@ -447,14 +380,13 @@ namespace Playnite.Atrio
                     if (seen && ++missing > 1)
                     {
                         // Cancelled from Steam, the client removes everything about the game.
-                        SteamInstallProgress.Set(Game.Id, null);
-                        InvokeOnInstallationCancelled(new GameInstallationCancelledEventArgs());
+                        Abandon();
                         return true;
                     }
 
                     if (!seen && DateTime.Now - ordered > startPatience)
                     {
-                        logger.Warn($"The Steam client didn't start to install {Game.GameId}.");
+                        Logger.Warn($"The Steam client didn't start to install {Game.GameId}.");
                         return false;
                     }
 
@@ -465,40 +397,12 @@ namespace Playnite.Atrio
                 missing = 0;
                 if (manifest.IsInstalled)
                 {
-                    SteamInstallProgress.Set(Game.Id, null);
-                    InvokeOnInstalled(new GameInstalledEventArgs(new GameInstallationData { InstallDirectory = manifest.InstallPath }));
+                    Finish(manifest.InstallPath);
                     return true;
                 }
 
-                SteamInstallProgress.Set(Game.Id, manifest.Percent);
+                DirectInstallProgress.Set(Game.Id, manifest.Percent);
             }
-        }
-
-        private void UseStore(InstallActionArgs args)
-        {
-            usesStore = true;
-            if (AtrioInfo.GetTestSetting("ATRIO_SIN_TIENDA") != null)
-            {
-                logger.Info("Test run: the store would open now.");
-                InvokeOnInstallationCancelled(new GameInstallationCancelledEventArgs());
-                return;
-            }
-
-            store.Installed += (_, e) => InvokeOnInstalled(e);
-            store.InstallCancelled += (_, e) => InvokeOnInstallationCancelled(e);
-            store.Install(args);
-        }
-
-        public override void Dispose()
-        {
-            watcher.Cancel();
-            SteamInstallProgress.Set(Game.Id, null);
-            if (usesStore)
-            {
-                store.Dispose();
-            }
-
-            base.Dispose();
         }
     }
 }

@@ -109,11 +109,19 @@ namespace Playnite.FullscreenApp.Controls.SettingsSections
                 UpdateSourceTrigger.PropertyChanged);
 
             var unifier = Playnite.Atrio.GameUnifier.Current;
-            ToggleSteamDirectInstall.Visibility = unifier == null ? Visibility.Collapsed : Visibility.Visible;
-            ToggleSteamDirectInstall.IsChecked = unifier?.Settings.SteamDirectInstall == true;
-            ToggleSteamDirectInstall.Click += (_, __) =>
+            ToggleDirectInstall.Visibility = unifier == null ? Visibility.Collapsed : Visibility.Visible;
+            ToggleDirectInstall.IsChecked = unifier?.Settings.DirectInstall == true;
+            ToggleDirectInstall.Click += (_, __) =>
             {
-                unifier.Settings.SteamDirectInstall = ToggleSteamDirectInstall.IsChecked == true;
+                unifier.Settings.DirectInstall = ToggleDirectInstall.IsChecked == true;
+                unifier.Settings.Save();
+            };
+
+            ToggleAcceptStoreTerms.Visibility = ToggleDirectInstall.Visibility;
+            ToggleAcceptStoreTerms.IsChecked = unifier?.Settings.AcceptStoreTerms == true;
+            ToggleAcceptStoreTerms.Click += (_, __) =>
+            {
+                unifier.Settings.AcceptStoreTerms = ToggleAcceptStoreTerms.IsChecked == true;
                 unifier.Settings.Save();
             };
         }

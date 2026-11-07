@@ -177,6 +177,25 @@ namespace Playnite.FullscreenApp.Atrio
                     Log("juego de Steam sin instalar: " + steamGame?.Name + " " + steamGame?.Game.GameId);
                     model.SelectedGame = steamGame;
                     break;
+                case "leerventana":
+                    Log(StoreWindows.Describe(argument));
+                    break;
+                case "juegotienda":
+                    var partes = argument.Split(' ');
+                    var tiendaGame = model.Database.Games.FirstOrDefault(a => a.PluginId.ToString().StartsWith(partes[0], StringComparison.OrdinalIgnoreCase) && a.GameId == partes[1]);
+                    Log("juego: " + tiendaGame?.Name + " " + tiendaGame?.GameId + " instalado=" + tiendaGame?.IsInstalled);
+                    tiendaGame.IsInstalled = false;
+                    model.Database.Games.Update(tiendaGame);
+                    var entrada = model.GamesView.Items.FirstOrDefault(a => a.Id == tiendaGame.Id || a.Copies.Any(b => b.Game.Id == tiendaGame.Id));
+                    model.SelectedGame = entrada;
+                    juegoDirecto = tiendaGame;
+                    break;
+                case "instalarjuego":
+                    Later(() => model.InstallGame(juegoDirecto));
+                    break;
+                case "esperainstalado":
+                    await EsperaInstalado(model, int.Parse(argument));
+                    break;
                 case "instalar":
                     Later(() => model.InstallGame(model.SelectedGame.Game));
                     break;
@@ -209,6 +228,32 @@ namespace Playnite.FullscreenApp.Atrio
         }
 
         // The menus are modal: they need the script to go on while they stay open.
+        private static Playnite.SDK.Models.Game juegoDirecto;
+
+        private static async Task EsperaInstalado(FullscreenAppViewModel model, int seconds)
+        {
+            var end = DateTime.Now.AddSeconds(seconds);
+            var last = string.Empty;
+            while (DateTime.Now < end)
+            {
+                await Task.Delay(1000);
+                var game = model.Database.Games.Get(juegoDirecto.Id);
+                var text = $"instalado={game.IsInstalled} instalando={game.IsInstalling} avance={DirectInstallProgress.Get(game.Id)} aviso={DirectInstallProgress.GetNotice(game.Id)} carpeta={game.InstallDirectory} accion={model.SelectedGameDetails?.ContextActionDescription}";
+                if (text != last)
+                {
+                    Log(text);
+                    last = text;
+                }
+
+                if (game.IsInstalled || !game.IsInstalling)
+                {
+                    return;
+                }
+            }
+
+            Log("fin de la espera");
+        }
+
         private static void Later(Action action)
         {
             Application.Current.Dispatcher.BeginInvoke(action, DispatcherPriority.Background);

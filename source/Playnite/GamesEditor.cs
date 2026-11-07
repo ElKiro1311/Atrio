@@ -1137,7 +1137,7 @@ namespace Playnite
                     return;
                 }
 
-                controller = Playnite.Atrio.SteamDirectInstallController.Wrap(game, controller);
+                controller = Playnite.Atrio.DirectInstall.Wrap(game, controller);
                 controllers.RemoveInstallController(game.Id);
                 controllers.AddController(controller);
                 UpdateGameState(game.Id, null, null, true, null, null);

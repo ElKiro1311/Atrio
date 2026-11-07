@@ -165,6 +165,19 @@ namespace Playnite.DesktopApp.ViewModels
             }
         }
 
+        private string GetInstallingText()
+        {
+            var copy = Game.Copies?.Select(a => a.Game).FirstOrDefault(a => a.IsInstalling) ?? Game.Game;
+            var percent = DirectInstallProgress.Get(copy.Id);
+            var installing = resources.GetString("LOCSetupRunning");
+            return DirectInstallProgress.GetNotice(copy.Id) ?? (percent > 0 ? $"{installing} {percent} %" : installing);
+        }
+
+        private void DirectInstallProgress_Changed(object sender, Guid game)
+        {
+            OnPropertyChanged(nameof(ContextActionDescription));
+        }
+
         public string ContextActionDescription
         {
             get
@@ -179,7 +192,7 @@ namespace Playnite.DesktopApp.ViewModels
                 }
                 else if (Game?.IsInstalling == true)
                 {
-                    return resources.GetString("LOCSetupRunning");
+                    return GetInstallingText();
                 }
                 else if (Game?.IsUninstalling == true)
                 {
@@ -661,6 +674,7 @@ namespace Playnite.DesktopApp.ViewModels
             }
 
             settings.PropertyChanged += Settings_PropertyChanged;
+            DirectInstallProgress.Changed += DirectInstallProgress_Changed;
         }
 
         private static readonly Tuple<string, string>[] steamPages = new[]
@@ -842,6 +856,7 @@ namespace Playnite.DesktopApp.ViewModels
 
         public void Dispose()
         {
+            DirectInstallProgress.Changed -= DirectInstallProgress_Changed;
             contentToken.Cancel();
             if (game != null)
             {

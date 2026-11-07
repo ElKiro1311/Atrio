@@ -35,9 +35,12 @@
                            Tag="{DynamicResource LOCSettingsMinimizeAfterStartingGameDescription}"/>
         <pctrls:CheckBoxEx x:Name="ToggleClearFiltersOnStartup"
                            Content="{DynamicResource LOCFiltersClearOnStartup}"/>
-        <pctrls:CheckBoxEx x:Name="ToggleSteamDirectInstall"
-                           Content="{DynamicResource LOCAtrioSteamDirectToggle}"
-                           Tag="{DynamicResource LOCAtrioSteamDirectHint}"/>
+        <pctrls:CheckBoxEx x:Name="ToggleDirectInstall"
+                           Content="{DynamicResource LOCAtrioDirectInstallToggle}"
+                           Tag="{DynamicResource LOCAtrioDirectInstallHint}"/>
+        <pctrls:CheckBoxEx x:Name="ToggleAcceptStoreTerms"
+                           Content="{DynamicResource LOCAtrioAcceptTermsToggle}"
+                           Tag="{DynamicResource LOCAtrioAcceptTermsHint}"/>
         <pctrls:CheckBoxEx x:Name="ToggleAsyncImageLoad"
                            Content="{DynamicResource LOCSettingsAsyncImageLoading}"
                            ContentStringFormat="{}{0} *"
