@@ -91,10 +91,20 @@ namespace Playnite.Tests
         [Test]
         public void EpicDialogEndsOnTheInstallButtonTest()
         {
-            var keys = EpicDirectInstallController.GetDialogKeys().ToList();
             CollectionAssert.AreEqual(
-                new[] { StoreWindows.TabKey, StoreWindows.TabKey, StoreWindows.TabKey, StoreWindows.TabKey, StoreWindows.SpaceKey, StoreWindows.TabKey, StoreWindows.EnterKey },
-                keys);
+                new[] { StoreWindows.TabKey, StoreWindows.TabKey, StoreWindows.TabKey, StoreWindows.TabKey, StoreWindows.SpaceKey },
+                EpicDirectInstallController.GetShortcutKeys().ToList());
+            CollectionAssert.AreEqual(
+                new[] { StoreWindows.TabKey, StoreWindows.EnterKey },
+                EpicDirectInstallController.GetInstallKeys().ToList());
+        }
+
+        [TestCase("AppInstallUriHandler: Install-location selector concluded for AppId x (accepted=true); navigating to Library", true)]
+        [TestCase("AppInstallUriHandler: Install-location selector concluded for AppId x (accepted=false); navigating to Library", false)]
+        [TestCase("LogHttp: nothing to do with it", null)]
+        public void EpicDialogAnswerComesFromItsLogTest(string line, bool? answer)
+        {
+            Assert.AreEqual(answer, EpicDirectInstallController.ReadDialogAnswer(line));
         }
 
         [Test]
@@ -126,6 +136,40 @@ namespace Playnite.Tests
                 var log = new LogFollower(file);
                 File.WriteAllText(file, "short\n");
                 Assert.IsTrue(log.ReadNew().Any(a => a.Contains("short")));
+            }
+            finally
+            {
+                File.Delete(file);
+            }
+        }
+
+        [Test]
+        public void LogFollowerNoticesANewLogEvenIfItIsBiggerTest()
+        {
+            var file = Path.GetTempFileName();
+            try
+            {
+                File.WriteAllText(file, "Log file open, 11/07/26 01:00:00\nold\n");
+                var log = new LogFollower(file);
+                File.WriteAllText(file, "Log file open, 11/07/26 02:00:00\n" + new string('x', 500) + "\nwanted line\n");
+                Assert.IsTrue(log.ReadNew().Any(a => a.Contains("wanted line")));
+            }
+            finally
+            {
+                File.Delete(file);
+            }
+        }
+
+        [Test]
+        public void LogFollowerWaitsForALogThatDoesNotExistYetTest()
+        {
+            var file = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".log");
+            try
+            {
+                var log = new LogFollower(file);
+                Assert.IsEmpty(log.ReadNew());
+                File.WriteAllText(file, "first line\n");
+                Assert.IsTrue(log.ReadNew().Any(a => a.Contains("first line")));
             }
             finally
             {
@@ -214,6 +258,32 @@ namespace Playnite.Tests
             Assert.IsTrue(AmazonDirectInstallController.AcceptDialog(AmazonDialog(shortcut, new FakeControl("Cancel", ButtonRole, 2), proceed)));
             Assert.AreEqual(0, shortcut.Presses);
             Assert.AreEqual(1, proceed.Presses);
+        }
+
+        [Test]
+        public void AmazonWaitsForTheDialogToFinishLoadingTest()
+        {
+            var cancel = new FakeControl("Cancel", ButtonRole, 2);
+            var loading = new List<StoreControl>
+            {
+                new FakeControl("Modal", DialogRole, 1),
+                new FakeControl(@"C:\Amazon Games", ButtonRole, 2),
+                new FakeControl("Create a desktop shortcut", CheckBoxRole, 2, CheckedState),
+                cancel
+            };
+
+            Assert.IsFalse(AmazonDirectInstallController.AcceptDialog(loading));
+            Assert.AreEqual(0, cancel.Presses);
+        }
+
+        [Test]
+        public void AmazonWaitsForTheButtonToBeEnabledTest()
+        {
+            var proceed = new FakeControl("Proceed", ButtonRole, 2, 0x1);
+            var shortcut = new FakeControl("Create a desktop shortcut", CheckBoxRole, 2, CheckedState);
+            Assert.IsFalse(AmazonDirectInstallController.AcceptDialog(AmazonDialog(shortcut, new FakeControl("Cancel", ButtonRole, 2), proceed)));
+            Assert.AreEqual(0, proceed.Presses);
+            Assert.AreEqual(0, shortcut.Presses);
         }
 
         [Test]
@@ -323,6 +393,35 @@ namespace Playnite.Tests
             var uploads = JArray.Parse(@"[{""id"":7,""type"":""html"",""platforms"":{}}]");
             Assert.AreEqual(7, ItchDirectInstallController.PickUpload(uploads)["id"].Value<int>());
             Assert.IsNull(ItchDirectInstallController.PickUpload(new JArray()));
+        }
+
+        [Test]
+        public void GogPrefersTheLanguageOfThePersonTest()
+        {
+            var downloads = JToken.Parse(@"{""installers"":[
+                {""id"":""a"",""os"":""mac"",""language"":""es""},
+                {""id"":""b"",""os"":""windows"",""language"":""en""},
+                {""id"":""c"",""os"":""windows"",""language"":""es""}]}");
+            Assert.AreEqual("c", GogDownloads.PickInstaller(downloads, "es")["id"].ToString());
+            Assert.AreEqual("b", GogDownloads.PickInstaller(downloads, "ja")["id"].ToString());
+        }
+
+        [Test]
+        public void GogTakesWhatThereIsForWindowsTest()
+        {
+            var downloads = JToken.Parse(@"{""installers"":[{""id"":""a"",""os"":""linux"",""language"":""en""},{""id"":""b"",""os"":""windows"",""language"":""pl""}]}");
+            Assert.AreEqual("b", GogDownloads.PickInstaller(downloads, "es")["id"].ToString());
+            Assert.IsNull(GogDownloads.PickInstaller(JToken.Parse(@"{""installers"":[{""os"":""linux""}]}"), "es"));
+            Assert.IsNull(GogDownloads.PickInstaller(null, "es"));
+        }
+
+        [Test]
+        public void GogChecksumComesFromItsListTest()
+        {
+            var text = @"<file name=""setup_game.exe"" available=""1"" notavailablemsg="""" md5=""0123456789ABCDEF0123456789abcdef"" chunks=""2"" timestamp=""2026"" total_size=""1"">";
+            Assert.AreEqual("0123456789abcdef0123456789abcdef", GogDownloads.ParseChecksum(text));
+            Assert.IsNull(GogDownloads.ParseChecksum("<file />"));
+            Assert.IsNull(GogDownloads.ParseChecksum(null));
         }
 
         [Test]

@@ -36,6 +36,7 @@ namespace Playnite.Atrio
     public class AmazonDirectInstallController : AssistedInstallController
     {
         private const string Process = "Amazon Games UI";
+        private const int MinDialogButtons = 3;
 
         private static readonly TimeSpan dialogPatience = TimeSpan.FromSeconds(90);
         private static readonly TimeSpan checkPause = TimeSpan.FromSeconds(1);
@@ -45,13 +46,16 @@ namespace Playnite.Atrio
         {
         }
 
-        /// <summary>The install dialog is the one with a checkbox and two buttons, the last one goes ahead.</summary>
+        /// <summary>
+        /// The install dialog has a checkbox and three buttons: the folder, cancel and go ahead. The last one
+        /// only appears when the app has read what the game needs, before that the last one is cancel.
+        /// </summary>
         public static bool AcceptDialog(List<StoreControl> controls)
         {
             var dialog = StoreDialogs.GetDialog(controls);
             var shortcut = dialog.FirstOrDefault(a => a.IsCheckBox);
             var buttons = dialog.Where(a => a.IsButton).ToList();
-            if (shortcut == null || buttons.Count < 2)
+            if (shortcut == null || buttons.Count < MinDialogButtons || !buttons.Last().IsEnabled)
             {
                 return false;
             }
@@ -356,6 +360,14 @@ namespace Playnite.Atrio
             return buttons[buttons.Count - 2];
         }
 
+        private static void PressIfEnabled(StoreControl control)
+        {
+            if (control.IsEnabled)
+            {
+                control.Press();
+            }
+        }
+
         private static void PressDownload(List<StoreControl> controls)
         {
             controls.FirstOrDefault(a => a.IsButton && a.Name != null && downloadNames.Contains(a.Name.Trim()))?.Press();
@@ -376,18 +388,25 @@ namespace Playnite.Atrio
                     }
                     else
                     {
-                        GetMainButton(dialog).Press();
+                        PressIfEnabled(GetMainButton(dialog));
                     }
 
                     break;
                 case EaStep.DownloadOptions:
-                    dialog.FirstOrDefault(a => a.IsCheckBox && a.IsChecked)?.Press();
-                    GetMainButton(dialog).Press();
+                    // The first one is the shortcut. The dialog can last for several rounds and the
+                    // second one, the automatic updates, is none of Atrio's business.
+                    var shortcut = dialog.First(a => a.IsCheckBox);
+                    if (shortcut.IsChecked)
+                    {
+                        shortcut.Press();
+                    }
+
+                    PressIfEnabled(GetMainButton(dialog));
                     break;
                 case EaStep.Terms:
                     if (DirectInstall.AcceptsStoreTerms)
                     {
-                        GetMainButton(dialog).Press();
+                        PressIfEnabled(GetMainButton(dialog));
                     }
 
                     break;

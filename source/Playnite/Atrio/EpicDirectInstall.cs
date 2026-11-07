@@ -125,13 +125,36 @@ namespace Playnite.Atrio
     /// <summary>Reads what a program adds to its log after a given moment.</summary>
     public class LogFollower
     {
+        private const int StartLength = 256;
+
         private readonly string path;
         private long position;
+        private byte[] start;
 
         public LogFollower(string path)
         {
             this.path = path;
-            position = File.Exists(path) ? new FileInfo(path).Length : 0;
+            if (File.Exists(path))
+            {
+                using (var stream = Open())
+                {
+                    position = stream.Length;
+                    start = ReadStart(stream);
+                }
+            }
+        }
+
+        private FileStream Open()
+        {
+            return new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete);
+        }
+
+        private static byte[] ReadStart(FileStream stream)
+        {
+            var bytes = new byte[Math.Min(StartLength, stream.Length)];
+            stream.Seek(0, SeekOrigin.Begin);
+            stream.Read(bytes, 0, bytes.Length);
+            return bytes;
         }
 
         public List<string> ReadNew()
@@ -141,14 +164,17 @@ namespace Playnite.Atrio
                 return new List<string>();
             }
 
-            using (var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete))
+            using (var stream = Open())
             {
-                // A program that starts leaves the old log aside and writes a new one.
-                if (stream.Length < position)
+                // A program that starts leaves the old log aside and writes a new one, which can be
+                // bigger than the old one by now. Its first line has the date and gives it away.
+                var current = ReadStart(stream);
+                if (start == null || stream.Length < position || !current.Take(start.Length).SequenceEqual(start.Take(current.Length)))
                 {
                     position = 0;
                 }
 
+                start = current;
                 stream.Seek(position, SeekOrigin.Begin);
                 using (var reader = new StreamReader(stream))
                 {
@@ -175,13 +201,17 @@ namespace Playnite.Atrio
         private static readonly TimeSpan checkPause = TimeSpan.FromSeconds(1);
         private static readonly TimeSpan dialogPause = TimeSpan.FromMilliseconds(1200);
         private static readonly TimeSpan keysPause = TimeSpan.FromMilliseconds(400);
+        private static readonly TimeSpan keysAnswerPatience = TimeSpan.FromSeconds(2);
 
         public EpicDirectInstallController(Game game, InstallController store) : base(game, store)
         {
         }
 
-        /// <summary>The order the dialog needs: leave the desktop without a shortcut and go to the install button.</summary>
-        public static IEnumerable<int> GetDialogKeys()
+        /// <summary>
+        /// The way to the shortcut box of the dialog. With the launcher just started the first key doesn't
+        /// count and this ends up pressing the install button, so the dialog can be over after these keys.
+        /// </summary>
+        public static IEnumerable<int> GetShortcutKeys()
         {
             for (var i = 0; i < TabsToShortcut; i++)
             {
@@ -189,8 +219,24 @@ namespace Playnite.Atrio
             }
 
             yield return StoreWindows.SpaceKey;
+        }
+
+        /// <summary>From the shortcut box to the install button.</summary>
+        public static IEnumerable<int> GetInstallKeys()
+        {
             yield return StoreWindows.TabKey;
             yield return StoreWindows.EnterKey;
+        }
+
+        /// <summary>Null while the dialog is open.</summary>
+        public static bool? ReadDialogAnswer(string logLine)
+        {
+            if (!logLine.Contains("selector concluded"))
+            {
+                return null;
+            }
+
+            return logLine.Contains("accepted=true");
         }
 
         private async Task<bool> WaitForLogAsync(LogFollower log, TimeSpan patience, Func<string, bool> wanted)
@@ -206,6 +252,17 @@ namespace Playnite.Atrio
             }
 
             return false;
+        }
+
+        private async Task<bool?> WaitForAnswerAsync(LogFollower log, TimeSpan patience)
+        {
+            bool? answer = null;
+            await WaitForLogAsync(log, patience, a =>
+            {
+                answer = ReadDialogAnswer(a) ?? answer;
+                return answer != null;
+            }).ConfigureAwait(false);
+            return answer;
         }
 
         protected override async Task<bool> InstallDirectlyAsync(InstallActionArgs args)
@@ -231,12 +288,23 @@ namespace Playnite.Atrio
             // The launcher already came up with the order, and its dialog ignores the keys when it isn't active.
             StoreWindows.Show(window);
             await Task.Delay(keysPause, Cancellation).ConfigureAwait(false);
-            foreach (var key in GetDialogKeys())
+            foreach (var key in GetShortcutKeys())
             {
                 StoreWindows.PostKey(window, key);
             }
 
-            var accepted = await WaitForLogAsync(log, answerPatience, a => a.Contains("selector concluded") && a.Contains("accepted=true")).ConfigureAwait(false);
+            var answer = await WaitForAnswerAsync(log, keysAnswerPatience).ConfigureAwait(false);
+            if (answer == null)
+            {
+                foreach (var key in GetInstallKeys())
+                {
+                    StoreWindows.PostKey(window, key);
+                }
+
+                answer = await WaitForAnswerAsync(log, answerPatience).ConfigureAwait(false);
+            }
+
+            var accepted = answer == true;
             if (!accepted)
             {
                 // The dialog of this game is different. It's there with everything filled in.

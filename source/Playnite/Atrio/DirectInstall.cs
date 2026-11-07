@@ -240,6 +240,11 @@ namespace Playnite.Atrio
                 return new EaDirectInstallController(game, controller);
             }
 
+            if (game.PluginId == GogPluginId && addon == "GogLibrary" && GogDirectInstallController.CanInstall(game))
+            {
+                return new GogDirectInstallController(game, controller);
+            }
+
             return controller;
         }
     }

@@ -90,8 +90,9 @@ namespace Playnite.Atrio
 
             var task = (Task)asTask.MakeGenericMethod(listType).Invoke(null, new[] { operation });
             await task.ConfigureAwait(false);
-            var items = (IEnumerable)task.GetType().GetProperty("Result").GetValue(task);
-            return items.Cast<object>().First(a => (string)Read(a, "ProductId") == productId);
+            // A bundle answers with one item for each of its parts.
+            var items = ((IEnumerable)task.GetType().GetProperty("Result").GetValue(task)).Cast<object>().ToList();
+            return items.FirstOrDefault(a => (string)Read(a, "ProductId") == productId) ?? items.First();
         }
 
         public StoreInstallStatus GetStatus(object item)

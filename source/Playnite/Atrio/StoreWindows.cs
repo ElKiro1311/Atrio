@@ -19,6 +19,7 @@ namespace Playnite.Atrio
         private const int Link = 30;
         private const int Dialog = 18;
         private const int CheckedState = 0x10;
+        private const int UnavailableState = 0x1;
 
         internal IAccessible Source { get; set; }
 
@@ -32,6 +33,7 @@ namespace Playnite.Atrio
         public bool IsLink => Role == Link;
         public bool IsDialog => Role == Dialog;
         public bool IsChecked => (State & CheckedState) != 0;
+        public bool IsEnabled => (State & UnavailableState) == 0;
 
         /// <summary>Does what a click on the control does, without the mouse and with the window in any state.</summary>
         public virtual void Press()
