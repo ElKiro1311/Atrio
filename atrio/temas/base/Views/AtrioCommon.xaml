@@ -20,4 +20,163 @@
     <Thickness x:Key="AtrioPageCornerMargin">0,0,14,4</Thickness>
     <Thickness x:Key="AtrioHomeMargin">28,18,0,32</Thickness>
     <Thickness x:Key="AtrioBrowserBarMargin">14,8,14,8</Thickness>
+
+    <!-- An achievement icon of a game page. A click opens what the achievement is about, right next to it. -->
+    <Style x:Key="AtrioAchievementIcon" TargetType="ToggleButton">
+        <Setter Property="OverridesDefaultStyle" Value="True" />
+        <Setter Property="Cursor" Value="Hand" />
+        <Setter Property="Focusable" Value="False" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="ToggleButton">
+                    <Grid Background="Transparent">
+                        <ContentPresenter />
+                        <Border x:Name="Outline" BorderThickness="2" BorderBrush="Transparent" CornerRadius="6" />
+                    </Grid>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="Outline" Property="BorderBrush" Value="{DynamicResource TextBrushDarker}" />
+                        </Trigger>
+                        <Trigger Property="IsChecked" Value="True">
+                            <Setter TargetName="Outline" Property="BorderBrush" Value="{DynamicResource GlyphBrush}" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- A small label inside the card of an achievement: points, trophy, missable... -->
+    <Style x:Key="AtrioAchievementChip" TargetType="Border">
+        <Setter Property="Background" Value="{DynamicResource AtrioCardBrush}" />
+        <Setter Property="CornerRadius" Value="@@radio@@" />
+        <Setter Property="Padding" Value="8,3,8,3" />
+        <Setter Property="Margin" Value="0,0,6,6" />
+    </Style>
+
+    <!-- What one achievement is: how to get it, whether the player has it and since when, and how rare it is.
+         It opens over the page, next to its icon, so nothing has to change to see it. -->
+    <DataTemplate x:Key="AtrioAchievementDetail">
+        <Border Margin="14" Width="360" Padding="18,16,18,14" BorderThickness="1" CornerRadius="@@radioTarjeta@@"
+                Background="{DynamicResource PopupBackgroundBrush}" BorderBrush="{DynamicResource PopupBorderBrush}"
+                TextElement.Foreground="{DynamicResource TextBrush}">
+            <Border.Effect>
+                <DropShadowEffect BlurRadius="24" ShadowDepth="5" Direction="270" Opacity="0.55" Color="Black" />
+            </Border.Effect>
+            <StackPanel>
+                <DockPanel>
+                    <Grid DockPanel.Dock="Left" Width="64" Height="64" Margin="0,0,14,0" VerticalAlignment="Top">
+                        <Image x:Name="Picture" Source="{Binding DisplayIcon, Converter={StaticResource AchievementIconConverter}}"
+                               Stretch="UniformToFill" RenderOptions.BitmapScalingMode="Fant" RoundedClip.Radius="8" />
+                    </Grid>
+                    <StackPanel VerticalAlignment="Center">
+                        <TextBlock Text="{Binding DisplayNameResolved}" FontSize="16" FontWeight="SemiBold" TextWrapping="Wrap"
+                                   FontFamily="{DynamicResource AtrioDisplayFont}" />
+                        <DockPanel Margin="0,5,0,0">
+                            <Ellipse x:Name="StateDot" DockPanel.Dock="Left" Width="8" Height="8" Margin="0,5,7,0" VerticalAlignment="Top"
+                                     Fill="{DynamicResource GlyphBrush}" />
+                            <TextBlock x:Name="State" FontSize="12" TextWrapping="Wrap" LineHeight="17"
+                                       Foreground="{DynamicResource GlyphBrush}">
+                                <TextBlock.Text>
+                                    <MultiBinding Converter="{StaticResource AchievementStateConverter}">
+                                        <Binding Path="Unlocked" />
+                                        <Binding Path="UnlockTimeLocal" />
+                                    </MultiBinding>
+                                </TextBlock.Text>
+                            </TextBlock>
+                        </DockPanel>
+                    </StackPanel>
+                </DockPanel>
+
+                <Border Height="1" Background="{DynamicResource AtrioBorderBrush}" Margin="0,14,0,12" />
+
+                <!-- How to get it, or that the game keeps it a secret until the player wants to know -->
+                <TextBlock Text="{DynamicResource LOCAtrioAchievementHowTo}" FontSize="11" FontWeight="SemiBold"
+                           Foreground="{DynamicResource TextBrushDarker}" Margin="0,0,0,4" />
+                <TextBlock x:Name="HowTo" Text="{Binding DescriptionResolved}" FontSize="14" TextWrapping="Wrap" LineHeight="20" />
+                <StackPanel x:Name="Secret" Visibility="Collapsed">
+                    <TextBlock Text="{DynamicResource LOCAtrioAchievementHiddenText}" FontSize="13" TextWrapping="Wrap"
+                               Foreground="{DynamicResource TextBrushDarker}" />
+                    <ToggleButton IsChecked="{Binding IsRevealed}" Margin="0,10,0,0" HorizontalAlignment="Left"
+                                  Content="{DynamicResource LOCAtrioAchievementReveal}" Style="{DynamicResource AtrioPill}" />
+                </StackPanel>
+
+                <!-- How far the player is, for the achievements that count something -->
+                <StackPanel Margin="0,12,0,0" Visibility="{Binding HasProgress, Converter={StaticResource BooleanToVisibilityConverter}}">
+                    <DockPanel>
+                        <TextBlock Text="{Binding ProgressText}" DockPanel.Dock="Right" FontSize="12" />
+                        <TextBlock Text="{DynamicResource LOCAtrioAchievementProgress}" FontSize="12" Foreground="{DynamicResource TextBrushDarker}" />
+                    </DockPanel>
+                    <ProgressBar Foreground="{DynamicResource GlyphBrush}" Height="4" Maximum="100" Margin="0,5,0,0"
+                                 Value="{Binding ProgressPercent, Mode=OneWay}" />
+                </StackPanel>
+
+                <!-- How rare it is -->
+                <DockPanel Margin="0,12,0,0" Visibility="{Binding HasRarityPercent, Converter={StaticResource BooleanToVisibilityConverter}}">
+                    <TextBlock Text="&#xE734;" FontFamily="{DynamicResource AtrioIconFont}" FontSize="13" Margin="0,2,8,0"
+                               DockPanel.Dock="Left" Foreground="{Binding RarityBrush}" VerticalAlignment="Top" />
+                    <TextBlock FontSize="12" TextWrapping="Wrap" Foreground="{DynamicResource TextBrushDarker}">
+                        <TextBlock.Text>
+                            <MultiBinding Converter="{StaticResource AchievementRarityConverter}">
+                                <Binding Path="Rarity" />
+                                <Binding Path="GlobalPercentUnlocked" />
+                            </MultiBinding>
+                        </TextBlock.Text>
+                    </TextBlock>
+                </DockPanel>
+
+                <!-- What else the store says about it -->
+                <WrapPanel Margin="0,12,0,0">
+                    <Border Style="{StaticResource AtrioAchievementChip}" Visibility="{Binding HasPoints, Converter={StaticResource BooleanToVisibilityConverter}}">
+                        <TextBlock FontSize="11" Text="{Binding PointsTextResolved, Converter={StaticResource AchievementPointsConverter}}" />
+                    </Border>
+                    <Border Style="{StaticResource AtrioAchievementChip}" Visibility="{Binding HasTrophyType, Converter={StaticResource BooleanToVisibilityConverter}}">
+                        <TextBlock FontSize="11" Text="{Binding TrophyTypeResolved, Converter={StaticResource AchievementTrophyConverter}}" />
+                    </Border>
+                    <Border Style="{StaticResource AtrioAchievementChip}" Visibility="{Binding IsMissable, Converter={StaticResource BooleanToVisibilityConverter}}">
+                        <TextBlock FontSize="11" Text="{DynamicResource LOCAtrioAchievementMissable}" Foreground="{DynamicResource WarningBrush}" />
+                    </Border>
+                    <Border Style="{StaticResource AtrioAchievementChip}" Visibility="{Binding IsUnobtainable, Converter={StaticResource BooleanToVisibilityConverter}}">
+                        <TextBlock FontSize="11" Text="{DynamicResource LOCAtrioAchievementUnobtainable}" Foreground="{DynamicResource WarningBrush}" />
+                    </Border>
+                    <Border Style="{StaticResource AtrioAchievementChip}" Visibility="{Binding IsHardcore, Converter={StaticResource BooleanToVisibilityConverter}}">
+                        <TextBlock FontSize="11" Text="{DynamicResource LOCAtrioAchievementHardcore}" />
+                    </Border>
+                </WrapPanel>
+
+                <!-- The note the player wrote in the add-on -->
+                <StackPanel Margin="0,4,0,0" Visibility="{Binding HasAchievementNote, Converter={StaticResource BooleanToVisibilityConverter}}">
+                    <TextBlock Text="{DynamicResource LOCAtrioAchievementNote}" FontSize="11" FontWeight="SemiBold"
+                               Foreground="{DynamicResource TextBrushDarker}" Margin="0,0,0,3" />
+                    <TextBlock Text="{Binding AchievementNote}" FontSize="13" TextWrapping="Wrap" Margin="0,0,0,8" />
+                </StackPanel>
+
+                <Button x:Name="Guide" Style="{DynamicResource AtrioGhostButton}" HorizontalAlignment="Left" MinHeight="30" FontSize="12"
+                        Padding="12,0,14,0" Margin="0,2,0,0"
+                        Command="{Binding DataContext.SearchAchievementGuideCommand, RelativeSource={RelativeSource AncestorType={x:Type GameOverview}}}"
+                        CommandParameter="{Binding DisplayNameResolved}">
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="&#xE721;" FontFamily="{DynamicResource AtrioIconFont}" FontSize="12" Margin="0,1,8,0" VerticalAlignment="Center" />
+                        <TextBlock Text="{DynamicResource LOCAtrioAchievementGuide}" VerticalAlignment="Center" />
+                    </StackPanel>
+                </Button>
+            </StackPanel>
+        </Border>
+        <DataTemplate.Triggers>
+            <DataTrigger Binding="{Binding Unlocked}" Value="False">
+                <Setter TargetName="StateDot" Property="Fill" Value="{DynamicResource TextBrushDarker}" />
+                <Setter TargetName="State" Property="Foreground" Value="{DynamicResource TextBrushDarker}" />
+            </DataTrigger>
+            <!-- A secret one tells nothing until the player asks for it, not even to a search -->
+            <MultiDataTrigger>
+                <MultiDataTrigger.Conditions>
+                    <Condition Binding="{Binding CanReveal}" Value="True" />
+                    <Condition Binding="{Binding IsRevealed}" Value="False" />
+                </MultiDataTrigger.Conditions>
+                <Setter TargetName="HowTo" Property="Visibility" Value="Collapsed" />
+                <Setter TargetName="Secret" Property="Visibility" Value="Visible" />
+                <Setter TargetName="Guide" Property="Visibility" Value="Collapsed" />
+            </MultiDataTrigger>
+        </DataTemplate.Triggers>
+    </DataTemplate>
 </ResourceDictionary>

@@ -266,6 +266,10 @@ namespace Playnite.DesktopApp.ViewModels
                 buttons.Children.Add(settings);
 
                 page.Children.Add(buttons);
+
+                // With the themes of Atrio the page of the add-on gets their look, and the buttons go into its header.
+                Atrio.AchievementsPageLook.HomeMargin = buttons.Margin;
+                Atrio.AchievementsPageLook.Register(page, buttons);
                 return new ContentControl { Content = page, Focusable = false };
             };
         }

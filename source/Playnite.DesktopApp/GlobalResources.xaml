@@ -24,7 +24,13 @@
     <pcon:HeroPictureConverter x:Key="HeroPictureConverter" />
     <pcon:RemoteImageConverter x:Key="RemoteImageConverter" />
     <pcon:AchievementPreviewConverter x:Key="AchievementPreviewConverter" />
-    <pcon:AchievementOverflowConverter x:Key="AchievementOverflowConverter" />
+    <pcon:AchievementMoreConverter x:Key="AchievementMoreConverter" />
+    <pcon:AchievementStateConverter x:Key="AchievementStateConverter" />
+    <pcon:AchievementRarityConverter x:Key="AchievementRarityConverter" />
+    <pcon:AchievementPointsConverter x:Key="AchievementPointsConverter" />
+    <pcon:AchievementTrophyConverter x:Key="AchievementTrophyConverter" />
+    <pcon:AchievementDateConverter x:Key="AchievementDateConverter" />
+    <pcon:AchievementPercentConverter x:Key="AchievementPercentConverter" />
     <pcon:AchievementMilestoneConverter x:Key="AchievementMilestoneConverter" />
     <pcon:AchievementListConverter x:Key="AchievementListConverter" />
     <pcon:AchievementProgressTextConverter x:Key="AchievementProgressTextConverter" />

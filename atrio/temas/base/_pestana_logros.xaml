@@ -11,17 +11,17 @@
                                 </StackPanel>
                             </Button>
 
-                            <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="0,14,12,14">
+                            <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="0,10,12,12">
                                 <TextBlock Text="{DynamicResource LOCAtrioAchievements}" Style="{DynamicResource AtrioPageTitle}" />
                                 <TextBlock Text="{Binding DataContext.Game.Name, RelativeSource={RelativeSource AncestorType={x:Type GameOverview}}}"
                                            Style="{DynamicResource AtrioCaption}" FontSize="16" Margin="14,0,0,4" VerticalAlignment="Bottom" />
                             </StackPanel>
 
-                            <UniformGrid DockPanel.Dock="Top" Rows="1" Margin="0,0,0,14">
+                            <UniformGrid DockPanel.Dock="Top" Rows="1" Margin="0,0,0,12">
                                 <!-- How far the player is -->
-                                <Border Style="{DynamicResource AtrioCard}" Margin="0,0,12,0">
+                                <Border Style="{DynamicResource AtrioCard}" Margin="0,0,12,0" Padding="14,12,14,12">
                                     <StackPanel>
-                                        <TextBlock Text="{Binding ProgressPercentage, StringFormat={}{0:0} %}" FontSize="40" FontWeight="SemiBold"
+                                        <TextBlock Text="{Binding ProgressPercentage, StringFormat={}{0:0} %}" FontSize="30" FontWeight="SemiBold"
                                                    FontFamily="{DynamicResource AtrioDisplayFont}" Foreground="{DynamicResource TextBrush}" />
                                         <TextBlock Style="{DynamicResource BaseTextBlockStyle}" FontSize="14">
                                             <TextBlock.Text>
@@ -32,7 +32,7 @@
                                                 </MultiBinding>
                                             </TextBlock.Text>
                                         </TextBlock>
-                                        <ProgressBar Foreground="{DynamicResource GlyphBrush}" Height="6" Maximum="100" Value="{Binding ProgressPercentage, Mode=OneWay}" Margin="0,8,0,10" />
+                                        <ProgressBar Foreground="{DynamicResource GlyphBrush}" Height="6" Maximum="100" Value="{Binding ProgressPercentage, Mode=OneWay}" Margin="0,6,0,8" />
                                         <DockPanel>
                                             <TextBlock Text="{Binding LockedCount}" DockPanel.Dock="Right" Style="{DynamicResource BaseTextBlockStyle}" FontSize="13" />
                                             <TextBlock Text="{DynamicResource LOCAtrioAchievementsLocked}" Style="{DynamicResource AtrioCaption}" />
@@ -41,13 +41,13 @@
                                 </Border>
 
                                 <!-- The ones worth remembering -->
-                                <Border Style="{DynamicResource AtrioCard}" Margin="0,0,12,0">
+                                <Border Style="{DynamicResource AtrioCard}" Margin="0,0,12,0" Padding="14,12,14,12">
                                     <StackPanel>
                                         <TextBlock Text="{DynamicResource LOCAtrioAchievementsMilestones}" Style="{DynamicResource AtrioSectionTitle}" FontSize="15" Margin="0,0,0,8" />
                                         <StackPanel Margin="0,0,0,7" DataContext="{Binding AllAchievementDisplayItems, Converter={StaticResource AchievementMilestoneConverter}, ConverterParameter=latest}"
                                                     Visibility="{Binding Converter={StaticResource NullToVisibilityConverter}}">
                                             <DockPanel>
-                                                <TextBlock Text="{Binding UnlockTimeText}" DockPanel.Dock="Right" Style="{DynamicResource AtrioCaption}" Margin="8,0,0,0" />
+                                                <TextBlock Text="{Binding UnlockTimeLocal, Converter={StaticResource AchievementDateConverter}}" DockPanel.Dock="Right" Style="{DynamicResource AtrioCaption}" Margin="8,0,0,0" />
                                                 <TextBlock Text="{DynamicResource LOCAtrioAchievementsLatest}" Style="{DynamicResource AtrioCaption}" />
                                             </DockPanel>
                                             <TextBlock Text="{Binding DisplayNameResolved}" Style="{DynamicResource BaseTextBlockStyle}" FontSize="13" TextTrimming="CharacterEllipsis" />
@@ -55,7 +55,7 @@
                                         <StackPanel Margin="0,0,0,7" DataContext="{Binding AllAchievementDisplayItems, Converter={StaticResource AchievementMilestoneConverter}, ConverterParameter=first}"
                                                     Visibility="{Binding Converter={StaticResource NullToVisibilityConverter}}">
                                             <DockPanel>
-                                                <TextBlock Text="{Binding UnlockTimeText}" DockPanel.Dock="Right" Style="{DynamicResource AtrioCaption}" Margin="8,0,0,0" />
+                                                <TextBlock Text="{Binding UnlockTimeLocal, Converter={StaticResource AchievementDateConverter}}" DockPanel.Dock="Right" Style="{DynamicResource AtrioCaption}" Margin="8,0,0,0" />
                                                 <TextBlock Text="{DynamicResource LOCAtrioAchievementsFirst}" Style="{DynamicResource AtrioCaption}" />
                                             </DockPanel>
                                             <TextBlock Text="{Binding DisplayNameResolved}" Style="{DynamicResource BaseTextBlockStyle}" FontSize="13" TextTrimming="CharacterEllipsis" />
@@ -63,7 +63,7 @@
                                         <StackPanel Margin="0,0,0,7" DataContext="{Binding AllAchievementDisplayItems, Converter={StaticResource AchievementMilestoneConverter}, ConverterParameter=rarest}"
                                                     Visibility="{Binding Converter={StaticResource NullToVisibilityConverter}}">
                                             <DockPanel>
-                                                <TextBlock Text="{Binding GlobalPercentText}" DockPanel.Dock="Right" Style="{DynamicResource AtrioCaption}" Margin="8,0,0,0" />
+                                                <TextBlock Text="{Binding GlobalPercentUnlocked, Converter={StaticResource AchievementPercentConverter}}" DockPanel.Dock="Right" Style="{DynamicResource AtrioCaption}" Margin="8,0,0,0" />
                                                 <TextBlock Text="{DynamicResource LOCAtrioAchievementsRarest}" Style="{DynamicResource AtrioCaption}" />
                                             </DockPanel>
                                             <TextBlock Text="{Binding DisplayNameResolved}" Style="{DynamicResource BaseTextBlockStyle}" FontSize="13" TextTrimming="CharacterEllipsis" />
@@ -85,7 +85,7 @@
                                 </Border>
 
                                 <!-- By rarity -->
-                                <Border Style="{DynamicResource AtrioCard}" Margin="0,0,12,0">
+                                <Border Style="{DynamicResource AtrioCard}" Margin="0,0,12,0" Padding="14,12,14,12">
                                     <StackPanel>
                                         <TextBlock Text="{DynamicResource LOCAtrioRarityTitle}" Style="{DynamicResource AtrioSectionTitle}" FontSize="15" Margin="0,0,0,8" />
                                         <DockPanel>
@@ -112,7 +112,7 @@
                                 </Border>
 
                                 <!-- By trophy, when the sources gave the game one -->
-                                <Border Style="{DynamicResource AtrioCard}" Margin="0,0,12,0"
+                                <Border Style="{DynamicResource AtrioCard}" Margin="0,0,12,0" Padding="14,12,14,12"
                                         Visibility="{Binding SelectedGameSummary.HasTrophyTypes, Converter={StaticResource BooleanToVisibilityConverter}, FallbackValue=Collapsed}">
                                     <StackPanel>
                                         <TextBlock Text="{DynamicResource LOCAtrioTrophyTitle}" Style="{DynamicResource AtrioSectionTitle}" FontSize="15" Margin="0,0,0,8" />
@@ -209,18 +209,19 @@
                                                     <ContentPresenter />
                                                 </ControlTemplate>
                                             </ToggleButton.Template>
-                                            <Border x:Name="Row" Height="76" Margin="0,0,12,8" Padding="12,8,16,8"
+                                            <Border x:Name="Row" Height="58" Margin="0,0,12,6" Padding="9,6,16,6"
                                                     CornerRadius="{DynamicResource AtrioCardRadius}" Background="{DynamicResource AtrioCardBrush}"
                                                     BorderThickness="1" BorderBrush="{DynamicResource AtrioBorderBrush}">
                                                 <DockPanel>
-                                                    <Image Source="{Binding DisplayIcon, Converter={StaticResource AchievementIconConverter}}" Width="58" Height="58"
-                                                           DockPanel.Dock="Left" Margin="0,0,14,0" Stretch="UniformToFill" RenderOptions.BitmapScalingMode="Fant" />
-                                                    <StackPanel DockPanel.Dock="Right" Width="210" VerticalAlignment="Center" Margin="16,0,0,0">
-                                                        <TextBlock Text="{Binding UnlockTimeText}" Style="{DynamicResource AtrioCaption}" HorizontalAlignment="Right" TextTrimming="CharacterEllipsis" />
-                                                        <TextBlock Text="{Binding GlobalPercentText}" Style="{DynamicResource AtrioCaption}" HorizontalAlignment="Right" />
+                                                    <Image Source="{Binding DisplayIcon, Converter={StaticResource AchievementIconConverter}}" Width="44" Height="44"
+                                                           DockPanel.Dock="Left" Margin="0,0,12,0" Stretch="UniformToFill" RenderOptions.BitmapScalingMode="Fant"
+                                                           RoundedClip.Radius="6" />
+                                                    <StackPanel DockPanel.Dock="Right" Width="180" VerticalAlignment="Center" Margin="16,0,0,0">
+                                                        <TextBlock Text="{Binding UnlockTimeLocal, Converter={StaticResource AchievementDateConverter}}" Style="{DynamicResource AtrioCaption}" HorizontalAlignment="Right" TextTrimming="CharacterEllipsis" />
+                                                        <TextBlock Text="{Binding GlobalPercentUnlocked, Converter={StaticResource AchievementPercentConverter}}" Style="{DynamicResource AtrioCaption}" HorizontalAlignment="Right" />
                                                     </StackPanel>
                                                     <StackPanel VerticalAlignment="Center">
-                                                        <TextBlock Text="{Binding DisplayNameResolved}" Style="{DynamicResource BaseTextBlockStyle}" FontSize="15"
+                                                        <TextBlock Text="{Binding DisplayNameResolved}" Style="{DynamicResource BaseTextBlockStyle}" FontSize="14"
                                                                    FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
                                                         <TextBlock Text="{Binding DescriptionResolved}" Style="{DynamicResource AtrioCaption}" TextTrimming="CharacterEllipsis" />
                                                     </StackPanel>

@@ -46,21 +46,38 @@ namespace Playnite.Converters
     }
 
     /// <summary>
-    /// The few achievements a game page has room for: the unlocked ones first, the newest on top.
-    /// The parameter is how many to keep.
+    /// The achievements a game page has room for: the unlocked ones first, the newest on top.
+    /// The parameter is how many to keep. As a multi binding, the second value says how many
+    /// instead, which grows each time the player asks for more.
     /// </summary>
-    public class AchievementPreviewConverter : IValueConverter
+    public class AchievementPreviewConverter : IValueConverter, IMultiValueConverter
     {
         public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
         {
-            return AchievementItems.Get(value).
+            return Take(value, System.Convert.ToInt32(parameter, CultureInfo.InvariantCulture));
+        }
+
+        public object Convert(object[] values, Type targetType, object parameter, CultureInfo culture)
+        {
+            var count = values?.Length > 1 && values[1] is int shown ? shown : System.Convert.ToInt32(parameter ?? 0, CultureInfo.InvariantCulture);
+            return Take(values?.Length > 0 ? values[0] : null, count);
+        }
+
+        private static List<object> Take(object list, int count)
+        {
+            return AchievementItems.Get(list).
                 OrderByDescending(AchievementItems.IsUnlocked).
                 ThenByDescending(AchievementItems.UnlockTime).
-                Take(System.Convert.ToInt32(parameter, CultureInfo.InvariantCulture)).
+                Take(count).
                 ToList();
         }
 
         public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
+        {
+            throw new NotSupportedException();
+        }
+
+        public object[] ConvertBack(object value, Type[] targetTypes, object parameter, CultureInfo culture)
         {
             throw new NotSupportedException();
         }
@@ -84,21 +101,6 @@ namespace Playnite.Converters
                 default:
                     return unlocked.OrderByDescending(AchievementItems.UnlockTime).FirstOrDefault();
             }
-        }
-
-        public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
-        {
-            throw new NotSupportedException();
-        }
-    }
-
-    /// <summary>The "+16" for the ones that didn't fit. Empty when all of them are on the page.</summary>
-    public class AchievementOverflowConverter : IValueConverter
-    {
-        public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
-        {
-            var hidden = (value as int? ?? 0) - System.Convert.ToInt32(parameter, CultureInfo.InvariantCulture);
-            return hidden > 0 ? string.Format(ResourceProvider.GetString("LOCAtrioAchievementsMore"), hidden) : string.Empty;
         }
 
         public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)

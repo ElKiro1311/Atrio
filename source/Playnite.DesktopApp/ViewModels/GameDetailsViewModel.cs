@@ -421,6 +421,19 @@ namespace Playnite.DesktopApp.ViewModels
             }
         }
 
+        private int achievementsShown = AchievementCard.FirstCount;
+
+        /// <summary>How many achievement icons the page shows. "Show more" makes it grow, and it starts again with each game.</summary>
+        public int AchievementsShown
+        {
+            get => achievementsShown;
+            private set
+            {
+                achievementsShown = value;
+                OnPropertyChanged();
+            }
+        }
+
         private string heroImage;
         public string HeroImage
         {
@@ -567,6 +580,12 @@ namespace Playnite.DesktopApp.ViewModels
         public RelayCommand<string> OpenPageCommand { get; }
         public RelayCommand<object> ShowAchievementsCommand { get; }
         public RelayCommand<object> HideAchievementsCommand { get; }
+
+        /// <summary>The parameter is how many achievements the game has.</summary>
+        public RelayCommand<object> MoreAchievementsCommand { get; }
+
+        /// <summary>The parameter is the name of the achievement.</summary>
+        public RelayCommand<string> SearchAchievementGuideCommand { get; }
         public RelayCommand<GameCopyEntry> StartCopyCommand { get; }
         public RelayCommand<GameCopyEntry> PreferCopyCommand { get; }
         public RelayCommand<GameCopyEntry> SplitCopyCommand { get; }
@@ -618,6 +637,19 @@ namespace Playnite.DesktopApp.ViewModels
             FriendsActionCommand = new RelayCommand<object>(_ => DesktopApplication.Current?.MainModel?.OpenInBrowser(friendsActionUrl));
             ShowAchievementsCommand = new RelayCommand<object>(_ => ShowAchievements = true);
             HideAchievementsCommand = new RelayCommand<object>(_ => ShowAchievements = false);
+            MoreAchievementsCommand = new RelayCommand<object>(total =>
+                AchievementsShown = AchievementCard.Next(AchievementsShown, total as int? ?? 0));
+            SearchAchievementGuideCommand = new RelayCommand<string>(name =>
+            {
+                try
+                {
+                    GlobalCommands.NavigateUrl(AchievementCard.GetGuideUrl(Game?.Name, name, resources.GetString("LOCAtrioAchievementGuideWords")));
+                }
+                catch (Exception e) when (!PlayniteEnvironment.ThrowAllErrors)
+                {
+                    logger.Error(e, "Failed to search for an achievement guide.");
+                }
+            });
             StartCopyCommand = new RelayCommand<GameCopyEntry>(StartCopy);
             PreferCopyCommand = new RelayCommand<GameCopyEntry>(a =>
             {

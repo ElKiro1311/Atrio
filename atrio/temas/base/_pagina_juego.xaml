@@ -465,11 +465,22 @@
                                         </StackPanel>
                                     </Border>
 
-                                    <!-- A short look at the achievements: all of them are one click away -->
+                                    <!-- The achievements of the game. The first ones are here, "Show more" brings the rest right below,
+                                         and a click on one tells what it is about without leaving the page. The full list is the advanced view. -->
                                     <Border Style="{DynamicResource AtrioCard}" Margin="0,0,0,14"
                                             Visibility="{PluginSettings Plugin=PlayniteAchievements, Path=HasAchievements, Converter={StaticResource BooleanToVisibilityConverter}, FallbackValue=Collapsed}">
                                         <StackPanel DataContext="{PluginSettings Plugin=PlayniteAchievements, Path=ModernTheme}">
-                                            <TextBlock Text="{DynamicResource LOCAtrioAchievements}" Style="{DynamicResource AtrioSectionTitle}" Margin="0,0,0,8" />
+                                            <DockPanel Margin="0,0,0,8">
+                                                <Button DockPanel.Dock="Right" Style="{DynamicResource AtrioIconLinkButton}" VerticalAlignment="Center"
+                                                        ToolTip="{DynamicResource LOCAtrioAchievementsAdvancedHint}"
+                                                        Command="{Binding DataContext.ShowAchievementsCommand, RelativeSource={RelativeSource AncestorType={x:Type GameOverview}}}">
+                                                    <StackPanel Orientation="Horizontal">
+                                                        <TextBlock Text="{DynamicResource LOCAtrioAchievementsAdvanced}" VerticalAlignment="Center" />
+                                                        <TextBlock Text="&#xE76C;" FontFamily="{DynamicResource AtrioIconFont}" FontSize="10" Margin="6,1,0,0" VerticalAlignment="Center" />
+                                                    </StackPanel>
+                                                </Button>
+                                                <TextBlock Text="{DynamicResource LOCAtrioAchievements}" Style="{DynamicResource AtrioSectionTitle}" Margin="0" />
+                                            </DockPanel>
                                             <TextBlock Style="{DynamicResource BaseTextBlockStyle}" FontSize="13">
                                                 <TextBlock.Text>
                                                     <MultiBinding Converter="{StaticResource AchievementProgressTextConverter}">
@@ -493,8 +504,13 @@
                                                 </StackPanel>
                                             </DockPanel>
 
-                                            <ItemsControl ItemsSource="{Binding AllAchievementDisplayItems, Converter={StaticResource AchievementPreviewConverter}, ConverterParameter=20}"
-                                                          Focusable="False" Margin="0,12,-6,0">
+                                            <ItemsControl Focusable="False" Margin="0,12,-6,0">
+                                                <ItemsControl.ItemsSource>
+                                                    <MultiBinding Converter="{StaticResource AchievementPreviewConverter}" ConverterParameter="20">
+                                                        <Binding Path="AllAchievementDisplayItems" />
+                                                        <Binding Path="DataContext.AchievementsShown" RelativeSource="{RelativeSource AncestorType={x:Type GameOverview}}" />
+                                                    </MultiBinding>
+                                                </ItemsControl.ItemsSource>
                                                 <ItemsControl.ItemsPanel>
                                                     <ItemsPanelTemplate>
                                                         <WrapPanel />
@@ -502,32 +518,50 @@
                                                 </ItemsControl.ItemsPanel>
                                                 <ItemsControl.ItemTemplate>
                                                     <DataTemplate>
-                                                        <Image x:Name="Icon" Source="{Binding DisplayIcon, Converter={StaticResource AchievementIconConverter}}"
-                                                               Width="48" Height="48" Margin="0,0,6,6" Stretch="UniformToFill" RenderOptions.BitmapScalingMode="Fant">
-                                                            <Image.ToolTip>
-                                                                <StackPanel MaxWidth="300">
-                                                                    <TextBlock Text="{Binding DisplayNameResolved}" FontWeight="SemiBold" TextWrapping="Wrap" />
-                                                                    <TextBlock Text="{Binding DescriptionResolved}" TextWrapping="Wrap" />
-                                                                    <TextBlock Text="{Binding UnlockTimeText}" Opacity="0.7" Margin="0,4,0,0" />
-                                                                </StackPanel>
-                                                            </Image.ToolTip>
-                                                        </Image>
+                                                        <Grid Margin="0,0,6,6">
+                                                            <ToggleButton x:Name="Icon" Style="{DynamicResource AtrioAchievementIcon}" ToolTip="{Binding DisplayNameResolved}">
+                                                                <Image x:Name="Picture" Source="{Binding DisplayIcon, Converter={StaticResource AchievementIconConverter}}"
+                                                                       Width="48" Height="48" Stretch="UniformToFill" RenderOptions.BitmapScalingMode="Fant"
+                                                                       RoundedClip.Radius="6" />
+                                                            </ToggleButton>
+                                                            <!-- Under the icon, a little to the left so that it lines up with the card of the icon -->
+                                                            <Popup x:Name="Detail" PlacementTarget="{Binding ElementName=Icon}" Placement="Bottom"
+                                                                   HorizontalOffset="-14" VerticalOffset="-8" StaysOpen="False" AllowsTransparency="True"
+                                                                   PopupAnimation="Fade" IsOpen="{Binding IsChecked, ElementName=Icon, Mode=TwoWay}">
+                                                                <ContentPresenter Content="{Binding}" ContentTemplate="{DynamicResource AtrioAchievementDetail}" />
+                                                            </Popup>
+                                                        </Grid>
                                                         <DataTemplate.Triggers>
                                                             <DataTrigger Binding="{Binding Unlocked}" Value="False">
-                                                                <Setter TargetName="Icon" Property="Opacity" Value="0.55" />
+                                                                <Setter TargetName="Picture" Property="Opacity" Value="0.55" />
                                                             </DataTrigger>
+                                                            <!-- With its card open, a click on the icon only closes it: otherwise it would open it again -->
+                                                            <Trigger SourceName="Detail" Property="IsOpen" Value="True">
+                                                                <Setter TargetName="Icon" Property="IsHitTestVisible" Value="False" />
+                                                                <Setter TargetName="Picture" Property="Opacity" Value="1" />
+                                                            </Trigger>
                                                         </DataTemplate.Triggers>
                                                     </DataTemplate>
                                                 </ItemsControl.ItemTemplate>
                                             </ItemsControl>
 
-                                            <DockPanel Margin="0,6,0,0">
-                                                <TextBlock Text="{Binding AchievementCount, Converter={StaticResource AchievementOverflowConverter}, ConverterParameter=20}"
-                                                           Style="{DynamicResource AtrioCaption}" VerticalAlignment="Center" />
-                                                <Button Style="{DynamicResource AtrioLinkButton}" HorizontalAlignment="Right"
-                                                        Content="{DynamicResource LOCAtrioAchievementsViewAll}"
-                                                        Command="{Binding DataContext.ShowAchievementsCommand, RelativeSource={RelativeSource AncestorType={x:Type GameOverview}}}" />
-                                            </DockPanel>
+                                            <!-- The rest comes right below, a few rows at a time, and goes away with one more click -->
+                                            <Button Style="{DynamicResource AtrioGhostButton}" Margin="0,6,0,0" MinHeight="32" FontSize="12" HorizontalAlignment="Stretch"
+                                                    Command="{Binding DataContext.MoreAchievementsCommand, RelativeSource={RelativeSource AncestorType={x:Type GameOverview}}}"
+                                                    CommandParameter="{Binding AchievementCount}">
+                                                <Button.Content>
+                                                    <MultiBinding Converter="{StaticResource AchievementMoreConverter}" ConverterParameter="20">
+                                                        <Binding Path="AchievementCount" />
+                                                        <Binding Path="DataContext.AchievementsShown" RelativeSource="{RelativeSource AncestorType={x:Type GameOverview}}" />
+                                                    </MultiBinding>
+                                                </Button.Content>
+                                                <Button.Visibility>
+                                                    <MultiBinding Converter="{StaticResource AchievementMoreConverter}" ConverterParameter="20">
+                                                        <Binding Path="AchievementCount" />
+                                                        <Binding Path="DataContext.AchievementsShown" RelativeSource="{RelativeSource AncestorType={x:Type GameOverview}}" />
+                                                    </MultiBinding>
+                                                </Button.Visibility>
+                                            </Button>
                                         </StackPanel>
                                     </Border>
 
