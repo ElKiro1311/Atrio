@@ -37,7 +37,7 @@
                 <RowDefinition Height="1*"/>
             </Grid.RowDefinitions>
 
-            <Border Background="{StaticResource ControlBackgroundDarkBrush}" CornerRadius="3"
+            <Border Background="{DynamicResource PanelBrush}" CornerRadius="20,20,0,0"
                     Grid.Column="1" Grid.Row="1">
                 <DockPanel>
                     <TextBlock Text="{DynamicResource LOCUpdaterChangesInfo}"
@@ -69,7 +69,7 @@
                 </DockPanel>
             </Border>
             <Border Grid.Column="1" Grid.Row="2"
-                    Background="{StaticResource ControlBackgroundDarkBrush}" CornerRadius="3">
+                    Background="{DynamicResource PanelBrush}" CornerRadius="0,0,20,20">
                 <DockPanel LastChildFill="False" Margin="20">
                     <ProgressBar Value="{Binding UpdateProgress}" Maximum="100" Height="35"
                              Visibility="{Binding ShowProgress, Converter={pcon:BooleanToVisibilityConverter}}"

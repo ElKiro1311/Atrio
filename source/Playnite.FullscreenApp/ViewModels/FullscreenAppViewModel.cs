@@ -1,4 +1,5 @@
 ﻿using Playnite.API;
+using Playnite.Atrio;
 using Playnite.Audio;
 using Playnite.Commands;
 using Playnite.Common;
@@ -19,6 +20,7 @@ using Playnite.Windows;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
+using System.Drawing.Imaging;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -29,6 +31,7 @@ using System.Windows.Controls;
 using System.Windows.Data;
 using System.Windows.Input;
 using System.Windows.Media;
+using System.Windows.Media.Imaging;
 
 namespace Playnite.FullscreenApp.ViewModels
 {
@@ -180,6 +183,7 @@ namespace Playnite.FullscreenApp.ViewModels
                 selectedGame = value;
                 OnPropertyChanged();
                 OnPropertyChanged(nameof(GameDetailsButtonVisible));
+                LoadGameArt(value);
 
                 if (!IsDisposing)
                 {
@@ -188,6 +192,124 @@ namespace Playnite.FullscreenApp.ViewModels
                         selectedGame == null ? null : new List<Game> { selectedGame.Game });
                 }
             }
+        }
+
+        private CancellationTokenSource gameArtLoad;
+
+        // Going through the list shouldn't download the art of every game on the way.
+        private const int GameArtPause = 250;
+
+        // How long the previous picture stays until the one of the game gets here.
+        private const int GameArtPatience = 400;
+
+        // The logo is seen at about 200 of the 1080 units of the view, and screens go up to twice that.
+        private const int LogoDecodeHeight = 400;
+
+        private object gameArt;
+        /// <summary>The picture of the selected game: its wide art from Steam, else its background.</summary>
+        public object GameArt
+        {
+            get => gameArt;
+            private set
+            {
+                gameArt = value;
+                OnPropertyChanged();
+            }
+        }
+
+        private BitmapSource logoImage;
+        public BitmapSource LogoImage
+        {
+            get => logoImage;
+            private set
+            {
+                logoImage = value;
+                OnPropertyChanged();
+                OnPropertyChanged(nameof(HasLogo));
+            }
+        }
+
+        public bool HasLogo => LogoImage != null;
+
+        private bool themeHasShowcase;
+        /// <summary>Themes made for the grid only have nowhere to put the art of the game.</summary>
+        public bool ThemeHasShowcase
+        {
+            get => themeHasShowcase;
+            set
+            {
+                themeHasShowcase = value;
+                OnPropertyChanged();
+                OnPropertyChanged(nameof(ShowcaseActive));
+            }
+        }
+
+        /// <summary>The list shows the art of the game over a single row of covers, it isn't a grid.</summary>
+        public bool ShowcaseActive =>
+            ThemeHasShowcase &&
+            AppSettings?.Fullscreen.ShowcaseView == true &&
+            ActiveFilterPreset != null &&
+            !DefaultFilterPresets.IsWholeLibrary(ActiveFilterPreset);
+
+        private async void LoadGameArt(GamesCollectionViewEntry game)
+        {
+            gameArtLoad?.Cancel();
+            var source = new CancellationTokenSource();
+            gameArtLoad = source;
+            var token = source.Token;
+            var appId = game == null ? null : SteamContent.GetAppId(game.Copies.Select(a => a.Game));
+            var hero = appId == null ? null : SteamContent.GetSavedArt(appId, SteamContent.WideHeroFile) ?? SteamContent.GetSavedArt(appId, SteamContent.HeroFile);
+            var logo = appId == null ? null : SteamContent.GetSavedLogo(appId);
+            if (hero != null)
+            {
+                GameArt = hero;
+            }
+            else if (appId == null)
+            {
+                GameArt = game?.DisplayBackgroundImageObject;
+            }
+
+            try
+            {
+                await ShowLogo(logo, token);
+                if (appId == null || (hero != null && logo != null))
+                {
+                    return;
+                }
+
+                await Task.Delay(GameArtPause, token);
+                var heroLoad = hero == null ? SteamContent.GetHeroAsync(appId, token) : Task.FromResult(hero);
+                var logoLoad = logo == null ? SteamContent.GetLogoAsync(appId, token) : Task.FromResult(logo);
+                await Task.WhenAny(heroLoad, Task.Delay(GameArtPatience, token));
+                token.ThrowIfCancellationRequested();
+                if (!heroLoad.IsCompleted)
+                {
+                    GameArt = game.DisplayBackgroundImageObject;
+                }
+
+                hero = await heroLoad;
+                GameArt = hero ?? game.DisplayBackgroundImageObject;
+                await ShowLogo(await logoLoad, token);
+            }
+            catch (OperationCanceledException)
+            {
+            }
+            catch (Exception e) when (!PlayniteEnvironment.ThrowAllErrors)
+            {
+                Logger.Warn(e, $"Failed to get the art of Steam game {appId}.");
+                if (!token.IsCancellationRequested && hero == null)
+                {
+                    GameArt = game.DisplayBackgroundImageObject;
+                }
+            }
+        }
+
+        private async Task ShowLogo(string path, CancellationToken token)
+        {
+            // Out of the way of the list, which is moving.
+            var logo = path == null ? null : await Task.Run(() => ImageSourceManager.GetImage(path, false, new BitmapLoadProperties(0, LogoDecodeHeight)), token);
+            token.ThrowIfCancellationRequested();
+            LogoImage = logo;
         }
 
         private bool gameListFocused = false;
@@ -398,6 +520,14 @@ namespace Playnite.FullscreenApp.ViewModels
 
             settings.Fullscreen.PropertyChanged += Fullscreen_PropertyChanged;
             settings.Fullscreen.FilterSettings.FilterChanged += FilterSettings_FilterChanged;
+            PropertyChanged += (_, e) =>
+            {
+                if (e.PropertyName == nameof(ActiveFilterPreset))
+                {
+                    OnPropertyChanged(nameof(ShowcaseActive));
+                }
+            };
+
             ThemeManager.ApplyFullscreenButtonPrompts(PlayniteApplication.CurrentNative, AppSettings.Fullscreen.ButtonPrompts);
             InitializeCommands();
             UpdateCursorSettings();
@@ -602,6 +732,10 @@ namespace Playnite.FullscreenApp.ViewModels
             else if (e.PropertyName == nameof(FullscreenSettings.ButtonPrompts))
             {
                 ThemeManager.ApplyFullscreenButtonPrompts(PlayniteApplication.CurrentNative, AppSettings.Fullscreen.ButtonPrompts);
+            }
+            else if (e.PropertyName == nameof(FullscreenSettings.ShowcaseView))
+            {
+                OnPropertyChanged(nameof(ShowcaseActive));
             }
             else if (e.PropertyName == nameof(FullscreenSettings.HideMouserCursor))
             {
@@ -1046,6 +1180,19 @@ namespace Playnite.FullscreenApp.ViewModels
             {
                 ActiveFilterPreset = Database.FilterPresets.FirstOrDefault(a => a.Id == AppSettings.Fullscreen.SelectedFilterPreset);
             }
+            else if (!AppSettings.Fullscreen.FilterSettings.IsActive)
+            {
+                ActiveFilterPreset = SortedFilterFullscreenPresets.FirstOrDefault();
+            }
+        }
+
+        protected override Game ChooseGameCopy(UnifiedGame group)
+        {
+            var copies = group.Copies.
+                Select(a => new SelectableNamedObject<Game>(a, GamesView.GetLibraryPlugin(a)?.Name ?? ResourceProvider.GetString("LOCAtrioManualStore"))).
+                ToList();
+            var question = group.Copies.Any(a => a.IsInstalled) ? "LOCAtrioChooserPlay" : "LOCAtrioChooserInstall";
+            return ItemSelector.SelectSingle(ResourceProvider.GetString(question), "", copies, out var selected) ? selected : null;
         }
 
         public override void SelectGame(Guid id, bool restoreView = false)
@@ -1200,7 +1347,7 @@ namespace Playnite.FullscreenApp.ViewModels
             if (ItemSelector.SelectSingle<FilterPreset>(
                 LOC.SettingsTopPanelFilterPresetsItem,
                 "",
-                Database.FilterPresets.OrderBy(a => a.Name).Select(a => new SelectableNamedObject<FilterPreset>(a, a.Name)).ToList(),
+                Database.FilterPresets.Select(a => new SelectableNamedObject<FilterPreset>(a, DefaultFilterPresets.GetName(a))).OrderBy(a => a.Name).ToList(),
                 out var selectedPreset))
             {
                 ActiveFilterPreset = selectedPreset;
@@ -1218,7 +1365,7 @@ namespace Playnite.FullscreenApp.ViewModels
             if (model.SelectedAction == RandomGameSelectAction.Play)
             {
                 SelectGame(model.SelectedGame.Id);
-                GamesEditor.PlayGame(model.SelectedGame, true);
+                StartGame(model.SelectedGame, true);
             }
             else if (model.SelectedAction == RandomGameSelectAction.Navigate)
             {

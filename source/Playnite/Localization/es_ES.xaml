@@ -1035,7 +1035,7 @@ Desactiva esta opción si utilizas herramientas que traducen las entradas del ma
     <sys:String x:Key="LOCSettingsFSSectionVisuals">Visuales</sys:String>
     <sys:String x:Key="LOCSettingsFSSectionAudio">Audio</sys:String>
     <sys:String x:Key="LOCSettingsFSSectionLayout">Disposición</sys:String>
-    <sys:String x:Key="LOCSettingsFSSectionMenus">Menus </sys:String>
+    <sys:String x:Key="LOCSettingsFSSectionMenus">Menús</sys:String>
     <sys:String x:Key="LOCSettingsFSSection">Entrada</sys:String>
     <sys:String x:Key="LOCGameIsStarting">{0} se está iniciando...</sys:String>
     <sys:String x:Key="LOCGameIsRunning">{0} se está ejecutando...</sys:String>
@@ -1378,6 +1378,10 @@ Abre un nuevo problema en la página de GitHub de Playnite con una solicitud par
     <sys:String x:Key="LOCAtrioThemeThirdParty">Tema de la comunidad</sys:String>
     <sys:String x:Key="LOCAtrioThemeFamilyOther">Otros temas</sys:String>
     <sys:String x:Key="LOCAtrioBack">Volver</sys:String>
+    <sys:String x:Key="LOCFiltersClearOnStartup">Borrar los filtros al iniciar</sys:String>
+    <sys:String x:Key="LOCAtrioFullscreenPreviousGame">Juego anterior</sys:String>
+    <sys:String x:Key="LOCAtrioFullscreenNextGame">Juego siguiente</sys:String>
+    <sys:String x:Key="LOCAtrioFullscreenShowcase">Mostrar la imagen del juego sobre una fila de portadas</sys:String>
     <sys:String x:Key="LOCAtrioBasedOn">Software libre con licencia MIT.</sys:String>
     <sys:String x:Key="LOCAtrioSearchHint">Buscar en tu biblioteca</sys:String>
     <sys:String x:Key="LOCAtrioViewDetails">Lista</sys:String>

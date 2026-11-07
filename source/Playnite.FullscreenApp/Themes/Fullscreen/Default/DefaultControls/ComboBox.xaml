@@ -4,24 +4,26 @@
     <Style TargetType="ComboBox">
         <Setter Property="FocusVisualStyle" Value="{x:Null}" />
         <Setter Property="Foreground" Value="{DynamicResource TextBrush}" />
-        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="Background" Value="{DynamicResource SurfaceBrush}" />
         <Setter Property="SnapsToDevicePixels" Value="True" />
-        <Setter Property="Padding" Value="12,5,12,5" />
+        <Setter Property="Padding" Value="18,9,44,9" />
         <Setter Property="HorizontalContentAlignment" Value="Left" />
         <Setter Property="VerticalContentAlignment" Value="Center" />
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="ComboBox">
-                    <Grid Background="{TemplateBinding Background}">
+                    <Grid>
+                        <Border x:Name="Body" Background="{TemplateBinding Background}" CornerRadius="{DynamicResource ControlRadius}" />
                         <ToggleButton x:Name="ToggleButton" Focusable="False" ClickMode="Press"
-                                      VerticalAlignment="Center" Margin="0,0,12,0"
+                                      VerticalAlignment="Stretch"
+                                      Foreground="{TemplateBinding Foreground}"
                                       IsChecked="{Binding Path=IsDropDownOpen, Mode=TwoWay, RelativeSource={RelativeSource TemplatedParent}}">
                             <ToggleButton.Template>
                                 <ControlTemplate TargetType="{x:Type ToggleButton}">
                                     <DockPanel LastChildFill="False" Background="Transparent">
-                                        <Viewbox DockPanel.Dock="Right" Height="20">
+                                        <Viewbox DockPanel.Dock="Right" Height="18" Margin="0,0,16,0">
                                             <TextBlock Text="&#xeab2;" FontFamily="{StaticResource FontIcoFont}"
-                                                       Foreground="{DynamicResource TextBrush}"
+                                                       Foreground="{TemplateBinding Foreground}"
                                                        FontSize="{DynamicResource FontSize}"
                                                        VerticalAlignment="Center"/>
                                         </Viewbox>
@@ -31,6 +33,8 @@
                         </ToggleButton>
 
                         <TextBlock Style="{DynamicResource TextBlockBaseStyle}"
+                                   FontFamily="{DynamicResource FontTitilliumWeb}"
+                                   Foreground="{TemplateBinding Foreground}"
                                    IsHitTestVisible="False"
                                    HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
                                    VerticalAlignment="{TemplateBinding VerticalContentAlignment}"
@@ -40,15 +44,16 @@
                                               ContentTemplate="{TemplateBinding SelectionBoxItemTemplate}"
                                               ContentTemplateSelector="{TemplateBinding ItemTemplateSelector}"/>
                         </TextBlock>
-         
+
                         <Popup x:Name="Popup" IsOpen="{TemplateBinding IsDropDownOpen}"
-                               Placement="Bottom" Focusable="False" AllowsTransparency="True">
+                               Placement="Bottom" Focusable="False" AllowsTransparency="True" VerticalOffset="6">
                             <Grid MaxHeight="{TemplateBinding MaxDropDownHeight}"
                                   MinWidth="{TemplateBinding ActualWidth}"
                                   SnapsToDevicePixels="{TemplateBinding SnapsToDevicePixels}">
-                                <Border BorderBrush="{DynamicResource SelectionLightBrush}"                                        
+                                <Border BorderBrush="{DynamicResource HairlineBrush}"
                                         Background="{DynamicResource ControlBackgroundDarkBrush}"
-                                        BorderThickness="2">
+                                        CornerRadius="{DynamicResource ControlRadius}"
+                                        BorderThickness="1" Padding="6">
                                     <ScrollViewer HorizontalScrollBarVisibility="Disabled"
                                                   VerticalScrollBarVisibility="Auto">
                                         <StackPanel IsItemsHost="True" KeyboardNavigation.DirectionalNavigation="Contained"/>
@@ -56,30 +61,17 @@
                                 </Border>
                             </Grid>
                         </Popup>
-
-                        <Border x:Name="BorderStandard"
-                                BorderBrush="{DynamicResource SelectionLightBrush}"
-                                BorderThickness="2" Margin="-2" />
-
-                        <Border x:Name="BorderFocus" Margin="-3" SnapsToDevicePixels="{TemplateBinding SnapsToDevicePixels}"
-                                BorderBrush="{DynamicResource SelectionBrush}"
-                                BorderThickness="3" Visibility="Hidden" />
                     </Grid>
                     <ControlTemplate.Triggers>
                         <Trigger Property="IsEnabled" Value="False">
-                            <Setter Property="Opacity" Value="0.5" />
-                        </Trigger>
-                        <Trigger Property="IsFocused" Value="True">
-                            <Setter Property="Background" Value="{DynamicResource ControlBackgroundDarkBrush}" />
-                            <Setter Property="Foreground" Value="Black" />
-                            <Setter Property="Visibility" Value="Visible" TargetName="BorderFocus" />
-                            <Setter Property="Visibility" Value="Hidden" TargetName="BorderStandard" />
+                            <Setter Property="Opacity" Value="0.4" />
                         </Trigger>
                         <Trigger Property="IsMouseOver" Value="True">
-                            <Setter Property="Background" Value="{DynamicResource ControlBackgroundDarkBrush}" />
-                            <Setter Property="Foreground" Value="Black" />
-                            <Setter Property="Visibility" Value="Visible" TargetName="BorderFocus" />
-                            <Setter Property="Visibility" Value="Hidden" TargetName="BorderStandard" />
+                            <Setter Property="Background" Value="{DynamicResource HoverBrush}" TargetName="Body" />
+                        </Trigger>
+                        <Trigger Property="IsFocused" Value="True">
+                            <Setter Property="Background" Value="{DynamicResource FocusBrush}" TargetName="Body" />
+                            <Setter Property="Foreground" Value="{DynamicResource FocusTextBrush}" />
                         </Trigger>
                     </ControlTemplate.Triggers>
                 </ControlTemplate>
@@ -92,35 +84,30 @@
         <Setter Property="Foreground" Value="{DynamicResource TextBrush}" />
         <Setter Property="Background" Value="Transparent" />
         <Setter Property="SnapsToDevicePixels" Value="True" />
-        <Setter Property="Padding" Value="12,5,12,5" />
+        <Setter Property="Padding" Value="14,7,14,7" />
         <Setter Property="HorizontalContentAlignment" Value="Left" />
         <Setter Property="VerticalContentAlignment" Value="Center" />
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="{x:Type ComboBoxItem}">
-                    <Grid Background="{TemplateBinding Background}" >
-                        <TextBlock Style="{DynamicResource TextBlockBaseStyle}"                                   
+                    <Grid>
+                        <Border x:Name="Body" Background="{TemplateBinding Background}" CornerRadius="8" />
+                        <TextBlock Style="{DynamicResource TextBlockBaseStyle}"
+                                   FontFamily="{DynamicResource FontTitilliumWeb}"
+                                   Foreground="{TemplateBinding Foreground}"
                                    HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
                                    VerticalAlignment="{TemplateBinding VerticalContentAlignment}"
                                    x:Name="TextContent" Margin="{TemplateBinding Padding}">
                             <ContentPresenter />
                         </TextBlock>
-
-                        <Border x:Name="BorderFocus"
-                                SnapsToDevicePixels="{TemplateBinding SnapsToDevicePixels}"
-                                BorderBrush="{DynamicResource SelectionBrush}"
-                                BorderThickness="3" Visibility="Hidden" />
                     </Grid>
                     <ControlTemplate.Triggers>
-                        <Trigger Property="IsFocused" Value="True">
-                            <Setter Property="Background" Value="{DynamicResource ControlBackgroundBrush}" />
-                            <Setter Property="Foreground" Value="Black" />
-                            <Setter Property="Visibility" Value="Visible" TargetName="BorderFocus" />
-                        </Trigger>
                         <Trigger Property="IsMouseOver" Value="True">
-                            <Setter Property="Background" Value="{DynamicResource ControlBackgroundBrush}" />
-                            <Setter Property="Foreground" Value="Black" />
-                            <Setter Property="Visibility" Value="Visible" TargetName="BorderFocus" />
+                            <Setter Property="Background" Value="{DynamicResource HoverBrush}" TargetName="Body" />
+                        </Trigger>
+                        <Trigger Property="IsFocused" Value="True">
+                            <Setter Property="Background" Value="{DynamicResource FocusBrush}" TargetName="Body" />
+                            <Setter Property="Foreground" Value="{DynamicResource FocusTextBrush}" />
                         </Trigger>
                     </ControlTemplate.Triggers>
                 </ControlTemplate>

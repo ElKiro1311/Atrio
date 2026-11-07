@@ -135,9 +135,9 @@ namespace Playnite.ViewModels
         {
             get
             {
-                return Database.GetSortedFilterPresets()
-                    .Where(a => a.ShowInFullscreeQuickSelection)
-                    .ToList();
+                return Playnite.Atrio.DefaultFilterPresets.Sort(
+                    Database.GetSortedFilterPresets().Where(a => a.ShowInFullscreeQuickSelection).ToList(),
+                    Database.GetFilterPresetsSettings()?.SortingOrder);
             }
         }
 
@@ -983,7 +983,37 @@ namespace Playnite.ViewModels
         /// </summary>
         protected virtual Game ResolveGameCopy(Game game)
         {
-            return game;
+            var unifier = GamesView?.Unifier;
+            var group = unifier?.GetGroup(game.Id);
+            if (group == null)
+            {
+                return game;
+            }
+
+            var active = group.Copies.FirstOrDefault(a => a.IsRunning || a.IsLaunching || a.IsInstalling || a.IsUninstalling);
+            if (active != null)
+            {
+                return active;
+            }
+
+            if (group.HasUserChoice)
+            {
+                return group.Primary;
+            }
+
+            var installed = group.Copies.Where(a => a.IsInstalled).ToList();
+            if (installed.Count == 1)
+            {
+                return installed[0];
+            }
+
+            return unifier.Settings.AskStoreOnStart ? ChooseGameCopy(group) : group.Primary;
+        }
+
+        /// <summary>Asks the user which copy to use. Returns null if the choice is cancelled.</summary>
+        protected virtual Game ChooseGameCopy(Playnite.Atrio.UnifiedGame group)
+        {
+            return group.Primary;
         }
 
         public void StartGame(Game game, bool launchedFromUI)

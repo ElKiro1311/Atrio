@@ -32,6 +32,14 @@ namespace Playnite.FullscreenApp.Controls.SettingsSections
         {
             InitializeComponent();
 
+            BindingTools.SetBinding(
+                ToggleShowcaseView,
+                CheckBox.IsCheckedProperty,
+                mainModel.AppSettings.Fullscreen,
+                nameof(FullscreenSettings.ShowcaseView),
+                BindingMode.TwoWay,
+                UpdateSourceTrigger.PropertyChanged);
+
             SliderColumns.Minimum = 1;
             SliderColumns.Maximum = 50;
             SliderColumns.TickFrequency = 1;

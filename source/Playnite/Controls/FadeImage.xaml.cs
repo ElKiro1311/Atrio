@@ -47,6 +47,14 @@ namespace Playnite.Controls
 
         public double SourceUpdateDelay { get; set; } = 0;
 
+        /// <summary>
+        /// <see cref="SourceUpdateDelay"/> applies only to a run of changes: the first one after a pause
+        /// is loaded at once. Going through a list doesn't load everything, a single step feels immediate.
+        /// </summary>
+        public bool DelayOnlyRuns { get; set; } = false;
+
+        private DateTime lastSourceChange = DateTime.MinValue;
+
         private double fadeSeconds = 0.5;
 
         /// <summary>How long a change of picture takes.</summary>
@@ -359,8 +367,11 @@ namespace Playnite.Controls
         {
             var control = (FadeImage)obj;
             control.newSource = args.NewValue;
+            var now = DateTime.UtcNow;
+            var afterPause = control.DelayOnlyRuns && (now - control.lastSourceChange).TotalMilliseconds > control.SourceUpdateDelay * 2;
+            control.lastSourceChange = now;
 
-            if (control.SourceUpdateDelay > 0)
+            if (control.SourceUpdateDelay > 0 && !afterPause)
             {
                 control.sourceChangeTimer.Enabled = false;
                 control.sourceChangeTimer.Interval = control.SourceUpdateDelay;

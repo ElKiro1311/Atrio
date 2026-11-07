@@ -26,8 +26,8 @@
         <Grid Height="1080" Width="1920" Name="GridMain">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="*" />
-                <ColumnDefinition Width="440" />
-                <ColumnDefinition Width="100" />
+                <ColumnDefinition Width="500" />
+                <ColumnDefinition Width="24" />
             </Grid.ColumnDefinitions>
             <Grid.RowDefinitions>
                 <RowDefinition Height="*" />
@@ -38,13 +38,13 @@
                     KeyboardNavigation.DirectionalNavigation="Cycle"
                     Style="{DynamicResource NotificationsMenuBorder}">
                 <StackPanel>
-                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="30,30,40,30">
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Left" Margin="16,24,16,18">
                         <TextBlock Text="{DynamicResource LOCNotifications}"
                                    Style="{DynamicResource NotificationsMenuHeaderText}" />
                         <TextBlock Text="&#xeea3;" FontFamily="{StaticResource FontIcoFont}"
                                    VerticalAlignment="Center"
                                    HorizontalAlignment="Center" Margin="2"
-                                   Foreground="{DynamicResource TextBrush}" FontSize="30"/>
+                                   Foreground="{DynamicResource TextBrushDark}" FontSize="26"/>
                     </StackPanel>
 
                     <pctrls:ButtonEx Content="{DynamicResource LOCDismissAll}"

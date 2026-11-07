@@ -15,9 +15,12 @@
             <Style TargetType="pctrls:SliderEx" BasedOn="{StaticResource SettingsSectionSlider}" />
         </StackPanel.Resources>
         
-        <pctrls:CheckBoxEx x:Name="ToggleHorizontalLayout"
-                           Content="{DynamicResource LOCSettingsFullscreenHorizontalScrolling}"
+        <pctrls:CheckBoxEx x:Name="ToggleShowcaseView"
+                           Content="{DynamicResource LOCAtrioFullscreenShowcase}"
                            pbeh:FocusBahaviors.OnVisibilityFocus="True"/>
+
+        <pctrls:CheckBoxEx x:Name="ToggleHorizontalLayout"
+                           Content="{DynamicResource LOCSettingsFullscreenHorizontalScrolling}" />
 
         <pctrls:CheckBoxEx x:Name="ToggleSmoothScrolling"
                            Content="{DynamicResource LOCSmoothScrolling}" />

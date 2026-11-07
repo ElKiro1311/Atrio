@@ -32,7 +32,8 @@
                 <RowDefinition Height="1*"/>
             </Grid.RowDefinitions>
 
-            <Border Background="{StaticResource ControlBackgroundDarkBrush}" CornerRadius="3"
+            <Border Background="{DynamicResource PanelBrush}" CornerRadius="{DynamicResource PanelRadius}"
+                    BorderBrush="{DynamicResource HairlineBrush}" BorderThickness="1"
                     Grid.Column="1" Grid.Row="1"
                     KeyboardNavigation.TabNavigation="Cycle"
                     KeyboardNavigation.DirectionalNavigation="Cycle">

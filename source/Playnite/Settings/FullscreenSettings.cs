@@ -76,6 +76,14 @@ namespace Playnite
         [JsonIgnore]
         public const FullscreenButtonPrompts DefaultButtonPrompts = FullscreenButtonPrompts.Xbox;
 
+        private bool showcaseView = true;
+        /// <summary>The lists of the top bar show the art of the game over a single row of covers.</summary>
+        public bool ShowcaseView
+        {
+            get => showcaseView;
+            set => SetValue(ref showcaseView, value);
+        }
+
         private bool isMusicMuted = false;
         [JsonIgnore]
         public bool IsMusicMuted

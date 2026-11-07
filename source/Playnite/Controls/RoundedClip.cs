@@ -1,7 +1,7 @@
 using System.Windows;
 using System.Windows.Media;
 
-namespace Playnite.DesktopApp.Controls
+namespace Playnite.Controls
 {
     /// <summary>
     /// Rounds the corners of any element, including images. Themes use it as

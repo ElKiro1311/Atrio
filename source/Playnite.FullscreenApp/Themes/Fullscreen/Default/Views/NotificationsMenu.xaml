@@ -2,22 +2,25 @@
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
 
     <Style x:Key="NotificationsMenuBorder" TargetType="Border">
-        <Setter Property="Background" Value="{DynamicResource OverlayMenuBackgroundBrush}" />
+        <Setter Property="Background" Value="{DynamicResource PanelBrush}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource HairlineBrush}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="CornerRadius" Value="{DynamicResource PanelRadius}" />
+        <Setter Property="Margin" Value="0,24,0,24" />
+        <Setter Property="Padding" Value="16,4,16,16" />
     </Style>
 
     <Style x:Key="NotificationsMenuItemButton" BasedOn="{StaticResource {x:Type ButtonEx}}" TargetType="ButtonEx">
-        <Setter Property="Margin" Value="10,5,10,5" />
-        <Setter Property="BorderThickness" Value="2" />
-    </Style>
-    
-    <Style x:Key="NotificationsMenuDismissButton" BasedOn="{StaticResource {x:Type ButtonEx}}" TargetType="ButtonEx">
-        <Setter Property="Margin" Value="10,5,10,20" />
+        <Setter Property="Margin" Value="0,4,0,4" />
     </Style>
 
-    <Style x:Key="NotificationsMenuHeaderText" BasedOn="{StaticResource TextBlockBaseStyle}" TargetType="TextBlock" >
-        <Setter Property="FontFamily" Value="{DynamicResource FontTitilliumWebBold}" />
-        <Setter Property="FontSize" Value="36" />
-        <Setter Property="HorizontalAlignment" Value="Right" />
-        <Setter Property="Margin" Value="0,0,20,0" />
+    <Style x:Key="NotificationsMenuDismissButton" BasedOn="{StaticResource {x:Type ButtonEx}}" TargetType="ButtonEx">
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="Margin" Value="0,2,0,14" />
+    </Style>
+
+    <Style x:Key="NotificationsMenuHeaderText" BasedOn="{StaticResource TextBlockCaptionStyle}" TargetType="TextBlock" >
+        <Setter Property="HorizontalAlignment" Value="Left" />
+        <Setter Property="Margin" Value="0,0,16,0" />
     </Style>
 </ResourceDictionary>

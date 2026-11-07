@@ -1383,6 +1383,9 @@ Open new issue on Playnite's GitHub page with a request to fix corruption in you
     <sys:String x:Key="LOCAtrioThemeThirdParty">Community theme</sys:String>
     <sys:String x:Key="LOCAtrioThemeFamilyOther">Other themes</sys:String>
     <sys:String x:Key="LOCAtrioBack">Back</sys:String>
+    <sys:String x:Key="LOCAtrioFullscreenPreviousGame">Previous game</sys:String>
+    <sys:String x:Key="LOCAtrioFullscreenNextGame">Next game</sys:String>
+    <sys:String x:Key="LOCAtrioFullscreenShowcase">Show the art of the game over a row of covers</sys:String>
     <sys:String x:Key="LOCAtrioBasedOn">Free software under the MIT license.</sys:String>
     <sys:String x:Key="LOCAtrioSearchHint">Search your library</sys:String>
     <sys:String x:Key="LOCAtrioViewDetails">List</sys:String>

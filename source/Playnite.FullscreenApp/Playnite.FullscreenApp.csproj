@@ -30,6 +30,13 @@
     <Resource Include="..\..\references\Fonts\**">
       <Link>Fonts\%(Filename)%(Extension)</Link>
     </Resource>
+    <Resource Include="..\..\atrio\temas\fuentes\Poppins-*.ttf">
+      <Link>Fonts\%(Filename)%(Extension)</Link>
+    </Resource>
+    <None Include="..\..\atrio\temas\fuentes\OFL-Poppins.txt">
+      <Link>Themes\Fullscreen\Default\OFL-Poppins.txt</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
   </ItemGroup>
 
   <ItemGroup>

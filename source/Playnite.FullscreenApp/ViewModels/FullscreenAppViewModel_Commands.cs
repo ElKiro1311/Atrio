@@ -239,11 +239,11 @@ namespace Playnite.FullscreenApp.ViewModels
             {
                 if (SelectedGame?.IsInstalled == true)
                 {
-                    GamesEditor.PlayGame(SelectedGame.Game, true);
+                    StartGame(SelectedGame.Game, true);
                 }
                 else if (SelectedGame?.IsInstalled == false)
                 {
-                    GamesEditor.InstallGame(SelectedGame.Game);
+                    InstallGame(SelectedGame.Game);
                 }
             }, (a) => Database?.IsOpen == true);
 

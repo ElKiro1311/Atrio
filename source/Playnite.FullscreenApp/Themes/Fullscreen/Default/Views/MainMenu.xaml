@@ -3,22 +3,28 @@
                     xmlns:pmrk="clr-namespace:Playnite.FullscreenApp.Markup;assembly=Playnite.FullscreenApp">
     
     <Style x:Key="MainMenuBorder" TargetType="Border">
-        <Setter Property="Background" Value="{DynamicResource OverlayMenuBackgroundBrush}" />
+        <Setter Property="Background" Value="{DynamicResource PanelBrush}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource HairlineBrush}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="CornerRadius" Value="{DynamicResource PanelRadius}" />
+        <Setter Property="Margin" Value="0,24,0,24" />
+        <Setter Property="Padding" Value="16,4,16,16" />
     </Style>
 
     <Style x:Key="MainMenuButton" BasedOn="{StaticResource {x:Type ButtonEx}}" TargetType="ButtonEx">
-        <Setter Property="Margin" Value="0,5,0,5" />
-        <Setter Property="Padding" Value="20,3,20,3" />
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="Margin" Value="0,2,0,2" />
+        <Setter Property="Padding" Value="18,7,22,7" />
         <Setter Property="HorizontalAlignment" Value="Stretch" />
         <Setter Property="HorizontalContentAlignment" Value="Left" />
     </Style>
 
     <DataTemplate x:Key="MainMenuHeaderTemplate">
-        <StackPanel Orientation="Horizontal" HorizontalAlignment="Left" Margin="20,30,40,30">
-            <Image Source="{pmrk:ThemeFile 'Images/applogo_clean.png'}" Height="48"
+        <StackPanel Orientation="Horizontal" HorizontalAlignment="Left" Margin="16,24,40,18">
+            <Image Source="{pmrk:ThemeFile 'Images/applogo_clean.png'}" Height="44"
                    RenderOptions.BitmapScalingMode="Fant" />
-            <TextBlock Text="Atrio" FontSize="36" Style="{DynamicResource TextBlockBaseStyle}"
-                       Margin="20,0,0,0"/>
+            <TextBlock Text="Atrio" Style="{DynamicResource TextBlockCaptionStyle}"
+                       VerticalAlignment="Center" Margin="16,0,0,0"/>
         </StackPanel>
     </DataTemplate>
 

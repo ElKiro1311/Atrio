@@ -95,6 +95,7 @@ namespace Playnite.FullscreenApp
                 return false;
             }
 
+            ApplyAccent();
             InstantiateApp();
             AppUriHandler = MainModel.ProcessUriRequest;
             MigrateDatabase();
@@ -108,6 +109,41 @@ namespace Playnite.FullscreenApp
             ProcessArguments();
             PropertyChanged += FullscreenApplication_PropertyChanged;
             return true;
+        }
+
+        /// <summary>The accent chosen for the desktop themes, this mode goes with them.</summary>
+        private void ApplyAccent()
+        {
+            var accent = Playnite.Atrio.AtrioSettings.Load().AccentColor;
+            if (accent.IsNullOrEmpty())
+            {
+                return;
+            }
+
+            try
+            {
+                var color = (System.Windows.Media.Color)System.Windows.Media.ColorConverter.ConvertFromString(accent);
+                var luminance = ((0.299 * color.R) + (0.587 * color.G) + (0.114 * color.B)) / 255;
+                var resources = CurrentNative.Resources;
+                resources["GlyphColor"] = color;
+                resources["GlyphLightColor"] = Mix(color, System.Windows.Media.Colors.White, 0.28);
+                if (luminance < 0.5)
+                {
+                    resources["PlayTextBrush"] = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Colors.White);
+                }
+            }
+            catch (FormatException e)
+            {
+                logger.Error(e, $"Failed to read accent color {accent}.");
+            }
+        }
+
+        private static System.Windows.Media.Color Mix(System.Windows.Media.Color first, System.Windows.Media.Color second, double amount)
+        {
+            return System.Windows.Media.Color.FromRgb(
+                (byte)(first.R + ((second.R - first.R) * amount)),
+                (byte)(first.G + ((second.G - first.G) * amount)),
+                (byte)(first.B + ((second.B - first.B) * amount)));
         }
 
         public override void InstantiateApp()
@@ -204,6 +240,15 @@ namespace Playnite.FullscreenApp
                 return;
             }
 
+#if ATRIO_BANCO
+            if (Atrio.AtrioCapturaCompleta.HasScript)
+            {
+                await Task.Delay(TimeSpan.FromSeconds(3));
+                await Atrio.AtrioCapturaCompleta.Run(MainModel);
+                Quit();
+                return;
+            }
+#endif
             await Task.Delay(TimeSpan.FromSeconds(9));
             var window = MainModel.Window.Window;
             var bitmap = new System.Windows.Media.Imaging.RenderTargetBitmap((int)window.ActualWidth, (int)window.ActualHeight, 96, 96, System.Windows.Media.PixelFormats.Pbgra32);

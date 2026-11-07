@@ -28,7 +28,7 @@
                             <Ellipse.Resources>
                                 <Storyboard x:Key="VisibleOn">
                                     <DoubleAnimation Storyboard.TargetProperty="(Rectangle.RenderTransform).(RotateTransform.Angle)"
-                                        To="360" Duration="0:0:05" RepeatBehavior="Forever" />
+                                        To="360" Duration="0:0:1.2" RepeatBehavior="Forever" />
                                 </Storyboard>
                                 <Storyboard x:Key="VisibleOff">
                                     <DoubleAnimation Storyboard.TargetProperty="(Rectangle.RenderTransform).(RotateTransform.Angle)"
@@ -73,7 +73,7 @@
                 <ControlTemplate TargetType="ContentControl">
                     <Image RenderOptions.BitmapScalingMode="Fant"
                        Stretch="Uniform"
-                       MaxHeight="200"
+                       MaxHeight="130"
                        Source="{ThemeFile 'Images/applogo_clean.png'}" />
                 </ControlTemplate>
             </Setter.Value>

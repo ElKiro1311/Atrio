@@ -19,9 +19,7 @@
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="Thumb">
-                    <Rectangle  Width="{TemplateBinding Width}" Height="Auto"
-                                Fill="{TemplateBinding Foreground}" />
-          
+                    <Ellipse Fill="{TemplateBinding Foreground}" />
                 </ControlTemplate>
             </Setter.Value>
         </Setter>
@@ -33,19 +31,21 @@
         <Setter Property="SnapsToDevicePixels" Value="True" />
         <Setter Property="Foreground" Value="{DynamicResource TextBrush}" />
         <Setter Property="HorizontalAlignment" Value="Stretch" />
-        <Setter Property="Height" Value="38" />
+        <Setter Property="Height" Value="44" />
         <Setter Property="Padding" Value="0" />
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="Slider">
                     <Grid Background="{TemplateBinding Background}">
-                        <Border Height="6" Background="{DynamicResource ControlBackgroundBrush}" />
-                        <Border Height="6" VerticalAlignment="Center" HorizontalAlignment="Left"
-                                Background="{DynamicResource GlyphBrush}" 
+                        <Border x:Name="BorderFocus" Margin="-12,0,-12,0" CornerRadius="{DynamicResource ControlRadius}"
+                                Background="{DynamicResource HoverBrush}" Visibility="Hidden" />
+                        <Border Height="6" CornerRadius="3" Background="{DynamicResource HoverBrush}" />
+                        <Border Height="6" CornerRadius="3" VerticalAlignment="Center" HorizontalAlignment="Left"
+                                Background="{DynamicResource PlayBrush}"
                                 Width="{Binding ActualWidth, ElementName=ButtonDecrease}" />
-                        <Track Grid.Row="1" x:Name="PART_Track" Margin="0,3,0,3" >
+                        <Track Grid.Row="1" x:Name="PART_Track">
                             <Track.Thumb>
-                                <Thumb Width="8" Foreground="{TemplateBinding Foreground}"
+                                <Thumb Width="24" Height="24" Foreground="{TemplateBinding Foreground}"
                                        Style="{DynamicResource SliderThumb}"/>
                             </Track.Thumb>
                             <Track.DecreaseRepeatButton>
@@ -59,21 +59,16 @@
                                               Command="Slider.IncreaseLarge" />
                             </Track.IncreaseRepeatButton>
                         </Track>
-                        <Border x:Name="BorderFocus" Margin="-3" SnapsToDevicePixels="{TemplateBinding SnapsToDevicePixels}"
-                                BorderBrush="{DynamicResource SelectionBrush}"
-                                BorderThickness="3" Visibility="Hidden" />
                     </Grid>
                     <ControlTemplate.Triggers>
                         <Trigger Property="IsFocused" Value="True">
-                            <Setter Property="Foreground" Value="{DynamicResource GlyphBrush}" />
                             <Setter Property="Visibility" Value="Visible" TargetName="BorderFocus" />
                         </Trigger>
                         <Trigger Property="IsMouseOver" Value="True">
-                            <Setter Property="Foreground" Value="{DynamicResource GlyphBrush}" />
                             <Setter Property="Visibility" Value="Visible" TargetName="BorderFocus" />
                         </Trigger>
                         <Trigger Property="IsEnabled" Value="False">
-                            <Setter Property="Opacity" Value="0.5" />
+                            <Setter Property="Opacity" Value="0.4" />
                         </Trigger>
                     </ControlTemplate.Triggers>
                 </ControlTemplate>

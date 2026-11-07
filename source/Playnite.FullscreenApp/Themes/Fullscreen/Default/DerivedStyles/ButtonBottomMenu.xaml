@@ -7,17 +7,21 @@
         <Setter Property="SnapsToDevicePixels" Value="True" />
         <Setter Property="VerticalAlignment" Value="Center" />
         <Setter Property="Focusable" Value="False" />
+        <Setter Property="Foreground" Value="{DynamicResource TextBrush}" />
+        <Setter Property="Margin" Value="0,0,32,0" />
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="ButtonEx">
-                    <Border Background="{TemplateBinding Background}"
-                            Margin="20,0,20,0">
+                    <Border Background="{TemplateBinding Background}" CornerRadius="{DynamicResource PillRadius}"
+                            Padding="{TemplateBinding Padding}">
                         <StackPanel Orientation="Horizontal">
                             <ContentControl ContentTemplate="{TemplateBinding InputHint}"
                                             Height="30" VerticalAlignment="Center"
-                                            Margin="0,0,10,0" Focusable="False"/>
+                                            Margin="0,0,11,0" Focusable="False"/>
                             <TextBlock Style="{DynamicResource TextBlockBaseStyle}"
                                        FontFamily="{DynamicResource FontTitilliumWeb}"
+                                       FontSize="20"
+                                       Foreground="{TemplateBinding Foreground}"
                                        VerticalAlignment="Center">
                                 <ContentPresenter />
                             </TextBlock>
@@ -26,5 +30,12 @@
                 </ControlTemplate>
             </Setter.Value>
         </Setter>
+    </Style>
+
+    <!-- Playing is what this view is for -->
+    <Style x:Key="ButtonBottomPrimary" TargetType="ButtonEx" BasedOn="{StaticResource ButtonBottomMenu}">
+        <Setter Property="Background" Value="{DynamicResource PlayBrush}" />
+        <Setter Property="Foreground" Value="{DynamicResource PlayTextBrush}" />
+        <Setter Property="Padding" Value="9,8,26,8" />
     </Style>
 </ResourceDictionary>

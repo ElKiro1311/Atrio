@@ -21,6 +21,8 @@ namespace Playnite.FullscreenApp.Controls
 
         public static int InputRepeatInterval { get; set; } = 150;
 
+        private const int RowPage = 5;
+
         static ListBoxEx()
         {
             DefaultStyleKeyProperty.OverrideMetadata(typeof(ListBoxEx), new FrameworkPropertyMetadata(typeof(ListBoxEx)));
@@ -59,7 +61,27 @@ namespace Playnite.FullscreenApp.Controls
                 keyRepeatTimer.Stop();
                 keyRepeatTimer.Interval = InputRepeatInterval;
                 keyRepeatTimer.Start();
+
+                // In a row the selected game is always in the same place: a page has to move the selection too.
+                if (itemsPanel?.Showcase == true && (e.Key == Key.PageDown || e.Key == Key.PageUp))
+                {
+                    SelectItemInRow(SelectedIndex + (e.Key == Key.PageDown ? RowPage : -RowPage));
+                    e.Handled = true;
+                }
             }
+        }
+
+        private void SelectItemInRow(int index)
+        {
+            if (Items.Count == 0)
+            {
+                return;
+            }
+
+            SelectedIndex = Math.Max(0, Math.Min(index, Items.Count - 1));
+            itemsPanel.ShowItem(SelectedItem);
+            UpdateLayout();
+            (ItemContainerGenerator.ContainerFromIndex(SelectedIndex) as UIElement)?.Focus();
         }
 
         private void ListBoxEx_MouseWheel(object sender, MouseWheelEventArgs e)
@@ -93,7 +115,7 @@ namespace Playnite.FullscreenApp.Controls
                     InputManager.Current.PrimaryKeyboardDevice,
                     Keyboard.PrimaryDevice.ActiveSource,
                     e.Timestamp,
-                    itemsPanel.UseHorizontalLayout ? Key.Right : Key.Down);
+                    itemsPanel.IsHorizontal ? Key.Right : Key.Down);
                 eventArgs.RoutedEvent = Keyboard.KeyDownEvent;
                 OnKeyDown(eventArgs);
                 eventArgs.RoutedEvent = Keyboard.KeyUpEvent;
@@ -105,7 +127,7 @@ namespace Playnite.FullscreenApp.Controls
                     InputManager.Current.PrimaryKeyboardDevice,
                     Keyboard.PrimaryDevice.ActiveSource,
                     e.Timestamp,
-                    itemsPanel.UseHorizontalLayout ? Key.Left : Key.Up);
+                    itemsPanel.IsHorizontal ? Key.Left : Key.Up);
                 eventArgs.RoutedEvent = Keyboard.KeyDownEvent;
                 OnKeyDown(eventArgs);
                 eventArgs.RoutedEvent = Keyboard.KeyUpEvent;

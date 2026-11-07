@@ -150,7 +150,7 @@ namespace Playnite.FullscreenApp.Controls.Views
                 mainModel,
                 nameof(mainModel.ActiveFilterPreset),
                 mode: BindingMode.TwoWay);
-            ComboFilterPresets.DisplayMemberPath = nameof(FilterPreset.Name);
+            ComboFilterPresets.SetResourceReference(ComboBox.ItemTemplateProperty, "FilterPresetItemTemplate");
             PanelItemsHost.Items.Add(ComboFilterPresets);
             AutomationProperties.SetName(ComboFilterPresets, LOC.SettingsTopPanelFilterPresetsItem.GetLocalized());
 

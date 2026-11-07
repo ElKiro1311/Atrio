@@ -165,7 +165,7 @@
                         <pctrls:ButtonEx Grid.Row="2" Grid.Column="6" Content="j" />
                         <pctrls:ButtonEx Grid.Row="2" Grid.Column="7" Content="k" />
                         <pctrls:ButtonEx Grid.Row="2" Grid.Column="8" Content="l" />
-                        <pctrls:ButtonEx Grid.Row="2" Grid.Column="9" Content="-" />
+                        <pctrls:ButtonEx Grid.Row="2" Grid.Column="9" Content="ñ" />
 
                         <pctrls:ButtonEx Grid.Row="3" Grid.Column="0" Content="z" />
                         <pctrls:ButtonEx Grid.Row="3" Grid.Column="1" Content="x" />
@@ -174,7 +174,7 @@
                         <pctrls:ButtonEx Grid.Row="3" Grid.Column="4" Content="b" />
                         <pctrls:ButtonEx Grid.Row="3" Grid.Column="5" Content="n" />
                         <pctrls:ButtonEx Grid.Row="3" Grid.Column="6" Content="m" />
-                        <pctrls:ButtonEx Grid.Row="3" Grid.Column="7" Content=";" />
+                        <pctrls:ButtonEx Grid.Row="3" Grid.Column="7" Content="-" />
                         <pctrls:ButtonEx Grid.Row="3" Grid.Column="8" Content=":" />
                         <pctrls:ButtonEx Grid.Row="3" Grid.Column="9" Content="!" />
                         <pctrls:ButtonEx Grid.Row="3" Grid.Column="10" Grid.RowSpan="2" Command="{Binding CancelCommand}">

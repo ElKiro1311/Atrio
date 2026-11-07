@@ -33,15 +33,15 @@
     <Viewbox>
         <Grid Name="GridMain" Height="1080" Width="1920">
             <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="2*" />
-                <ColumnDefinition Width="3*" />
-                <ColumnDefinition Width="400" />
-                <ColumnDefinition Width="100" />
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="4*" />
+                <ColumnDefinition Width="440" />
+                <ColumnDefinition Width="24" />
             </Grid.ColumnDefinitions>
             <Grid.RowDefinitions>
-                <RowDefinition Height="150" />
+                <RowDefinition Height="24" />
                 <RowDefinition Height="*" />
-                <RowDefinition Height="150" />
+                <RowDefinition Height="24" />
             </Grid.RowDefinitions>
 
             <Border Grid.Column="2" Grid.RowSpan="3"
@@ -74,16 +74,17 @@
                     <pctrls:ButtonEx ContentTemplate="{DynamicResource SettingsMenuInputButtonTemplate}" CommandParameter="4"
                                      AutomationProperties.Name="{DynamicResource LOCSettingsFSSection}" />
 
-                    <TextBlock Style="{StaticResource TextBlockBaseStyle}"
+                    <TextBlock Style="{StaticResource TextBlockSecondaryStyle}"
+                               FontSize="{DynamicResource FontSizeSmall}" TextWrapping="Wrap"
                                Text="{DynamicResource LOCSettingsRestartNotification}"
                                Visibility="{Binding IsSubMenuOpened, Converter={StaticResource BooleanToVisibilityConverter}}"
-                               HorizontalAlignment="Right"
-                               Margin="10,20,20,0"/>
+                               Margin="18,20,18,0"/>
 
                     <TextBlock Text="{Binding OptionDescription}"
-                               Margin="20,50,20,10" TextWrapping="Wrap">
+                               Margin="18,40,18,10" TextWrapping="Wrap">
                         <TextBlock.Style>
-                            <Style TargetType="TextBlock" BasedOn="{StaticResource TextBlockBaseStyle}">
+                            <Style TargetType="TextBlock" BasedOn="{StaticResource TextBlockSecondaryStyle}">
+                                <Setter Property="FontSize" Value="{DynamicResource FontSizeSmall}" />
                                 <Setter Property="Visibility" Value="Visible" />
                                 <Style.Triggers>
                                     <DataTrigger Binding="{Binding OptionDescription}" Value="{x:Null}">
@@ -107,7 +108,7 @@
                     </Style>
                 </Border.Style>
                 <ContentControl Name="ContentSettings" Content="{Binding SelectedSectionView}"
-                                Margin="20" Focusable="False"/>
+                                Margin="24" Focusable="False"/>
             </Border>
         </Grid>
     </Viewbox>

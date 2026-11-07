@@ -6,16 +6,16 @@
         <Setter Property="Foreground" Value="{DynamicResource TextBrush}" />
         <Setter Property="Background" Value="Transparent" />
         <Setter Property="SnapsToDevicePixels" Value="True" />
-        <Setter Property="Padding" Value="6,5,6,5" />
+        <Setter Property="Padding" Value="16,8,16,8" />
         <Setter Property="HorizontalContentAlignment" Value="Stretch" />
         <Setter Property="VerticalContentAlignment" Value="Center" />
         <Setter Property="BorderBrush" Value="{x:Null}" />
         <Setter Property="BorderThickness" Value="0" />
-        <Setter Property="Margin" Value="15,5,15,5" />
+        <Setter Property="Margin" Value="14,2,14,2" />
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="Button">
-                    <Grid Background="{TemplateBinding Background}">
+                    <Border x:Name="Body" Background="{TemplateBinding Background}" CornerRadius="{DynamicResource ControlRadius}">
                         <DockPanel Margin="{TemplateBinding Padding}">
                             <TextBlock Text="&#xeab8;" FontFamily="{StaticResource FontIcoFont}"
                                        DockPanel.Dock="Right"
@@ -31,29 +31,18 @@
                             </TextBlock>
                         </DockPanel>
 
-                        <Border BorderThickness="{TemplateBinding BorderThickness}"
-                                BorderBrush="{TemplateBinding BorderBrush}"
-                                x:Name="BorderStandard" />
-
-                        <Border x:Name="BorderFocus" Margin="-3"
-                                SnapsToDevicePixels="{TemplateBinding SnapsToDevicePixels}"
-                                BorderBrush="{DynamicResource SelectionBrush}"
-                                BorderThickness="3" Visibility="Hidden" />
-                    </Grid>
+                    </Border>
                     <ControlTemplate.Triggers>
-                        <Trigger Property="IsFocused" Value="True">
-                            <Setter Property="Background" Value="{DynamicResource ControlBackgroundDarkBrush}" />
-                            <Setter Property="Visibility" Value="Visible" TargetName="BorderFocus" />
-                            <Setter Property="Visibility" Value="Hidden" TargetName="BorderStandard" />
-                        </Trigger>
-                        <Trigger Property="IsMouseOver" Value="True">
-                            <Setter Property="Background" Value="{DynamicResource ControlBackgroundDarkBrush}" />
-                            <Setter Property="Visibility" Value="Visible" TargetName="BorderFocus" />
-                            <Setter Property="Visibility" Value="Hidden" TargetName="BorderStandard" />
-                        </Trigger>
                         <Trigger Property="Tag" Value="{StaticResource True}">
                             <Setter Property="Foreground" Value="{DynamicResource GlyphLightBrush}" />
                             <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+                        </Trigger>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter Property="Background" Value="{DynamicResource HoverBrush}" TargetName="Body" />
+                        </Trigger>
+                        <Trigger Property="IsFocused" Value="True">
+                            <Setter Property="Background" Value="{DynamicResource FocusBrush}" TargetName="Body" />
+                            <Setter Property="Foreground" Value="{DynamicResource FocusTextBrush}" />
                         </Trigger>
                     </ControlTemplate.Triggers>
                 </ControlTemplate>
@@ -93,6 +82,10 @@
         <Setter Property="HorizontalContentAlignment" Value="Center" />
     </Style>
 
+    <DataTemplate x:Key="FilterPresetItemTemplate">
+        <TextBlock Text="{Binding Converter={StaticResource FilterPresetNameConverter}}" />
+    </DataTemplate>
+
     <DataTemplate x:Key="FilterPanelAddPresetTemplate">
         <TextBlock Text="&#xee00;" TextAlignment="Center"
                    FontFamily="{DynamicResource FontIcoFont}"
@@ -118,7 +111,8 @@
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="{x:Type Filters}">
-                    <Border Background="{DynamicResource OverlayMenuBackgroundBrush}"
+                    <Border Background="{DynamicResource PanelBrush}"
+                            CornerRadius="0,20,20,0" Padding="0,12,0,12"
                             MinWidth="{DynamicResource FilterPanelWidth}">
                         <ItemsControlEx x:Name="PART_ItemsHost" Focusable="False"
                                         KeyboardNavigation.DirectionalNavigation="Once">

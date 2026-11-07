@@ -2,29 +2,36 @@
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
 
     <Style x:Key="SettingsMenuBorder" TargetType="Border">
-        <Setter Property="Background" Value="{DynamicResource OverlayMenuBackgroundBrush}" />
+        <Setter Property="Background" Value="{DynamicResource PanelBrush}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource HairlineBrush}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="CornerRadius" Value="{DynamicResource PanelRadius}" />
+        <Setter Property="Padding" Value="16,4,16,16" />
     </Style>
     
     <Style x:Key="SettingsSectionBorder" TargetType="Border">
-        <Setter Property="Background" Value="{DynamicResource OverlayMenuBackgroundBrush}" />
-        <Setter Property="CornerRadius" Value="3" />
+        <Setter Property="Background" Value="{DynamicResource PanelBrush}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource HairlineBrush}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="CornerRadius" Value="{DynamicResource PanelRadius}" />
         <Setter Property="Margin" Value="0,0,20,0" />
     </Style>
 
     <Style x:Key="SettingsMenuButton" BasedOn="{StaticResource {x:Type ButtonEx}}" TargetType="ButtonEx">
-        <Setter Property="Margin" Value="0,5,0,5" />
-        <Setter Property="Padding" Value="20,3,20,3" />
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="Margin" Value="0,2,0,2" />
+        <Setter Property="Padding" Value="18,7,22,7" />
         <Setter Property="HorizontalAlignment" Value="Stretch" />
         <Setter Property="HorizontalContentAlignment" Value="Left" />
     </Style>
 
     <DataTemplate x:Key="SettingsMenuHeaderTemplate">
         <TextBlock Text="{DynamicResource LOCSettingsLabel}"
-                   FontSize="36" Style="{DynamicResource TextBlockBaseStyle}"
-                   Margin="20,30,40,30" />
+                   Style="{DynamicResource TextBlockCaptionStyle}"
+                   Margin="16,24,40,18" />
     </DataTemplate>
 
-    <Thickness x:Key="SettingsSectionItemSpacing">0,10,10,10</Thickness>
+    <Thickness x:Key="SettingsSectionItemSpacing">0,4,0,4</Thickness>
     
     <Style x:Key="SettingsSectionSlider" TargetType="SliderEx" BasedOn="{StaticResource {x:Type SliderEx}}">
         <Setter Property="Width" Value="300" />
@@ -39,10 +46,11 @@
         <Setter Property="SnapsToDevicePixels" Value="True" />
         <Setter Property="HorizontalAlignment" Value="Stretch" />
         <Setter Property="HorizontalContentAlignment" Value="Right" />
+        <Setter Property="Padding" Value="16,9,16,9" />
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="CheckBox">
-                    <Grid Background="{TemplateBinding Background}">
+                    <Border x:Name="Body" Background="{TemplateBinding Background}" CornerRadius="{DynamicResource ControlRadius}">
                         <Grid Margin="{TemplateBinding Padding}">
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="*" />
@@ -56,37 +64,36 @@
                                         Grid.Column="0" TextTrimming="WordEllipsis">
                                 <ContentPresenter RecognizesAccessKey="True" />
                             </TextBlock>
-                            <Border Background="{DynamicResource CheckBoxCheckMarkBkBrush}"
-                                    VerticalAlignment="Center"
-                                    BorderThickness="2" BorderBrush="{DynamicResource ControlBackgroundBrush}"
-                                    Grid.Column="1" Width="26" Height="26">
-                                <Viewbox x:Name="CheckIcon" Visibility="Collapsed">
-                                    <TextBlock Text="b" FontFamily="Marlett" Foreground="White"
-                                               HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                                </Viewbox>
+                            <Border x:Name="Track" Grid.Column="1" Width="56" Height="32" CornerRadius="16"
+                                    Margin="20,0,0,0" VerticalAlignment="Center"
+                                    Background="{DynamicResource HoverBrush}">
+                                <Ellipse x:Name="Knob" Width="24" Height="24" Margin="4,0,4,0" Fill="{DynamicResource TextBrush}"
+                                         HorizontalAlignment="Left" VerticalAlignment="Center" />
                             </Border>
-                            <Border x:Name="BorderFocus"
-                                    Grid.Column="1" Width="26" Height="26"
-                                    SnapsToDevicePixels="{TemplateBinding SnapsToDevicePixels}"
-                                    BorderBrush="{DynamicResource SelectionBrush}"
-                                    BorderThickness="3" Visibility="Hidden" />
                         </Grid>
-                    </Grid>
+                    </Border>
                     <ControlTemplate.Triggers>
                         <Trigger Property="IsEnabled" Value="False">
-                            <Setter Property="Opacity" Value="0.5" />
+                            <Setter Property="Opacity" Value="0.4" />
                         </Trigger>
                         <Trigger Property="IsChecked" Value="True">
-                            <Setter Property="Visibility" Value="Visible" TargetName="CheckIcon" />
-                        </Trigger>
-                        <Trigger Property="IsFocused" Value="True">
-                            <Setter Property="Foreground" Value="{DynamicResource GlyphLightBrush}" />
-                            <Setter Property="Visibility" Value="Visible" TargetName="BorderFocus" />
+                            <Setter Property="Background" Value="{DynamicResource GlyphBrush}" TargetName="Track" />
+                            <Setter Property="HorizontalAlignment" Value="Right" TargetName="Knob" />
                         </Trigger>
                         <Trigger Property="IsMouseOver" Value="True">
-                            <Setter Property="Foreground" Value="{DynamicResource GlyphLightBrush}" />
-                            <Setter Property="Visibility" Value="Visible" TargetName="BorderFocus" />
+                            <Setter Property="Background" Value="{DynamicResource SurfaceBrush}" TargetName="Body" />
                         </Trigger>
+                        <Trigger Property="IsFocused" Value="True">
+                            <Setter Property="Background" Value="{DynamicResource FocusBrush}" TargetName="Body" />
+                            <Setter Property="Foreground" Value="{DynamicResource FocusTextBrush}" />
+                        </Trigger>
+                        <MultiTrigger>
+                            <MultiTrigger.Conditions>
+                                <Condition Property="IsFocused" Value="True" />
+                                <Condition Property="IsChecked" Value="False" />
+                            </MultiTrigger.Conditions>
+                            <Setter Property="Background" Value="#33000000" TargetName="Track" />
+                        </MultiTrigger>
                     </ControlTemplate.Triggers>
                 </ControlTemplate>
             </Setter.Value>

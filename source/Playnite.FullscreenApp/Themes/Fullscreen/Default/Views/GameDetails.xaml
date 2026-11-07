@@ -1,8 +1,29 @@
-﻿<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"                    
+﻿<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
                     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-                    xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+                    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
                     mc:Ignorable="d">
+
+    <Style x:Key="GamePageFactTitle" TargetType="TextBlock" BasedOn="{StaticResource TextBlockSecondaryStyle}">
+        <Setter Property="FontSize" Value="17" />
+    </Style>
+
+    <Style x:Key="GamePageFactValue" TargetType="TextBlock" BasedOn="{StaticResource TextBlockBaseStyle}">
+        <Setter Property="FontFamily" Value="{DynamicResource FontTitilliumWeb}" />
+        <Setter Property="FontSize" Value="20" />
+        <Setter Property="TextWrapping" Value="Wrap" />
+        <Setter Property="TextTrimming" Value="CharacterEllipsis" />
+        <Setter Property="MaxHeight" Value="62" />
+        <Setter Property="Margin" Value="0,0,0,14" />
+    </Style>
+
+    <!-- A button of the controller and what it does here -->
+    <Style x:Key="GamePageHintText" TargetType="TextBlock" BasedOn="{StaticResource TextBlockBaseStyle}">
+        <Setter Property="FontFamily" Value="{DynamicResource FontTitilliumWeb}" />
+        <Setter Property="FontSize" Value="20" />
+        <Setter Property="VerticalAlignment" Value="Center" />
+        <Setter Property="Margin" Value="11,0,32,0" />
+    </Style>
 
     <Style TargetType="{x:Type GameDetails}">
         <Setter Property="Template">
@@ -16,114 +37,122 @@
                           KeyboardNavigation.DirectionalNavigation="Contained"
                           KeyboardNavigation.TabNavigation="Cycle"
                           KeyboardNavigation.ControlTabNavigation="Cycle">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*" />
-                            <ColumnDefinition Width="350" />
-                            <ColumnDefinition Width="6*" />
-                            <ColumnDefinition Width="*" />
-                        </Grid.ColumnDefinitions>
-                        <Grid.RowDefinitions>
-                            <RowDefinition Height="3*" />
-                            <RowDefinition Height="4*" />
-                        </Grid.RowDefinitions>
-                        
-                        <FadeImage HorizontalAlignment="Center" VerticalAlignment="Top"
-                                   Grid.ColumnSpan="4" Grid.RowSpan="2"
-                                   x:Name="PART_ImageBackground" />
 
-                        <Border Background="{DynamicResource GameDetailsBackgroundBrush}"
-                                Grid.ColumnSpan="4" Grid.Row="1" />
+                        <Grid VerticalAlignment="Top" Height="760" ClipToBounds="True" IsHitTestVisible="False">
+                            <FadeImage x:Name="PART_ImageBackground" HorizontalAlignment="Center" VerticalAlignment="Center"
+                                       FadeSeconds="0.2" />
+                            <Border Background="{DynamicResource ArtSideShadeBrush}" />
+                        </Grid>
+                        <Border Background="{DynamicResource GameDetailsBackgroundBrush}" IsHitTestVisible="False" />
 
-                        <Border CornerRadius="3" BorderThickness="3" BorderBrush="{DynamicResource ControlBackgroundBrush}"
-                                Margin="14" Grid.Column="1" Grid.Row="1"
-                                VerticalAlignment="Top"
-                                HorizontalAlignment="Right">
-                            <Image x:Name="PART_ImageCover" />
-                        </Border>
+                        <Grid Margin="{DynamicResource ViewMargin}">
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="*" />
+                                <RowDefinition Height="392" />
+                                <RowDefinition Height="92" />
+                            </Grid.RowDefinitions>
 
-                        <Image Grid.Column="1" Grid.Row="1"
-                               VerticalAlignment="Top"
-                               HorizontalAlignment="Right"
-                               Margin="24"
-                               Source="{Binding LibraryPlugin.LibraryIcon}"
-                               Height="48" RenderOptions.BitmapScalingMode="Fant">
-                            <Image.Effect>
-                                <DropShadowEffect Color="White" BlurRadius="20" ShadowDepth="0"
-                                                  RenderingBias="Quality" Opacity="1"/>
-                            </Image.Effect>
-                        </Image>
+                            <StackPanel VerticalAlignment="Bottom" Margin="0,0,0,28">
+                                <Grid HorizontalAlignment="Left">
+                                    <TextBlock x:Name="GameTitle" Text="{Binding DisplayName}"
+                                               Style="{DynamicResource TextBlockCaptionStyle}"
+                                               FontSize="58" TextWrapping="Wrap" TextTrimming="CharacterEllipsis"
+                                               MaxWidth="1300" MaxHeight="170">
+                                        <TextBlock.Effect>
+                                            <DropShadowEffect ShadowDepth="0" BlurRadius="16" Opacity="0.6" />
+                                        </TextBlock.Effect>
+                                    </TextBlock>
+                                    <Image x:Name="GameLogo" Visibility="Collapsed"
+                                           Source="{Binding DataContext.LogoImage, RelativeSource={RelativeSource AncestorType={x:Type Main}}}"
+                                           MaxHeight="170" MaxWidth="620" Stretch="Uniform" StretchDirection="DownOnly"
+                                           HorizontalAlignment="Left" VerticalAlignment="Bottom"
+                                           RenderOptions.BitmapScalingMode="Fant">
+                                        <Image.Effect>
+                                            <DropShadowEffect ShadowDepth="0" BlurRadius="20" Opacity="0.55" />
+                                        </Image.Effect>
+                                    </Image>
+                                </Grid>
 
-                        <DockPanel Grid.Column="2" Grid.Row="1"
-                                   Margin="20"
-                                   HorizontalAlignment="Left">
+                                <ContentControl ContentTemplate="{DynamicResource GameFactsTemplate}" Focusable="False" Margin="0,14,0,0"
+                                                Content="{Binding DataContext, RelativeSource={RelativeSource AncestorType={x:Type Main}}}" />
 
-                            <TextBlock Style="{DynamicResource TextBlockBaseStyle}"
-                                       Text="{Binding DisplayName}"
-                                       Foreground="White" FontFamily="{DynamicResource FontTitilliumWebBold}"
-                                       FontSize="38" DockPanel.Dock="Top">
-                                <TextBlock.Effect>
-                                    <DropShadowEffect ShadowDepth="2" Color="Black"
-                                                      RenderingBias="Quality" Opacity="1"/>
-                                </TextBlock.Effect>
-                            </TextBlock>
-
-                            <StackPanel Orientation="Horizontal" DockPanel.Dock="Top" Margin="0,20,20,20">
-                                <StackPanel>
-                                    <TextBlock Style="{DynamicResource TextBlockBaseStyle}"
-                                               FontFamily="{DynamicResource FontTitilliumWebBold}"
-                                               Text="{DynamicResource LOCTimePlayed}"
-                                               Margin="0,0,0,10" />
-                                    <TextBlock Style="{DynamicResource TextBlockBaseStyle}"
-                                               Text="{Binding Playtime, Converter={StaticResource PlayTimeToStringConverter}}" />
-                                </StackPanel>
-                                
-                                <StackPanel Margin="50,0,0,0">
-                                    <TextBlock Style="{DynamicResource TextBlockBaseStyle}"
-                                               FontFamily="{DynamicResource FontTitilliumWebBold}"
-                                               Text="{DynamicResource LOCGameLastActivityTitle}"
-                                               Margin="0,0,0,10" />
-                                    <TextBlock Style="{DynamicResource TextBlockBaseStyle}"
-                                               Text="{Binding LastActivity, Converter={StaticResource DateTimeToLastPlayedConverter}}" />
-                                </StackPanel>
-
-                                <StackPanel Margin="50,0,0,0">
-                                    <TextBlock Style="{DynamicResource TextBlockBaseStyle}"
-                                               FontFamily="{DynamicResource FontTitilliumWebBold}"
-                                               Text="{DynamicResource LOCGameReleaseDateTitle}"
-                                               Margin="0,0,0,10" />
-                                    <TextBlock Style="{DynamicResource TextBlockBaseStyle}"
-                                               Text="{Binding ReleaseDate}" />
-                                </StackPanel>
-
-                                <StackPanel Margin="50,0,0,0">
-                                    <TextBlock Style="{DynamicResource TextBlockBaseStyle}"
-                                               FontFamily="{DynamicResource FontTitilliumWebBold}"
-                                               Text="{DynamicResource LOCGamePlatformTitle}"
-                                               Margin="0,0,0,10" />
-                                    <TextBlock Style="{DynamicResource TextBlockBaseStyle}"
-                                               Text="{Binding Platforms, Converter={StaticResource ListToStringConverter}}" />
+                                <StackPanel Orientation="Horizontal" Margin="0,22,0,0">
+                                    <ButtonEx x:Name="PART_ButtonContext" Style="{DynamicResource ButtonPrimary}" MinWidth="260" />
+                                    <ButtonEx x:Name="PART_ButtonOptions"
+                                              Content="{DynamicResource LOCGameOptions}"
+                                              Margin="14,0,0,0" MinWidth="240" Padding="30,13,30,13"
+                                              HorizontalContentAlignment="Center" />
                                 </StackPanel>
                             </StackPanel>
-                            
-                            <StackPanel Orientation="Horizontal" DockPanel.Dock="Top">
-                                <ButtonEx x:Name="PART_ButtonContext"
-                                          Margin="2" BorderThickness="2" MinWidth="220" HorizontalContentAlignment="Center" />
-                                <ButtonEx x:Name="PART_ButtonOptions"
-                                          Content="{DynamicResource LOCGameOptions}"
-                                          Margin="5,2,2,2" BorderThickness="2" MinWidth="220" HorizontalContentAlignment="Center" />
-                            </StackPanel>
 
-                            <ScrollViewerEx Margin="0,20,0,0" DockPanel.Dock="Top"
-                                            x:Name="PART_ScrollHtmlDescription"
-                                            CustomScrollAmount="42">
-                                <HtmlTextView x:Name="PART_HtmlDescription"
-                                              HtmlFontSize="16"
-                                              HtmlForeground="{DynamicResource TextColor}"
-                                              LinkForeground="{DynamicResource GlyphColor}"
-                                              FocusVisualStyle="{x:Null}" />
-                            </ScrollViewerEx>
-                        </DockPanel>
+                            <Grid Grid.Row="1">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+
+                                <ScrollViewerEx x:Name="PART_ScrollHtmlDescription" CustomScrollAmount="42"
+                                                HorizontalAlignment="Left" MaxWidth="1080" Margin="0,0,40,0">
+                                    <HtmlTextView x:Name="PART_HtmlDescription"
+                                                  HtmlFontSize="19" HtmlFontFamily="Segoe UI"
+                                                  HtmlForeground="{DynamicResource TextColor}"
+                                                  LinkForeground="{DynamicResource GlyphLightColor}"
+                                                  FocusVisualStyle="{x:Null}" />
+                                </ScrollViewerEx>
+
+                                <StackPanel Grid.Column="1" Width="400" Margin="0,0,40,0">
+                                    <StackPanel Visibility="{PluginSettings Plugin=PlayniteAchievements, Path=HasAchievements, Converter={StaticResource BooleanToVisibilityConverter}, FallbackValue=Collapsed}"
+                                                DataContext="{PluginSettings Plugin=PlayniteAchievements, Path=ModernTheme}"
+                                                Margin="0,0,0,18">
+                                        <DockPanel>
+                                            <TextBlock DockPanel.Dock="Right" Style="{DynamicResource GamePageFactTitle}">
+                                                <Run Text="{Binding UnlockedCount, Mode=OneWay}" /><Run Text=" / " /><Run Text="{Binding AchievementCount, Mode=OneWay}" />
+                                            </TextBlock>
+                                            <TextBlock Text="{DynamicResource LOCAtrioAchievements}" Style="{DynamicResource GamePageFactTitle}" />
+                                        </DockPanel>
+                                        <ProgressBar Maximum="100" Value="{Binding ProgressPercentage, Mode=OneWay}" Margin="0,8,0,0" />
+                                    </StackPanel>
+
+                                    <StackPanel Visibility="{Binding Developers, Converter={StaticResource ICollectionNullOrEmptyToVisibilityConverter}}">
+                                        <TextBlock Text="{DynamicResource LOCDeveloperLabel}" Style="{DynamicResource GamePageFactTitle}" />
+                                        <TextBlock Text="{Binding Developers, Converter={StaticResource ListToStringConverter}}" Style="{DynamicResource GamePageFactValue}" />
+                                    </StackPanel>
+                                    <StackPanel Visibility="{Binding Publishers, Converter={StaticResource ICollectionNullOrEmptyToVisibilityConverter}}">
+                                        <TextBlock Text="{DynamicResource LOCPublisherLabel}" Style="{DynamicResource GamePageFactTitle}" />
+                                        <TextBlock Text="{Binding Publishers, Converter={StaticResource ListToStringConverter}}" Style="{DynamicResource GamePageFactValue}" />
+                                    </StackPanel>
+                                    <StackPanel Visibility="{Binding ReleaseDate, Converter={StaticResource NullToVisibilityConverter}}">
+                                        <TextBlock Text="{DynamicResource LOCGameReleaseDateTitle}" Style="{DynamicResource GamePageFactTitle}" />
+                                        <TextBlock Text="{Binding ReleaseDate, Converter={StaticResource ReleaseDateToStringConverter}}" Style="{DynamicResource GamePageFactValue}" />
+                                    </StackPanel>
+                                    <StackPanel Visibility="{Binding Genres, Converter={StaticResource ICollectionNullOrEmptyToVisibilityConverter}}">
+                                        <TextBlock Text="{DynamicResource LOCGenreLabel}" Style="{DynamicResource GamePageFactTitle}" />
+                                        <TextBlock Text="{Binding Genres, Converter={StaticResource ListToStringConverter}}" Style="{DynamicResource GamePageFactValue}" />
+                                    </StackPanel>
+                                </StackPanel>
+
+                                <Image x:Name="PART_ImageCover" Grid.Column="2" Height="340" VerticalAlignment="Top"
+                                       RenderOptions.BitmapScalingMode="Fant" Stretch="Uniform"
+                                       RoundedClip.Radius="{DynamicResource CoverClipRadius}" />
+                            </Grid>
+
+                            <StackPanel Grid.Row="2" Orientation="Horizontal" VerticalAlignment="Center">
+                                <ContentControl ContentTemplate="{DynamicResource ButtonPromptB}" Focusable="False" Height="30" />
+                                <TextBlock Text="{DynamicResource LOCAtrioBack}" Style="{DynamicResource GamePageHintText}" />
+                                <ContentControl ContentTemplate="{DynamicResource ButtonPromptLB}" Focusable="False" Height="27" />
+                                <TextBlock Text="{DynamicResource LOCAtrioFullscreenPreviousGame}" Style="{DynamicResource GamePageHintText}" />
+                                <ContentControl ContentTemplate="{DynamicResource ButtonPromptRB}" Focusable="False" Height="27" />
+                                <TextBlock Text="{DynamicResource LOCAtrioFullscreenNextGame}" Style="{DynamicResource GamePageHintText}" />
+                            </StackPanel>
+                        </Grid>
                     </Grid>
+                    <ControlTemplate.Triggers>
+                        <DataTrigger Binding="{Binding DataContext.HasLogo, RelativeSource={RelativeSource AncestorType={x:Type Main}}}" Value="True">
+                            <Setter Property="Visibility" Value="Visible" TargetName="GameLogo" />
+                            <Setter Property="Visibility" Value="Hidden" TargetName="GameTitle" />
+                        </DataTrigger>
+                    </ControlTemplate.Triggers>
                 </ControlTemplate>
             </Setter.Value>
         </Setter>

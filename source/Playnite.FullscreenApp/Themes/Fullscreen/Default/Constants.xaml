@@ -8,16 +8,22 @@
 
     <Color x:Key="BlackColor">#FF000000</Color>
     <Color x:Key="WhiteColor">#FFFFFFFF</Color>
-    <Color x:Key="GlyphColor">#FFEC6200</Color>
-    <Color x:Key="GlyphLightColor">#FFFFAA00</Color>
-    <Color x:Key="SelectionLightColor">#FF8D919D</Color>
-    <Color x:Key="OverlayColor">#BB000000</Color>
-    
-    <Color x:Key="ControlBackgroundColor">#FF2B354D</Color>
-    <Color x:Key="ControlBackgroundColorDark">#FF121830</Color>
 
-    <Color x:Key="TextColor">#FFEBEBEB</Color>
-    <Color x:Key="TextColorDark">#FF757575</Color>
+    <!-- The accent, the same one of the desktop themes -->
+    <Color x:Key="GlyphColor">#FF7C8CFF</Color>
+    <Color x:Key="GlyphLightColor">#FFA899FF</Color>
+    <Color x:Key="SelectionLightColor">#33FFFFFF</Color>
+    <Color x:Key="OverlayColor">#B3050609</Color>
+
+    <Color x:Key="ControlBackgroundColor">#1FFFFFFF</Color>
+    <Color x:Key="ControlBackgroundColorDark">#FF171A22</Color>
+
+    <Color x:Key="TextColor">#FFF3F4F6</Color>
+    <Color x:Key="TextColorDark">#FFA3A9B7</Color>
+
+    <!-- What is behind everything -->
+    <Color x:Key="BaseColor">#FF0B0C10</Color>
+    <Color x:Key="BaseColorClear">#000B0C10</Color>
 
     <SolidColorBrush x:Key="TextBrush" Color="{DynamicResource TextColor}" />
     <SolidColorBrush x:Key="TextBrushDark" Color="{DynamicResource TextColorDark}" />
@@ -27,52 +33,101 @@
     <SolidColorBrush x:Key="ControlBackgroundDarkBrush" Color="{DynamicResource ControlBackgroundColorDark}" />
     <SolidColorBrush x:Key="SelectionLightBrush" Color="{DynamicResource SelectionLightColor}" />
     <SolidColorBrush x:Key="OverlayBrush" Color="{DynamicResource OverlayColor}" />
-    <SolidColorBrush x:Key="CheckBoxCheckMarkBkBrush" Color="{DynamicResource ControlBackgroundColorDark}" />
+    <SolidColorBrush x:Key="CheckBoxCheckMarkBkBrush" Color="#14FFFFFF" />
+
+    <!-- What has the focus goes light, it's seen from the other side of the room -->
+    <SolidColorBrush x:Key="FocusBrush" Color="#FFF3F4F6" />
+    <SolidColorBrush x:Key="FocusTextBrush" Color="#FF0B0C10" />
+    <SolidColorBrush x:Key="HoverBrush" Color="#2BFFFFFF" />
+    <SolidColorBrush x:Key="SurfaceBrush" Color="#17FFFFFF" />
+    <SolidColorBrush x:Key="HairlineBrush" Color="#1FFFFFFF" />
+    <SolidColorBrush x:Key="PanelBrush" Color="#F7111319" />
+    <SolidColorBrush x:Key="PositiveBrush" Color="#FF3DDC84" />
+
+    <LinearGradientBrush x:Key="PlayBrush" StartPoint="0,0" EndPoint="1,0">
+        <GradientStop Color="{DynamicResource GlyphColor}" Offset="0" />
+        <GradientStop Color="{DynamicResource GlyphLightColor}" Offset="1" />
+    </LinearGradientBrush>
+    <SolidColorBrush x:Key="PlayTextBrush" Color="#FF0B0C10" />
+
+    <CornerRadius x:Key="CoverRadius">12</CornerRadius>
+    <sys:Double x:Key="CoverClipRadius">12</sys:Double>
+    <CornerRadius x:Key="ControlRadius">12</CornerRadius>
+    <CornerRadius x:Key="PanelRadius">20</CornerRadius>
+    <CornerRadius x:Key="PillRadius">40</CornerRadius>
 
     <sys:Double x:Key="FontSizeSmall">18</sys:Double>
     <sys:Double x:Key="FontSize">22</sys:Double>
+    <sys:Double x:Key="FontSizeLarge">30</sys:Double>
 
-    <sys:Double x:Key="FilterPanelWidth">300</sys:Double>
-    
+    <sys:Double x:Key="FilterPanelWidth">420</sys:Double>
+
+    <!-- Where everything starts on the left. The covers have a margin of 6 for the ring of the selected one. -->
+    <GridLength x:Key="ViewInset">96</GridLength>
+    <Thickness x:Key="ViewMargin">96,0,96,0</Thickness>
+    <sys:Double x:Key="CoversInset">90</sys:Double>
+
     <GridLength x:Key="ProgressWindowWidth">640</GridLength>
-    
+
     <Style x:Key="TextBlockBaseStyle" TargetType="TextBlock">
         <Setter Property="FontSize" Value="{DynamicResource FontSize}" />
         <Setter Property="FontFamily" Value="{DynamicResource FontTitilliumWebLight}" />
-        <Setter Property="Foreground" Value="{DynamicResource TextBrush}" />
     </Style>
 
-    <RadialGradientBrush x:Key="MainBackgourndBrush" GradientOrigin="0.5,0.1" Center="0.5,0.2" RadiusX="0.5" RadiusY="0.7">
+    <Style x:Key="TextBlockSecondaryStyle" TargetType="TextBlock" BasedOn="{StaticResource TextBlockBaseStyle}">
+        <Setter Property="Foreground" Value="{DynamicResource TextBrushDark}" />
+    </Style>
+
+    <Style x:Key="TextBlockCaptionStyle" TargetType="TextBlock" BasedOn="{StaticResource TextBlockBaseStyle}">
+        <Setter Property="FontFamily" Value="{DynamicResource FontTitilliumWebBold}" />
+        <Setter Property="FontSize" Value="30" />
+    </Style>
+
+    <RadialGradientBrush x:Key="MainBackgourndBrush" GradientOrigin="0.5,0" Center="0.5,0" RadiusX="0.9" RadiusY="1">
         <RadialGradientBrush.GradientStops>
-            <GradientStop Color="#FF091F51" Offset="0" />
-            <GradientStop Color="#FF0B1027" Offset="1.0" />
+            <GradientStop Color="#FF161A2B" Offset="0" />
+            <GradientStop Color="{DynamicResource BaseColor}" Offset="1.0" />
         </RadialGradientBrush.GradientStops>
     </RadialGradientBrush>
 
-    <LinearGradientBrush x:Key="TopBarBackgroundBrush" StartPoint="-0.5,0.5" EndPoint="1,0.5" >
-        <GradientStop Color="#FF091F51" Offset="0"/>
-        <GradientStop Color="#AA0B1027" Offset="1.0"/>
+    <LinearGradientBrush x:Key="TopBarBackgroundBrush" StartPoint="0,0" EndPoint="0,1">
+        <GradientStop Color="#99050609" Offset="0" />
+        <GradientStop Color="#00050609" Offset="1" />
     </LinearGradientBrush>
 
-    <LinearGradientBrush x:Key="BottomBarBackgroundBrush" StartPoint="-0.5,0.5" EndPoint="1.5,1" >
-        <GradientStop Color="#FF091F51" Offset="0"/>
-        <GradientStop Color="#AA0B1027" Offset="1.0"/>
+    <LinearGradientBrush x:Key="BottomBarBackgroundBrush" StartPoint="0,0" EndPoint="0,1">
+        <GradientStop Color="#00050609" Offset="0" />
+        <GradientStop Color="#99050609" Offset="1" />
     </LinearGradientBrush>
 
-    <LinearGradientBrush x:Key="OverlayMenuBackgroundBrush" StartPoint="0.5,0" EndPoint="0.5,1.5" >
-        <GradientStop Color="#FF091F51" Offset="0"/>
-        <GradientStop Color="#FF000623" Offset="1.0"/>
+    <SolidColorBrush x:Key="OverlayMenuBackgroundBrush" Color="#F7111319" />
+
+    <LinearGradientBrush x:Key="SelectionBrush" StartPoint="0,0" EndPoint="1,1">
+        <GradientStop Color="{DynamicResource GlyphColor}" Offset="0" />
+        <GradientStop Color="{DynamicResource GlyphLightColor}" Offset="1.0" />
     </LinearGradientBrush>
 
-    <LinearGradientBrush x:Key="SelectionBrush" StartPoint="0.5,-0.5" EndPoint="1,1.5" >
-        <GradientStop Color="{DynamicResource GlyphColor}" Offset="0"/>
-        <GradientStop Color="{DynamicResource GlyphLightColor}" Offset="1.0"/>
+    <!-- Over the art: darker where the text and the covers go -->
+    <LinearGradientBrush x:Key="ArtSideShadeBrush" StartPoint="0,0" EndPoint="1,0">
+        <GradientStop Color="#E0080A0F" Offset="0" />
+        <GradientStop Color="#99080A0F" Offset="0.3" />
+        <GradientStop Color="#00080A0F" Offset="0.62" />
     </LinearGradientBrush>
 
-    <LinearGradientBrush x:Key="GameDetailsBackgroundBrush" StartPoint="0.5,0" EndPoint="0.5,0.4" >
-        <GradientStop Color="#00091F51" Offset="0.0"/>
-        <GradientStop Color="#EE0B1027" Offset="0.8"/>
+    <!-- The art ends behind the opaque part -->
+    <LinearGradientBrush x:Key="ArtBottomShadeBrush" StartPoint="0,0" EndPoint="0,1">
+        <GradientStop Color="#00080A0F" Offset="0.28" />
+        <GradientStop Color="#8C080A0F" Offset="0.5" />
+        <GradientStop Color="#E6080A0F" Offset="0.66" />
+        <GradientStop Color="#FF080A0F" Offset="0.79" />
     </LinearGradientBrush>
-    
+
+    <LinearGradientBrush x:Key="GameDetailsBackgroundBrush" StartPoint="0.5,0" EndPoint="0.5,1">
+        <GradientStop Color="#00080A0F" Offset="0.16" />
+        <GradientStop Color="#99080A0F" Offset="0.36" />
+        <GradientStop Color="#F2080A0F" Offset="0.58" />
+        <GradientStop Color="#FF080A0F" Offset="0.69" />
+    </LinearGradientBrush>
+
     <SolidColorBrush x:Key="WarningBrush" Color="#ff6b6b" />
 </ResourceDictionary>

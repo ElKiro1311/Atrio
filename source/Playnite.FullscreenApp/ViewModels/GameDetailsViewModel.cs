@@ -113,11 +113,11 @@ namespace Playnite.FullscreenApp.ViewModels
                 }
                 else if (Game?.IsInstalled == false)
                 {
-                    gamesEditor.InstallGame(Game.Game);
+                    mainModel.InstallGame(Game.Game);
                 }
                 else if (Game?.IsInstalled == true)
                 {
-                    gamesEditor.PlayGame(Game.Game, true);
+                    mainModel.StartGame(Game.Game, true);
                 }
             });
         }

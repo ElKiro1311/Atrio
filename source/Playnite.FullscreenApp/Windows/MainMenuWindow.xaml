@@ -26,8 +26,8 @@
         <Grid Height="1080" Width="1920" Name="GridMain">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="*" />
-                <ColumnDefinition MinWidth="400" Width="Auto" />
-                <ColumnDefinition Width="100" />
+                <ColumnDefinition MinWidth="420" Width="Auto" />
+                <ColumnDefinition Width="24" />
             </Grid.ColumnDefinitions>
             <Grid.RowDefinitions>
                 <RowDefinition Height="*" />
@@ -79,7 +79,7 @@
                                      Visibility="{pmrk:SettingsBinding Fullscreen.MainMenuShowExtensions, Converter={StaticResource BooleanToVisibilityConverter}}"
                                      Command="{Binding OpenExtensionsCommand}"
                                      AutomationProperties.Name="{DynamicResource LOCExtensions}"/>
-                    <Canvas Height="20" />
+                    <Canvas Height="12" />
                     <pctrls:ButtonEx x:Name="PART_ButtonExitPlaynite"
                                      ContentTemplate="{DynamicResource MainMenuExitPlayniteButtonTemplate}"
                                      Command="{Binding ExitCommand}"
@@ -88,7 +88,7 @@
                                      ContentTemplate="{DynamicResource MainMenuSwithDesktopButtonTemplate}"
                                      Command="{Binding SwitchToDesktopCommand}"
                                      AutomationProperties.Name="{DynamicResource LOCBackToDesktopMode}"  />
-                    <Canvas Height="20" />
+                    <Canvas Height="12" />
                     <pctrls:ButtonEx x:Name="PART_ButtonShutdownSystem"
                                      ContentTemplate="{DynamicResource MainMenuShutdowButtonTemplate}"
                                      Command="{Binding ShutdownSystemCommand}"
@@ -120,7 +120,7 @@
                                   Visibility="{pmrk:SettingsBinding Fullscreen.MainMenuShowLogout, Converter={StaticResource BooleanToVisibilityConverter}}"
                                   AutomationProperties.Name="{DynamicResource LOCMenuRestartSystem}"/>
 
-                    <Canvas Height="40" />
+                    <Canvas Height="12" />
                     <pctrls:ButtonEx x:Name="PART_ButtonFeedback"
                                      ContentTemplate="{DynamicResource MainMenuHelpButtonTemplate}"
                                      Command="{Binding OpenHelpCommand}"

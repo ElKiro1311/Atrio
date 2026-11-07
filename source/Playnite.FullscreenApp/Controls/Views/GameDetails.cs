@@ -97,6 +97,20 @@ namespace Playnite.FullscreenApp.Controls.Views
             }
         }
 
+        private void SetGameArt(FadeImage image)
+        {
+            if (image == null)
+            {
+                return;
+            }
+
+            // Its cache keeps the size of the view, which is smaller than the screen: the art would lose detail.
+            image.CacheMode = null;
+            image.SourceUpdateDelay = ListBoxEx.InputRepeatInterval + Main.GameArtMargin;
+            image.DelayOnlyRuns = true;
+            BindingTools.SetBinding(image, FadeImage.SourceProperty, mainModel, nameof(FullscreenAppViewModel.GameArt));
+        }
+
         public override void OnApplyTemplate()
         {
             base.OnApplyTemplate();
@@ -165,13 +179,7 @@ namespace Playnite.FullscreenApp.Controls.Views
                 }
 
                 ImageBackground = Template.FindName("PART_ImageBackground", this) as FadeImage;
-                if (ImageBackground != null)
-                {
-                    ImageBackground.SourceUpdateDelay = 100;
-                    BindingTools.SetBinding(ImageBackground,
-                        FadeImage.SourceProperty,
-                        nameof(GamesCollectionViewEntry.DisplayBackgroundImageObject));
-                }
+                SetGameArt(ImageBackground);
 
                 HtmlDescription = Template.FindName("PART_HtmlDescription", this) as HtmlTextView;
                 if (HtmlDescription != null)

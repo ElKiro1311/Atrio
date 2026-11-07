@@ -9,6 +9,7 @@
         <!-- 01000000 background is there for mouse hit detection and custom cursor
              to work on transparent window area -->
         <Setter Property="Background" Value="#01000000" />
+        <Setter Property="Foreground" Value="{DynamicResource TextBrush}" />
         <Setter Property="AllowsTransparency" Value="True" />
         <Setter Property="BlockAltF4" Value="True" />
         <Setter Property="Template">
@@ -26,6 +27,7 @@
 
     <Style x:Key="MainWindowStyle" TargetType="WindowBase">
         <Setter Property="Background" Value="GhostWhite" />
+        <Setter Property="Foreground" Value="{DynamicResource TextBrush}" />
         <Setter Property="BorderThickness" Value="0" />
         <Setter Property="WindowChrome.WindowChrome">
             <Setter.Value>

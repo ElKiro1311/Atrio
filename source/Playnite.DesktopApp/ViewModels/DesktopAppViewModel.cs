@@ -1340,37 +1340,8 @@ namespace Playnite.DesktopApp.ViewModels
             StoreFilter.Refresh();
         }
 
-        protected override Game ResolveGameCopy(Game game)
+        protected override Game ChooseGameCopy(UnifiedGame group)
         {
-            var unifier = GamesView?.Unifier;
-            var group = unifier?.GetGroup(game.Id);
-            if (group == null)
-            {
-                return game;
-            }
-
-            var active = group.Copies.FirstOrDefault(a => a.IsRunning || a.IsLaunching || a.IsInstalling || a.IsUninstalling);
-            if (active != null)
-            {
-                return active;
-            }
-
-            if (group.HasUserChoice)
-            {
-                return group.Primary;
-            }
-
-            var installed = group.Copies.Where(a => a.IsInstalled).ToList();
-            if (installed.Count == 1)
-            {
-                return installed[0];
-            }
-
-            if (!unifier.Settings.AskStoreOnStart)
-            {
-                return group.Primary;
-            }
-
             return new StoreChooserViewModel(new StoreChooserWindowFactory(), group).OpenView();
         }
 

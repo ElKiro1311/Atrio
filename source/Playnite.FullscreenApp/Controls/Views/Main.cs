@@ -46,11 +46,15 @@ namespace Playnite.FullscreenApp.Controls.Views
     [TemplatePart(Name = "PART_ContentFilterItems", Type = typeof(ContentControl))]
     [TemplatePart(Name = "PART_ElemGameDetails", Type = typeof(FrameworkElement))]
     [TemplatePart(Name = "PART_ImageBackground", Type = typeof(FadeImage))]
+    [TemplatePart(Name = "PART_ImageAmbient", Type = typeof(FadeImage))]
     [TemplatePart(Name = "PART_FilterPresetSelector", Type = typeof(FilterPresetSelector))]
     [TemplatePart(Name = "PART_ElemGameStatus", Type = typeof(FrameworkElement))]
     [TemplatePart(Name = "PART_ButtonProgramUpdate", Type = typeof(ButtonBase))]
     public class Main : Control
     {
+        // Holding a direction moves to a new game before this runs out, so the art of those in the middle isn't loaded.
+        public const int GameArtMargin = 30;
+
         private FullscreenAppViewModel mainModel;
         private FrameworkElement ViewHost;
         private FrameworkElement MainHost;
@@ -76,6 +80,7 @@ namespace Playnite.FullscreenApp.Controls.Views
         private ContentControl ContentFilterItems;
         private FrameworkElement ElemGameDetails;
         private FadeImage ImageBackground;
+        private FadeImage ImageAmbient;
         private FrameworkElement ElemGameStatus;
 
         static Main()
@@ -108,24 +113,51 @@ namespace Playnite.FullscreenApp.Controls.Views
             if (e.PropertyName == nameof(FullscreenAppViewModel.GameDetailsVisible))
             {
                 SetDetailsElemBindings();
+                if (!mainModel.GameDetailsVisible)
+                {
+                    // The game can be another one by now.
+                    Dispatcher.BeginInvoke(new Action(ShowSelectedGame), System.Windows.Threading.DispatcherPriority.Loaded);
+                }
             }
 
             if (e.PropertyName == nameof(FullscreenAppViewModel.ActiveFilterPreset))
             {
-                var panel = ElementTreeHelper.FindVisualChildren<FullscreenTilePanel>(ListGameItems).FirstOrDefault();
-                if (panel == null)
+                // A list always starts with its first game, the art has to match what is seen.
+                Dispatcher.BeginInvoke(new Action(() =>
                 {
-                    return;
-                }
+                    mainModel.SelectGameIndex(0);
+                    ShowSelectedGame();
+                }), System.Windows.Threading.DispatcherPriority.Loaded);
+            }
 
-                if (panel.UseHorizontalLayout)
-                {
-                    panel.SetHorizontalOffset(0);
-                }
-                else
-                {
-                    panel.SetVerticalOffset(0);
-                }
+            if (e.PropertyName == nameof(FullscreenAppViewModel.ShowcaseActive))
+            {
+                SetBackgroundBinding();
+                SetBackgroundEffect();
+                Dispatcher.BeginInvoke(new Action(ShowSelectedGame), System.Windows.Threading.DispatcherPriority.Loaded);
+            }
+        }
+
+        private void ShowSelectedGame()
+        {
+            var panel = ElementTreeHelper.FindVisualChildren<FullscreenTilePanel>(ListGameItems).FirstOrDefault();
+            if (panel == null)
+            {
+                return;
+            }
+
+            if (mainModel.SelectedGame == null)
+            {
+                panel.SetHorizontalOffset(0);
+                panel.SetVerticalOffset(0);
+                return;
+            }
+
+            panel.ShowItem(mainModel.SelectedGame);
+            panel.UpdateLayout();
+            if (ListGameItems.IsKeyboardFocusWithin && ListGameItems.ItemContainerGenerator.ContainerFromItem(mainModel.SelectedGame) is UIElement item)
+            {
+                item.Focus();
             }
         }
 
@@ -178,17 +210,28 @@ namespace Playnite.FullscreenApp.Controls.Views
                 return;
             }
 
-            if (mainModel.AppSettings.Fullscreen.EnableMainBackgroundImage)
+            // Each list uses only one of them, and the art is a big picture to load for nothing.
+            SetGameArt(ImageBackground, mainModel.ShowcaseActive || ImageAmbient == null);
+            SetGameArt(ImageAmbient, !mainModel.ShowcaseActive);
+        }
+
+        private void SetGameArt(FadeImage image, bool visible)
+        {
+            if (image == null)
             {
-                ImageBackground.SourceUpdateDelay = 300;
-                BindingTools.SetBinding(ImageBackground,
-                    FadeImage.SourceProperty,
-                    mainModel,
-                    $"{nameof(mainModel.SelectedGame)}.{nameof(GamesCollectionViewEntry.DisplayBackgroundImageObject)}");
+                return;
+            }
+
+            if (visible && mainModel.AppSettings.Fullscreen.EnableMainBackgroundImage)
+            {
+                image.SourceUpdateDelay = ListBoxEx.InputRepeatInterval + GameArtMargin;
+                image.DelayOnlyRuns = true;
+                BindingTools.SetBinding(image, FadeImage.SourceProperty, mainModel, nameof(FullscreenAppViewModel.GameArt));
             }
             else
             {
-                ImageBackground.Source = null;
+                BindingOperations.ClearBinding(image, FadeImage.SourceProperty);
+                image.Source = null;
             }
         }
 
@@ -199,7 +242,7 @@ namespace Playnite.FullscreenApp.Controls.Views
                 return;
             }
 
-            if (mainModel.AppSettings.Fullscreen.MainBackgroundImageDarkAmount > 0)
+            if (mainModel.AppSettings.Fullscreen.MainBackgroundImageDarkAmount > 0 && !mainModel.ShowcaseActive)
             {
                 ImageBackground.ImageDarkeningBrush = null;
                 ImageBackground.ImageDarkeningBrush = new SolidColorBrush(new Color()
@@ -276,10 +319,13 @@ namespace Playnite.FullscreenApp.Controls.Views
                          converter: new Converters.BooleanToVisibilityConverter());
                 }
 
+                ImageAmbient = Template.FindName("PART_ImageAmbient", this) as FadeImage;
+                mainModel.ThemeHasShowcase = ImageAmbient != null;
                 ImageBackground = Template.FindName("PART_ImageBackground", this) as FadeImage;
                 if (ImageBackground != null)
                 {
-                    ImageBackground.SourceUpdateDelay = 300;
+                    // Its cache keeps the size of the view, which is smaller than the screen: the art would lose detail.
+                    ImageBackground.CacheMode = null;
                     SetBackgroundBinding();
                     SetBackgroundEffect();
                 }
@@ -373,6 +419,8 @@ namespace Playnite.FullscreenApp.Controls.Views
                                 new XAttribute(nameof(FullscreenTilePanel.Rows), "{Settings Fullscreen.Rows}"),
                                 new XAttribute(nameof(FullscreenTilePanel.Columns), "{Settings Fullscreen.Columns}"),
                                 new XAttribute(nameof(FullscreenTilePanel.UseHorizontalLayout), "{Settings Fullscreen.HorizontalLayout}"),
+                                new XAttribute(nameof(FullscreenTilePanel.Showcase), "{Binding ShowcaseActive}"),
+                                new XAttribute(nameof(FullscreenTilePanel.ContentInset), "{DynamicResource CoversInset}"),
                                 new XAttribute(nameof(FullscreenTilePanel.ItemAspectRatio), "{Settings CoverAspectRatio}"),
                                 new XAttribute(nameof(FullscreenTilePanel.ItemSpacing), "{Settings FullscreenItemSpacing}"),
                                 new XAttribute(nameof(FullscreenTilePanel.SmoothScrollEnabled), "{Settings Fullscreen.SmoothScrolling}")))

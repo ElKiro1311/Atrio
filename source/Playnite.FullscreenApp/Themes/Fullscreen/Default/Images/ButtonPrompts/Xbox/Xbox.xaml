@@ -1,99 +1,122 @@
 <ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
 
+    <!-- Drawn for Atrio: every button is a plain shape with its label. -->
+
     <DataTemplate x:Key="ButtonPromptA">
         <Viewbox>
-            <TextBlock FontFamily="{DynamicResource FontXboxOneController}"
-                       Foreground="{DynamicResource TextBrush}"
-                       Text="q" />
+            <Grid Width="40" Height="40">
+                <Ellipse Fill="{DynamicResource FocusBrush}" />
+                <TextBlock Text="A" FontFamily="{DynamicResource FontTitilliumWebBold}" FontSize="22" Foreground="{DynamicResource FocusTextBrush}" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="0,2,0,0" />
+            </Grid>
         </Viewbox>
     </DataTemplate>
 
     <DataTemplate x:Key="ButtonPromptB">
         <Viewbox>
-            <TextBlock FontFamily="{DynamicResource FontXboxOneController}"
-                        Foreground="{DynamicResource TextBrush}"
-                        Text="e" />
+            <Grid Width="40" Height="40">
+                <Ellipse Fill="{DynamicResource FocusBrush}" />
+                <TextBlock Text="B" FontFamily="{DynamicResource FontTitilliumWebBold}" FontSize="22" Foreground="{DynamicResource FocusTextBrush}" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="0,2,0,0" />
+            </Grid>
         </Viewbox>
     </DataTemplate>
 
     <DataTemplate x:Key="ButtonPromptX">
         <Viewbox>
-            <TextBlock FontFamily="{DynamicResource FontXboxOneController}"
-                       Foreground="{DynamicResource TextBrush}"
-                       Text="t" />
+            <Grid Width="40" Height="40">
+                <Ellipse Fill="{DynamicResource FocusBrush}" />
+                <TextBlock Text="X" FontFamily="{DynamicResource FontTitilliumWebBold}" FontSize="22" Foreground="{DynamicResource FocusTextBrush}" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="0,2,0,0" />
+            </Grid>
         </Viewbox>
     </DataTemplate>
 
     <DataTemplate x:Key="ButtonPromptY">
         <Viewbox>
-            <TextBlock FontFamily="{DynamicResource FontXboxOneController}"
-                        Foreground="{DynamicResource TextBrush}"
-                        Text="u" />
+            <Grid Width="40" Height="40">
+                <Ellipse Fill="{DynamicResource FocusBrush}" />
+                <TextBlock Text="Y" FontFamily="{DynamicResource FontTitilliumWebBold}" FontSize="22" Foreground="{DynamicResource FocusTextBrush}" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="0,2,0,0" />
+            </Grid>
         </Viewbox>
     </DataTemplate>
 
     <DataTemplate x:Key="ButtonPromptLB">
         <Viewbox>
-            <TextBlock FontFamily="{DynamicResource FontXboxOneController}"
-                        Foreground="{DynamicResource TextBrush}"
-                        Text="f" />
+            <Grid Width="62" Height="36">
+                <Border Background="{DynamicResource FocusBrush}" CornerRadius="10" />
+                <TextBlock Text="LB" FontFamily="{DynamicResource FontTitilliumWebBold}" FontSize="18" Foreground="{DynamicResource FocusTextBrush}" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="0,2,0,0" />
+            </Grid>
         </Viewbox>
     </DataTemplate>
 
     <DataTemplate x:Key="ButtonPromptRB">
         <Viewbox>
-            <TextBlock FontFamily="{DynamicResource FontXboxOneController}"
-                        Foreground="{DynamicResource TextBrush}"
-                        Text="z" />
+            <Grid Width="62" Height="36">
+                <Border Background="{DynamicResource FocusBrush}" CornerRadius="10" />
+                <TextBlock Text="RB" FontFamily="{DynamicResource FontTitilliumWebBold}" FontSize="18" Foreground="{DynamicResource FocusTextBrush}" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="0,2,0,0" />
+            </Grid>
         </Viewbox>
     </DataTemplate>
 
     <DataTemplate x:Key="ButtonPromptLT">
         <Viewbox>
-            <TextBlock FontFamily="{DynamicResource FontXboxOneController}"
-                        Foreground="{DynamicResource TextBrush}"
-                        Text="j" />
+            <Grid Width="54" Height="40">
+                <Border Background="{DynamicResource FocusBrush}" CornerRadius="16,16,8,8" />
+                <TextBlock Text="LT" FontFamily="{DynamicResource FontTitilliumWebBold}" FontSize="18" Foreground="{DynamicResource FocusTextBrush}" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="0,2,0,0" />
+            </Grid>
         </Viewbox>
     </DataTemplate>
 
     <DataTemplate x:Key="ButtonPromptRT">
         <Viewbox>
-            <TextBlock FontFamily="{DynamicResource FontXboxOneController}"
-                        Foreground="{DynamicResource TextBrush}"
-                        Text="v" />
+            <Grid Width="54" Height="40">
+                <Border Background="{DynamicResource FocusBrush}" CornerRadius="16,16,8,8" />
+                <TextBlock Text="RT" FontFamily="{DynamicResource FontTitilliumWebBold}" FontSize="18" Foreground="{DynamicResource FocusTextBrush}" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="0,2,0,0" />
+            </Grid>
         </Viewbox>
     </DataTemplate>
 
     <DataTemplate x:Key="ButtonPromptBack">
         <Viewbox>
-            <TextBlock FontFamily="{DynamicResource FontXboxOneController}"
-                        Foreground="{DynamicResource TextBrush}"
-                        Text="b" />
+            <Grid Width="40" Height="40">
+                <Ellipse Fill="{DynamicResource FocusBrush}" />
+                <Grid Width="22" Height="18">
+                    <Rectangle Stroke="{DynamicResource FocusTextBrush}" StrokeThickness="2.5" RadiusX="2" RadiusY="2" Width="15" Height="12" HorizontalAlignment="Left" VerticalAlignment="Top" />
+                    <Rectangle Fill="{DynamicResource FocusTextBrush}" RadiusX="2" RadiusY="2" Width="15" Height="12" HorizontalAlignment="Right" VerticalAlignment="Bottom" />
+                </Grid>
+            </Grid>
         </Viewbox>
     </DataTemplate>
 
     <DataTemplate x:Key="ButtonPromptStart">
         <Viewbox>
-            <TextBlock FontFamily="{DynamicResource FontXboxOneController}"
-                        Foreground="{DynamicResource TextBrush}"
-                        Text="k" />
+            <Grid Width="40" Height="40">
+                <Ellipse Fill="{DynamicResource FocusBrush}" />
+                <Grid Width="20" Height="16">
+                    <Rectangle Fill="{DynamicResource FocusTextBrush}" Height="3" RadiusX="1.5" RadiusY="1.5" VerticalAlignment="Top" />
+                    <Rectangle Fill="{DynamicResource FocusTextBrush}" Height="3" RadiusX="1.5" RadiusY="1.5" VerticalAlignment="Center" />
+                    <Rectangle Fill="{DynamicResource FocusTextBrush}" Height="3" RadiusX="1.5" RadiusY="1.5" VerticalAlignment="Bottom" />
+                </Grid>
+            </Grid>
         </Viewbox>
     </DataTemplate>
 
     <DataTemplate x:Key="ButtonPromptLS">
         <Viewbox>
-            <TextBlock FontFamily="{DynamicResource FontXboxOneController}"
-                        Foreground="{DynamicResource TextBrush}"
-                        Text="g" />
+            <Grid Width="40" Height="40">
+                <Ellipse Stroke="{DynamicResource FocusBrush}" StrokeThickness="3" />
+                <Ellipse Fill="{DynamicResource FocusBrush}" Margin="6" />
+                <TextBlock Text="L" FontFamily="{DynamicResource FontTitilliumWebBold}" FontSize="15" Foreground="{DynamicResource FocusTextBrush}" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="0,2,0,0" />
+            </Grid>
         </Viewbox>
     </DataTemplate>
 
     <DataTemplate x:Key="ButtonPromptRS">
         <Viewbox>
-            <TextBlock FontFamily="{DynamicResource FontXboxOneController}"
-                        Foreground="{DynamicResource TextBrush}"
-                        Text="x" />
+            <Grid Width="40" Height="40">
+                <Ellipse Stroke="{DynamicResource FocusBrush}" StrokeThickness="3" />
+                <Ellipse Fill="{DynamicResource FocusBrush}" Margin="6" />
+                <TextBlock Text="R" FontFamily="{DynamicResource FontTitilliumWebBold}" FontSize="15" Foreground="{DynamicResource FocusTextBrush}" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="0,2,0,0" />
+            </Grid>
         </Viewbox>
     </DataTemplate>
 </ResourceDictionary>

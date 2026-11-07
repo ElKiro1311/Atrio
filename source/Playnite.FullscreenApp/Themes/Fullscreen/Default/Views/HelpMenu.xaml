@@ -3,20 +3,26 @@
                     xmlns:pmrk="clr-namespace:Playnite.FullscreenApp.Markup;assembly=Playnite.FullscreenApp">
     
     <Style x:Key="HelpMenuBorder" TargetType="Border">
-        <Setter Property="Background" Value="{DynamicResource OverlayMenuBackgroundBrush}" />
+        <Setter Property="Background" Value="{DynamicResource PanelBrush}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource HairlineBrush}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="CornerRadius" Value="{DynamicResource PanelRadius}" />
+        <Setter Property="Margin" Value="0,24,0,24" />
+        <Setter Property="Padding" Value="16,4,16,16" />
     </Style>
 
     <Style x:Key="HelpMenuButton" BasedOn="{StaticResource {x:Type ButtonEx}}" TargetType="ButtonEx">
-        <Setter Property="Margin" Value="0,5,0,5" />
-        <Setter Property="Padding" Value="20,3,20,3" />
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="Margin" Value="0,2,0,2" />
+        <Setter Property="Padding" Value="18,7,22,7" />
         <Setter Property="HorizontalAlignment" Value="Stretch" />
         <Setter Property="HorizontalContentAlignment" Value="Left" />
     </Style>
 
     <DataTemplate x:Key="HelpMenuHeaderTemplate">
         <TextBlock Text="{DynamicResource LOCMenuHelpTitle}"
-                   FontSize="36" Style="{DynamicResource TextBlockBaseStyle}"
-                   Margin="20,30,40,30" />
+                   Style="{DynamicResource TextBlockCaptionStyle}"
+                   Margin="16,24,40,18" />
     </DataTemplate>
 
     <DataTemplate x:Key="HelpMenuRestartPlayniteButtonTemplate">

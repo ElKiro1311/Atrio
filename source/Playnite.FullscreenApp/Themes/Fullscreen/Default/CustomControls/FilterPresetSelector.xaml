@@ -6,35 +6,40 @@
         <Setter Property="FocusVisualStyle" Value="{x:Null}" />
         <Setter Property="SnapsToDevicePixels" Value="True" />
         <Setter Property="VerticalAlignment" Value="Center" />
-        <Setter Property="Foreground" Value="{DynamicResource TextBrush}" />
+        <Setter Property="Foreground" Value="{DynamicResource TextBrushDark}" />
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="CheckBoxEx">
-                    <Border Background="{TemplateBinding Background}"
-                            Margin="10,0,10,0">
-                        <TextBlock Style="{DynamicResource TextBlockBaseStyle}"
-                                   FontFamily="{DynamicResource FontTitilliumWeb}"
-                                   x:Name="TextContent">
-                            <Grid>
-                                <TextBlock Text="{Binding Name}" FontWeight="SemiBold" Visibility="Hidden"/>
-                                <StackPanel>
-                                    <TextBlock Text="{Binding Name}" HorizontalAlignment="Center"
-                                               Foreground="{TemplateBinding Foreground}" />
-                                    <TextBlock Text="&#x25CF;" Style="{DynamicResource TextBlockBaseStyle}"                                               
-                                               FontSize="12"
-                                               HorizontalAlignment="Center"
-                                               x:Name="SelectionBullet" Visibility="Hidden"/>
-                                </StackPanel>                                
-                            </Grid>
-                        </TextBlock>
+                    <Border x:Name="Pill" Background="{TemplateBinding Background}"
+                            CornerRadius="{DynamicResource PillRadius}"
+                            Padding="20,8,20,8" Margin="2,0,2,0">
+                        <Grid>
+                            <!-- Keeps the width of the bold text, so nothing moves when the tab changes -->
+                            <TextBlock Text="{Binding Converter={StaticResource FilterPresetNameConverter}}" Visibility="Hidden"
+                                       Style="{DynamicResource TextBlockBaseStyle}"
+                                       FontFamily="{DynamicResource FontTitilliumWebBold}" FontSize="24" />
+                            <TextBlock x:Name="Label" Text="{Binding Converter={StaticResource FilterPresetNameConverter}}"
+                                       HorizontalAlignment="Center"
+                                       Style="{DynamicResource TextBlockBaseStyle}"
+                                       FontFamily="{DynamicResource FontTitilliumWeb}" FontSize="24"
+                                       Foreground="{TemplateBinding Foreground}" />
+                            <Border x:Name="Underline" Height="3" CornerRadius="2" Background="{DynamicResource GlyphBrush}"
+                                    VerticalAlignment="Bottom" Margin="0,0,0,-7" Visibility="Hidden" />
+                        </Grid>
                     </Border>
                     <ControlTemplate.Triggers>
-                        <Trigger Property="IsFocused" Value="True">
-                            <Setter Property="Foreground" Value="{DynamicResource GlyphBrush}" />
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter Property="Background" Value="{DynamicResource HoverBrush}" TargetName="Pill" />
                         </Trigger>
                         <Trigger Property="IsChecked" Value="True">
-                            <Setter Property="FontWeight" Value="SemiBold" TargetName="TextContent" />
-                            <Setter Property="Visibility" Value="Visible" TargetName="SelectionBullet" />
+                            <Setter Property="FontFamily" Value="{DynamicResource FontTitilliumWebBold}" TargetName="Label" />
+                            <Setter Property="Foreground" Value="{DynamicResource TextBrush}" />
+                            <Setter Property="Visibility" Value="Visible" TargetName="Underline" />
+                        </Trigger>
+                        <Trigger Property="IsFocused" Value="True">
+                            <Setter Property="Background" Value="{DynamicResource FocusBrush}" TargetName="Pill" />
+                            <Setter Property="Foreground" Value="{DynamicResource FocusTextBrush}" />
+                            <Setter Property="Visibility" Value="Hidden" TargetName="Underline" />
                         </Trigger>
                     </ControlTemplate.Triggers>
                 </ControlTemplate>
@@ -50,7 +55,7 @@
                     <ItemsControlEx x:Name="PART_ItemsFilterPresets" Focusable="False"
                                     KeyboardNavigation.DirectionalNavigation="Once"
                                     HorizontalLayout="True">
-                        <ItemsControl.ItemsPanel>                            
+                        <ItemsControl.ItemsPanel>
                             <ItemsPanelTemplate>
                                 <StackPanel Orientation="Horizontal" />
                             </ItemsPanelTemplate>

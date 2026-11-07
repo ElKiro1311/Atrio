@@ -2,8 +2,10 @@
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
 
     <Style x:Key="MessageBoxBorder" TargetType="Border">
-        <Setter Property="Background" Value="{DynamicResource OverlayMenuBackgroundBrush}" />
-        <Setter Property="CornerRadius" Value="3" />
+        <Setter Property="Background" Value="{DynamicResource PanelBrush}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource HairlineBrush}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="CornerRadius" Value="{DynamicResource PanelRadius}" />
     </Style>
 
     <Style x:Key="MessageBoxCaptionText" BasedOn="{StaticResource TextBlockBaseStyle}" TargetType="TextBlock" >
@@ -18,10 +20,8 @@
     </Style>
 
     <Style x:Key="MessageBoxButton" BasedOn="{StaticResource {x:Type Button}}" TargetType="Button">
-        <Setter Property="Margin" Value="5" />
-        <Setter Property="MinWidth" Value="150" />
-        <Setter Property="BorderThickness" Value="2" />
-        <Setter Property="BorderBrush" Value="{DynamicResource SelectionLightBrush}" />
+        <Setter Property="Margin" Value="0,5,10,5" />
+        <Setter Property="MinWidth" Value="170" />
         <Setter Property="HorizontalContentAlignment" Value="Center" />
     </Style>
 </ResourceDictionary>
