@@ -131,6 +131,7 @@ namespace Playnite.Atrio
         private const string ConsoleGamePrefix = "CONSOLE_";
 
         private static readonly TimeSpan checkPause = TimeSpan.FromSeconds(2);
+        private static readonly TimeSpan servicesPatience = TimeSpan.FromSeconds(30);
         private static readonly HttpClient client = new HttpClient { Timeout = TimeSpan.FromSeconds(15) };
 
         public XboxDirectInstallController(Game game, InstallController store) : base(game, store)
@@ -218,6 +219,13 @@ namespace Playnite.Atrio
                 Logger.Info("Installing Gaming Services, Xbox games need it.");
                 var services = await queue.StartAsync(GamingServicesProduct).ConfigureAwait(false);
                 await WaitAsync(queue, services, false, HasGamingServices).ConfigureAwait(false);
+
+                // The Store can call it an error and still leave it installed a moment later.
+                var started = DateTime.Now;
+                while (!HasGamingServices() && DateTime.Now - started < servicesPatience)
+                {
+                    await Task.Delay(checkPause, Cancellation).ConfigureAwait(false);
+                }
             }
 
             var item = await queue.StartAsync(product).ConfigureAwait(false);

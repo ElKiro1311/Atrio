@@ -38,6 +38,49 @@ namespace Playnite.Tests
             }
         }
 
+        private class BrokenStore : SDK.Plugins.InstallController
+        {
+            public BrokenStore(SDK.Models.Game game) : base(game)
+            {
+            }
+
+            public override void Install(SDK.Plugins.InstallActionArgs args)
+            {
+                throw new Exception("Epic Launcher is not installed.");
+            }
+        }
+
+        private class FallingBackController : DirectInstallController
+        {
+            public bool Failed => StoreFailed;
+
+            public FallingBackController(SDK.Models.Game game, SDK.Plugins.InstallController store) : base(game, store)
+            {
+            }
+
+            protected override System.Threading.Tasks.Task<bool> InstallDirectlyAsync(SDK.Plugins.InstallActionArgs args)
+            {
+                return System.Threading.Tasks.Task.FromResult(false);
+            }
+        }
+
+        private class AssistedController : AssistedInstallController
+        {
+            public bool Assisted { get; private set; }
+
+            public bool Failed => StoreFailed;
+
+            public AssistedController(SDK.Models.Game game, SDK.Plugins.InstallController store) : base(game, store)
+            {
+            }
+
+            protected override System.Threading.Tasks.Task AssistAsync()
+            {
+                Assisted = true;
+                return System.Threading.Tasks.Task.CompletedTask;
+            }
+        }
+
         private static readonly Color buttonBlue = Color.FromArgb(0, 110, 245);
         private static readonly Color pressedBlue = Color.FromArgb(0, 88, 196);
         private static readonly Color background = Color.FromArgb(27, 32, 38);
@@ -422,6 +465,28 @@ namespace Playnite.Tests
             Assert.AreEqual("0123456789abcdef0123456789abcdef", GogDownloads.ParseChecksum(text));
             Assert.IsNull(GogDownloads.ParseChecksum("<file />"));
             Assert.IsNull(GogDownloads.ParseChecksum(null));
+        }
+
+        [Test]
+        public void AStoreThatCannotStartEndsTheInstallTest()
+        {
+            var game = new SDK.Models.Game { GameId = "Basil" };
+            System.Threading.SynchronizationContext.SetSynchronizationContext(new System.Threading.SynchronizationContext());
+            var controller = new FallingBackController(game, new BrokenStore(game));
+            Assert.DoesNotThrow(() => controller.Install(new SDK.Plugins.InstallActionArgs()));
+            Assert.IsTrue(controller.Failed);
+            Assert.IsNull(DirectInstallProgress.Get(game.Id));
+        }
+
+        [Test]
+        public void NothingToAssistWhenTheStoreCannotStartTest()
+        {
+            var game = new SDK.Models.Game { GameId = "109" };
+            System.Threading.SynchronizationContext.SetSynchronizationContext(new System.Threading.SynchronizationContext());
+            var controller = new AssistedController(game, new BrokenStore(game));
+            Assert.DoesNotThrow(() => controller.Install(new SDK.Plugins.InstallActionArgs()));
+            Assert.IsTrue(controller.Failed);
+            Assert.IsFalse(controller.Assisted);
         }
 
         [Test]

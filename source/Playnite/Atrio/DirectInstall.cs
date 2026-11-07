@@ -131,7 +131,28 @@ namespace Playnite.Atrio
                 InvokeOnInstalled(e);
             };
             store.InstallCancelled += (_, e) => Abandon();
-            store.Install(args);
+            try
+            {
+                store.Install(args);
+            }
+            catch (Exception e) when (!PlayniteEnvironment.ThrowAllErrors)
+            {
+                // Like a client that isn't installed. Nobody is left upstream to catch it: this runs
+                // after an await, and an exception here would close the whole program.
+                Logger.Error(e, $"The store couldn't install {Game.GameId}.");
+                StoreFailed = true;
+                ReportStoreFailure(e.Message);
+                Abandon();
+            }
+        }
+
+        /// <summary>The add-on couldn't even start, there's nothing to wait for.</summary>
+        protected bool StoreFailed { get; private set; }
+
+        private static void ReportStoreFailure(string reason)
+        {
+            var dialogs = Playnite.SDK.API.Instance?.Dialogs;
+            dialogs?.ShowErrorMessage(string.Format(ResourceProvider.GetString("LOCGameInstallError"), reason), ResourceProvider.GetString("LOCGameError"));
         }
 
         public override void Dispose()
@@ -163,6 +184,11 @@ namespace Playnite.Atrio
         protected override async Task<bool> InstallDirectlyAsync(InstallActionArgs args)
         {
             UseStore(args);
+            if (StoreFailed)
+            {
+                return true;
+            }
+
             try
             {
                 await AssistAsync();
