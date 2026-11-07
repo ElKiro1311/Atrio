@@ -94,6 +94,7 @@ namespace Playnite.Atrio
 
         private static readonly Guid accessibleId = new Guid("618736E0-3C3D-11CF-810C-00AA00389B71");
         private static readonly Guid accessible2Id = new Guid("E89F726E-C4F4-4C19-BB19-B647D7FA8478");
+        private static readonly TimeSpan readPatience = TimeSpan.FromSeconds(20);
         private static readonly ILogger logger = LogManager.GetLogger();
 
         [DllImport("user32.dll")]
@@ -262,6 +263,7 @@ namespace Playnite.Atrio
         public static T WithControls<T>(IntPtr window, Func<List<StoreControl>, T> use)
         {
             var result = default(T);
+            var gaveUp = false;
             Exception failure = null;
             var reader = new Thread(() =>
             {
@@ -278,7 +280,10 @@ namespace Playnite.Atrio
                         views.ForEach(a => Collect(GetAccessible(a), 0, controls));
                     }
 
-                    result = use(controls);
+                    if (!gaveUp)
+                    {
+                        result = use(controls);
+                    }
                 }
                 catch (Exception e)
                 {
@@ -289,7 +294,14 @@ namespace Playnite.Atrio
             reader.SetApartmentState(ApartmentState.STA);
             reader.IsBackground = true;
             reader.Start();
-            reader.Join();
+            if (!reader.Join(readPatience))
+            {
+                // A store that stopped answering doesn't get to hold this up.
+                gaveUp = true;
+                logger.Debug("A store window didn't answer.");
+                return default(T);
+            }
+
             if (failure != null)
             {
                 logger.Debug($"Couldn't read a store window: {failure.Message}");
@@ -379,7 +391,11 @@ namespace Playnite.Atrio
         {
             if (window != IntPtr.Zero)
             {
-                ShowWindowAsync(window, Restored);
+                if (IsIconic(window))
+                {
+                    ShowWindowAsync(window, Restored);
+                }
+
                 SetForegroundWindow(window);
             }
         }

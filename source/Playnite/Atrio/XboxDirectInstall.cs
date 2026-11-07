@@ -132,6 +132,7 @@ namespace Playnite.Atrio
 
         private static readonly TimeSpan checkPause = TimeSpan.FromSeconds(2);
         private static readonly TimeSpan servicesPatience = TimeSpan.FromSeconds(30);
+        private static readonly TimeSpan appPatience = TimeSpan.FromSeconds(20);
         private static readonly HttpClient client = new HttpClient { Timeout = TimeSpan.FromSeconds(15) };
 
         public XboxDirectInstallController(Game game, InstallController store) : base(game, store)
@@ -170,20 +171,21 @@ namespace Playnite.Atrio
             return ServiceController.GetServices().Any(a => a.ServiceName.Equals(GamingServicesService, StringComparison.OrdinalIgnoreCase));
         }
 
-        private async Task<bool> WaitAsync(MicrosoftStoreQueue queue, object item, bool report, Func<bool> alreadyDone = null)
+        /// <summary>The last word of the Store about the install, null if it stopped mattering.</summary>
+        private async Task<StoreInstallStatus> WaitAsync(MicrosoftStoreQueue queue, object item, bool report, Func<bool> alreadyDone = null)
         {
             while (true)
             {
                 await Task.Delay(checkPause, Cancellation).ConfigureAwait(false);
                 if (alreadyDone?.Invoke() == true)
                 {
-                    return true;
+                    return null;
                 }
 
                 var status = queue.GetStatus(item);
                 if (status.IsFinished)
                 {
-                    return true;
+                    return status;
                 }
 
                 if (status.HasFailed)
@@ -194,7 +196,7 @@ namespace Playnite.Atrio
                         queue.Cancel(item);
                     }
 
-                    return false;
+                    return status;
                 }
 
                 if (report)
@@ -230,14 +232,38 @@ namespace Playnite.Atrio
 
             var item = await queue.StartAsync(product).ConfigureAwait(false);
             Logger.Info($"Microsoft Store told to install {product} ({Game.GameId}).");
-            if (!await WaitAsync(queue, item, true).ConfigureAwait(false))
+            var result = await WaitAsync(queue, item, true).ConfigureAwait(false);
+            if (result.State == "Canceled")
+            {
+                // The person changed their mind in the Store.
+                Abandon();
+                return true;
+            }
+
+            if (!result.IsFinished)
             {
                 return false;
             }
 
-            var app = Programs.GetUWPApps().FirstOrDefault(a => a.AppId?.Equals(Game.GameId, StringComparison.OrdinalIgnoreCase) == true);
-            Finish(app?.WorkDir);
-            return true;
+            // In a bundle the item can be a small part of it: the game is there when Windows has it.
+            var finished = DateTime.Now;
+            while (true)
+            {
+                var app = Programs.GetUWPApps().FirstOrDefault(a => a.AppId?.Equals(Game.GameId, StringComparison.OrdinalIgnoreCase) == true);
+                if (app != null)
+                {
+                    Finish(app.WorkDir);
+                    return true;
+                }
+
+                if (DateTime.Now - finished > appPatience)
+                {
+                    Logger.Warn($"The Microsoft Store finished, but Windows doesn't have {Game.GameId}.");
+                    return false;
+                }
+
+                await Task.Delay(checkPause, Cancellation).ConfigureAwait(false);
+            }
         }
     }
 }

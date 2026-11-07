@@ -32,6 +32,7 @@ namespace Playnite.Atrio
         private TcpClient connection;
         private StreamWriter writer;
         private long lastRequest;
+        private int disposed;
 
         /// <summary>From 0 to 1.</summary>
         public event Action<double> ProgressChanged;
@@ -74,8 +75,16 @@ namespace Playnite.Atrio
             }
 
             var client = new ButlerClient();
-            await client.ConnectAsync().ConfigureAwait(false);
-            return client;
+            try
+            {
+                await client.ConnectAsync().ConfigureAwait(false);
+                return client;
+            }
+            catch
+            {
+                client.Dispose();
+                throw;
+            }
         }
 
         private async Task ConnectAsync()
@@ -85,7 +94,8 @@ namespace Playnite.Atrio
                 StartInfo = new ProcessStartInfo
                 {
                     FileName = Executable,
-                    Arguments = $"daemon --json --dbpath \"{Database}\" --transport tcp --keep-alive",
+                    // It ends with Atrio even if Atrio doesn't get to say goodbye.
+                    Arguments = $"daemon --json --dbpath \"{Database}\" --transport tcp --keep-alive --destiny-pid={Process.GetCurrentProcess().Id}",
                     RedirectStandardOutput = true,
                     RedirectStandardError = true,
                     UseShellExecute = false,
@@ -98,7 +108,14 @@ namespace Playnite.Atrio
             {
                 if (e.Data?.StartsWith("{", StringComparison.Ordinal) == true && e.Data.Contains(ListenMessage))
                 {
-                    listening.TrySetResult(JObject.Parse(e.Data));
+                    try
+                    {
+                        listening.TrySetResult(JObject.Parse(e.Data));
+                    }
+                    catch (JsonException failure)
+                    {
+                        listening.TrySetException(failure);
+                    }
                 }
             };
 
@@ -141,9 +158,10 @@ namespace Playnite.Atrio
                     }
                 }
             }
-            catch (Exception e) when (e is IOException || e is ObjectDisposedException)
+            catch (Exception e)
             {
-                logger.Debug("The connection with butler ended.");
+                // This thread is nobody's: anything that escapes from here would close the program.
+                logger.Debug($"The connection with butler ended: {e.Message}");
             }
 
             foreach (var request in pending.Values)
@@ -211,6 +229,11 @@ namespace Playnite.Atrio
 
         public void Dispose()
         {
+            if (Interlocked.Exchange(ref disposed, 1) != 0)
+            {
+                return;
+            }
+
             try
             {
                 if (writer != null)
@@ -224,9 +247,16 @@ namespace Playnite.Atrio
             }
 
             connection?.Close();
-            if (process?.HasExited == false && !process.WaitForExit(3000))
+            try
             {
-                process.Kill();
+                if (process?.HasExited == false && !process.WaitForExit(3000))
+                {
+                    process.Kill();
+                }
+            }
+            catch (Exception e) when (e is InvalidOperationException || e is System.ComponentModel.Win32Exception)
+            {
+                logger.Debug($"Butler ended on its own: {e.Message}");
             }
 
             process?.Dispose();
@@ -236,14 +266,17 @@ namespace Playnite.Atrio
     /// <summary>Installs a game of itch.io with the engine of its app, with no windows involved.</summary>
     public class ItchDirectInstallController : DirectInstallController
     {
+        private static readonly string[] playableUploads = { "default", "html", "flash", "unity", "java" };
+
         public ItchDirectInstallController(Game game, InstallController store) : base(game, store)
         {
         }
 
-        /// <summary>Butler gives them from best to worst for this computer, the soundtracks and such come after.</summary>
+        /// <summary>Butler gives them from best to worst for this computer. Soundtracks and books aren't the game.</summary>
         public static JToken PickUpload(JArray uploads)
         {
-            return uploads.FirstOrDefault(a => a["type"]?.ToString() == "default" && a["platforms"]?["windows"] != null) ?? uploads.FirstOrDefault();
+            return uploads.FirstOrDefault(a => a["type"]?.ToString() == "default" && a["platforms"]?["windows"] != null) ??
+                   uploads.FirstOrDefault(a => playableUploads.Contains(a["type"]?.ToString()));
         }
 
         protected override async Task<bool> InstallDirectlyAsync(InstallActionArgs args)
@@ -255,6 +288,8 @@ namespace Playnite.Atrio
                     return false;
                 }
 
+                // Off this thread: cancelling comes from the interface, and butler can take a moment to leave.
+                Cancellation.Register(() => Task.Run(() => butler.Dispose()));
                 butler.AcceptsLicense = () => DirectInstall.AcceptsStoreTerms;
                 butler.ProgressChanged += progress => DirectInstallProgress.Set(Game.Id, (int)(progress * 100));
                 var profiles = (JArray)(await butler.CallAsync("Profile.List").ConfigureAwait(false))["profiles"];
@@ -286,11 +321,7 @@ namespace Playnite.Atrio
                 }).ConfigureAwait(false);
 
                 Logger.Info($"Installing {Game.GameId} of itch.io.");
-                using (Cancellation.Register(() => butler.Dispose()))
-                {
-                    await butler.CallAsync("Install.Perform", new { id = queued["id"].ToString(), stagingFolder = queued["stagingFolder"].ToString() }).ConfigureAwait(false);
-                }
-
+                await butler.CallAsync("Install.Perform", new { id = queued["id"].ToString(), stagingFolder = queued["stagingFolder"].ToString() }).ConfigureAwait(false);
                 Finish(queued["installFolder"].ToString());
                 return true;
             }

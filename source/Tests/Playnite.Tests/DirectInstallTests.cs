@@ -142,12 +142,13 @@ namespace Playnite.Tests
                 EpicDirectInstallController.GetInstallKeys().ToList());
         }
 
-        [TestCase("AppInstallUriHandler: Install-location selector concluded for AppId x (accepted=true); navigating to Library", true)]
-        [TestCase("AppInstallUriHandler: Install-location selector concluded for AppId x (accepted=false); navigating to Library", false)]
+        [TestCase("AppInstallUriHandler: Install-location selector concluded for AppId ns:item:app (accepted=true); navigating to Library", true)]
+        [TestCase("AppInstallUriHandler: Install-location selector concluded for AppId ns:item:app (accepted=false); navigating to Library", false)]
+        [TestCase("AppInstallUriHandler: Install-location selector concluded for AppId other:game:here (accepted=false); navigating to Library", null)]
         [TestCase("LogHttp: nothing to do with it", null)]
         public void EpicDialogAnswerComesFromItsLogTest(string line, bool? answer)
         {
-            Assert.AreEqual(answer, EpicDirectInstallController.ReadDialogAnswer(line));
+            Assert.AreEqual(answer, EpicDirectInstallController.ReadDialogAnswer(line, "ns:item:app"));
         }
 
         [Test]
@@ -162,6 +163,25 @@ namespace Playnite.Tests
                 File.AppendAllText(file, "new line\n");
                 Assert.IsTrue(log.ReadNew().Any(a => a.Contains("new line")));
                 Assert.IsFalse(log.ReadNew().Any(a => a.Contains("new line")));
+            }
+            finally
+            {
+                File.Delete(file);
+            }
+        }
+
+        [Test]
+        public void LogFollowerWaitsForTheEndOfALineTest()
+        {
+            var file = Path.GetTempFileName();
+            try
+            {
+                File.WriteAllText(file, "old\n");
+                var log = new LogFollower(file);
+                File.AppendAllText(file, "half of a li");
+                Assert.IsEmpty(log.ReadNew());
+                File.AppendAllText(file, "ne that ended\n");
+                CollectionAssert.AreEqual(new[] { "half of a line that ended" }, log.ReadNew());
             }
             finally
             {
@@ -359,6 +379,45 @@ namespace Playnite.Tests
         }
 
         [Test]
+        public void UbisoftOnlyClicksTheTickedShortcutsTest()
+        {
+            using (var page = UbisoftPage(shortcuts: true))
+            {
+                Assert.AreEqual(2, UbisoftDirectInstallController.GetTickedShortcuts(page).Count);
+                page.SetPixel(152, 300, background);
+                CollectionAssert.AreEqual(new[] { new Point(152, 266) }, UbisoftDirectInstallController.GetTickedShortcuts(page));
+            }
+        }
+
+        [Test]
+        public void UbisoftKnowsTheLicenseEvenWithAShortButtonTest()
+        {
+            using (var page = UbisoftPage(continueColor: pressedBlue))
+            {
+                for (var y = 140; y < 300; y++)
+                {
+                    page.SetPixel(100, y, Color.White);
+                }
+
+                Assert.AreEqual(UbisoftStep.License, UbisoftDirectInstallController.Classify(page));
+            }
+        }
+
+        [Test]
+        public void UbisoftFolderPageIsNotTakenForALicenseTest()
+        {
+            using (var page = UbisoftPage(continueColor: pressedBlue))
+            {
+                for (var y = 120; y < 190; y += 2)
+                {
+                    page.SetPixel(100, y, Color.White);
+                }
+
+                Assert.AreEqual(UbisoftStep.Continue, UbisoftDirectInstallController.Classify(page));
+            }
+        }
+
+        [Test]
         public void UbisoftKnowsTheLicenseInOtherScalesTest()
         {
             using (var page = UbisoftPage(1071, licenseColor: buttonBlue))
@@ -379,29 +438,215 @@ namespace Playnite.Tests
         [Test]
         public void EaTellsItsDialogsApartWithoutReadingThemTest()
         {
-            Assert.AreEqual(EaStep.Nothing, EaDirectInstallController.Classify(new List<StoreControl>()));
+            Assert.AreEqual(EaStep.Nothing, EaDirectInstallController.Classify(new List<StoreControl>(), "Zau"));
 
             Assert.AreEqual(EaStep.GameNotInstalled, EaDirectInstallController.Classify(new List<StoreControl>
             {
                 new FakeControl("Juego no instalado", TextRole, 2),
+                new FakeControl("Comprueba que Tales of Kenzera™: ZAU está instalado.", TextRole, 2),
                 new FakeControl("Obtener el juego", ButtonRole, 2),
                 new FakeControl("Cerrar", ButtonRole, 2)
-            }));
+            }, "Tales of Kenzera: ZAU"));
 
             Assert.AreEqual(EaStep.DownloadOptions, EaDirectInstallController.Classify(new List<StoreControl>
             {
                 new FakeControl("Cerrar", ButtonRole, 2),
+                new FakeControl("Cambiar carpeta", ButtonRole, 2),
                 new FakeControl("Crear acceso directo", CheckBoxRole, 3, CheckedState),
                 new FakeControl("Siguiente", ButtonRole, 2),
                 new FakeControl("Cancelar", ButtonRole, 2)
-            }));
+            }, "Zau"));
 
             Assert.AreEqual(EaStep.Terms, EaDirectInstallController.Classify(new List<StoreControl>
             {
                 new FakeControl("Acuerdo de usuario", LinkRole, 3),
                 new FakeControl("Descargar", ButtonRole, 2),
                 new FakeControl("Cancelar", ButtonRole, 2)
-            }));
+            }, "Zau"));
+        }
+
+        private const string EaGame = "Tales of Kenzera: ZAU";
+
+        private static List<StoreControl> EaNotice(FakeControl main, FakeControl close = null)
+        {
+            return new List<StoreControl>
+            {
+                new FakeControl("Game not installed", DialogRole, 1),
+                new FakeControl("Check that Tales of Kenzera™: ZAU is installed.", TextRole, 2),
+                main,
+                close ?? new FakeControl("Close", ButtonRole, 2)
+            };
+        }
+
+        private static List<StoreControl> EaPage(FakeControl download)
+        {
+            return new List<StoreControl>
+            {
+                new FakeControl("Tales of Kenzera™: ZAU", TextRole, 3),
+                new FakeControl("Standard Edition owned", TextRole, 3),
+                download
+            };
+        }
+
+        private static List<StoreControl> EaOptions(FakeControl shortcut, FakeControl updates, FakeControl next)
+        {
+            return new List<StoreControl>
+            {
+                new FakeControl("Download options", DialogRole, 1),
+                new FakeControl("Close", ButtonRole, 2),
+                new FakeControl("Change install location", ButtonRole, 2),
+                new FakeControl("English", ButtonRole, 2),
+                shortcut,
+                updates,
+                next,
+                new FakeControl("Cancel", ButtonRole, 2)
+            };
+        }
+
+        private static List<StoreControl> EaTerms(FakeControl download)
+        {
+            return new List<StoreControl>
+            {
+                new FakeControl("", DialogRole, 1),
+                new FakeControl("Close", ButtonRole, 2),
+                new FakeControl("Electronic Arts User Agreement", LinkRole, 3),
+                new FakeControl("Legal disclosures", ButtonRole, 3),
+                download,
+                new FakeControl("Cancel", ButtonRole, 2)
+            };
+        }
+
+        [Test]
+        public void EaFlowPressesEachStepOnceAndStopsAtTheTermsTest()
+        {
+            var now = new DateTime(2026, 11, 7);
+            var flow = new EaInstallFlow(EaGame, false, now);
+
+            var getGame = new FakeControl("Get the game", ButtonRole, 2);
+            Assert.AreEqual(EaOutcome.Waiting, flow.Advance(EaNotice(getGame), now));
+            Assert.AreEqual(0, getGame.Presses, "A first reading is not enough to press.");
+            Assert.AreEqual(EaOutcome.Waiting, flow.Advance(EaNotice(getGame), now));
+            Assert.AreEqual(1, getGame.Presses);
+
+            var download = new FakeControl("Download", ButtonRole, 4);
+            Assert.AreEqual(EaOutcome.Waiting, flow.Advance(EaPage(download), now));
+            Assert.AreEqual(EaOutcome.Waiting, flow.Advance(EaPage(download), now));
+            Assert.AreEqual(1, download.Presses, "The download button of the page goes only once.");
+
+            var shortcut = new FakeControl("Create desktop shortcut", CheckBoxRole, 3, CheckedState);
+            var updates = new FakeControl("Update games automatically", CheckBoxRole, 3, CheckedState);
+            var next = new FakeControl("NEXT", ButtonRole, 2);
+            flow.Advance(EaOptions(shortcut, updates, next), now);
+            flow.Advance(EaOptions(shortcut, updates, next), now);
+            Assert.AreEqual(1, shortcut.Presses);
+            Assert.AreEqual(0, updates.Presses);
+            Assert.AreEqual(1, next.Presses);
+
+            var accept = new FakeControl("Download", ButtonRole, 2);
+            Assert.AreEqual(EaOutcome.AskPerson, flow.Advance(EaTerms(accept), now));
+            Assert.AreEqual(0, accept.Presses);
+        }
+
+        [Test]
+        public void EaNeverAnswersWhatComesAfterTheOptionsTest()
+        {
+            var now = new DateTime(2026, 11, 7);
+            var flow = new EaInstallFlow(EaGame, true, now);
+            flow.Advance(EaNotice(new FakeControl("Get the game", ButtonRole, 2)), now);
+            flow.Advance(EaNotice(new FakeControl("Get the game", ButtonRole, 2)), now);
+            flow.Advance(EaPage(new FakeControl("Download", ButtonRole, 4)), now);
+            var next = new FakeControl("NEXT", ButtonRole, 2);
+            var options = EaOptions(new FakeControl("Shortcut", CheckBoxRole, 3), new FakeControl("Updates", CheckBoxRole, 3), next);
+            flow.Advance(options, now);
+            flow.Advance(options, now);
+
+            // Terms without a link, or an offer that names the game: even with the option on, it isn't Atrio's to answer.
+            var main = new FakeControl("I agree", ButtonRole, 2);
+            var unknown = EaNotice(main);
+            Assert.AreEqual(EaOutcome.AskPerson, flow.Advance(unknown, now));
+            Assert.AreEqual(0, main.Presses);
+        }
+
+        [Test]
+        public void EaAcceptsTheTermsOnlyWithTheOptionTest()
+        {
+            var now = new DateTime(2026, 11, 7);
+            var flow = new EaInstallFlow(EaGame, true, now);
+            flow.Advance(EaNotice(new FakeControl("Get the game", ButtonRole, 2)), now);
+            flow.Advance(EaNotice(new FakeControl("Get the game", ButtonRole, 2)), now);
+            flow.Advance(EaPage(new FakeControl("Download", ButtonRole, 4)), now);
+            var options = EaOptions(new FakeControl("Shortcut", CheckBoxRole, 3), new FakeControl("Updates", CheckBoxRole, 3), new FakeControl("NEXT", ButtonRole, 2));
+            flow.Advance(options, now);
+            flow.Advance(options, now);
+            var accept = new FakeControl("Download", ButtonRole, 2);
+            Assert.AreEqual(EaOutcome.Waiting, flow.Advance(EaTerms(accept), now));
+            Assert.AreEqual(EaOutcome.Started, flow.Advance(EaTerms(accept), now));
+            Assert.AreEqual(1, accept.Presses);
+        }
+
+        [Test]
+        public void EaFlowStopsAtADialogOutOfPlaceTest()
+        {
+            var now = new DateTime(2026, 11, 7);
+            var flow = new EaInstallFlow(EaGame, false, now);
+            var accept = new FakeControl("Download", ButtonRole, 2);
+            Assert.AreEqual(EaOutcome.Stop, flow.Advance(EaTerms(accept), now));
+            Assert.AreEqual(0, accept.Presses);
+        }
+
+        [Test]
+        public void EaFlowGivesUpWhenThePageNeverArrivesTest()
+        {
+            var now = new DateTime(2026, 11, 7);
+            var flow = new EaInstallFlow(EaGame, false, now);
+            var getGame = new FakeControl("Get the game", ButtonRole, 2);
+            flow.Advance(EaNotice(getGame), now);
+            flow.Advance(EaNotice(getGame), now);
+            var otherGame = new FakeControl("Download", ButtonRole, 4);
+            var page = new List<StoreControl> { new FakeControl("The Sims 4", TextRole, 3), otherGame };
+            Assert.AreEqual(EaOutcome.Waiting, flow.Advance(page, now.AddSeconds(5)));
+            Assert.AreEqual(EaOutcome.Stop, flow.Advance(page, now.AddSeconds(60)));
+            Assert.AreEqual(0, otherGame.Presses, "The page of another game is not touched.");
+        }
+
+        [Test]
+        public void EaFlowEndsWhenAGameHasNoTermsTest()
+        {
+            var now = new DateTime(2026, 11, 7);
+            var flow = new EaInstallFlow(EaGame, false, now);
+            flow.Advance(EaNotice(new FakeControl("Get the game", ButtonRole, 2)), now);
+            flow.Advance(EaNotice(new FakeControl("Get the game", ButtonRole, 2)), now);
+            flow.Advance(EaPage(new FakeControl("Download", ButtonRole, 4)), now);
+            var options = EaOptions(new FakeControl("Shortcut", CheckBoxRole, 3), new FakeControl("Updates", CheckBoxRole, 3), new FakeControl("NEXT", ButtonRole, 2));
+            flow.Advance(options, now);
+            flow.Advance(options, now);
+            var library = new List<StoreControl> { new FakeControl("Library", ButtonRole, 1) };
+            Assert.AreEqual(EaOutcome.Waiting, flow.Advance(library, now.AddSeconds(2)));
+            Assert.AreEqual(EaOutcome.Started, flow.Advance(library, now.AddSeconds(8)));
+        }
+
+        [Test]
+        public void EaLeavesAloneANoticeAboutSomethingElseTest()
+        {
+            var main = new FakeControl("Join EA Play", ButtonRole, 2);
+            Assert.AreEqual(EaStep.Other, EaDirectInstallController.Classify(new List<StoreControl>
+            {
+                new FakeControl("Play more with a subscription", TextRole, 2),
+                main,
+                new FakeControl("Not now", ButtonRole, 2)
+            }, "Tales of Kenzera: ZAU"));
+            Assert.AreEqual(0, main.Presses);
+        }
+
+        [Test]
+        public void EaKnowsTheGameWhenTheEditionIsDifferentTest()
+        {
+            Assert.AreEqual(EaStep.GameNotInstalled, EaDirectInstallController.Classify(new List<StoreControl>
+            {
+                new FakeControl("Check that STAR WARS Jedi: Fallen Order™ is installed.", TextRole, 2),
+                new FakeControl("Get the game", ButtonRole, 2),
+                new FakeControl("Close", ButtonRole, 2)
+            }, "STAR WARS Jedi: Fallen Order Deluxe Edition"));
         }
 
         [Test]
@@ -411,7 +656,7 @@ namespace Playnite.Tests
             {
                 new FakeControl("You don't have access", TextRole, 2),
                 new FakeControl("OK", ButtonRole, 2)
-            }));
+            }, "Zau"));
         }
 
         [Test]
@@ -428,6 +673,13 @@ namespace Playnite.Tests
         {
             var uploads = JArray.Parse(@"[{""id"":1,""type"":""soundtrack"",""platforms"":{}},{""id"":2,""type"":""default"",""platforms"":{""windows"":""all""}}]");
             Assert.AreEqual(2, ItchDirectInstallController.PickUpload(uploads)["id"].Value<int>());
+        }
+
+        [Test]
+        public void ItchDoesNotTakeASoundtrackForTheGameTest()
+        {
+            var uploads = JArray.Parse(@"[{""id"":1,""type"":""soundtrack"",""platforms"":{}},{""id"":3,""type"":""book"",""platforms"":{}}]");
+            Assert.IsNull(ItchDirectInstallController.PickUpload(uploads));
         }
 
         [Test]

@@ -12,6 +12,7 @@ Un solo sitio para los juegos de todas tus tiendas. Atrio es un lanzador portát
 
 - **Un juego, una entrada.** Si tienes el mismo juego en varias tiendas aparece una sola vez, con el icono de cada tienda en la portada.
 - **Tú eliges desde dónde jugar.** La ficha del juego muestra cada copia, con su botón de jugar o instalar. También puedes fijar una tienda por defecto o separar una copia que no sea el mismo juego.
+- **Instala sin pasar por la tienda.** Atrio da la orden y el juego baja con el porcentaje en el botón. Steam, Xbox, Epic, Amazon e itch.io van solos. EA, Ubisoft y GOG se paran en las condiciones del juego para que las aceptes tú, salvo que actives una opción. La tienda tiene que estar en tu PC con tu cuenta iniciada, y si algo falla se abre como siempre.
 - **Tiendas listas desde el primer arranque.** Steam, Epic, GOG, Xbox, Battle.net, EA, Ubisoft, Rockstar, Riot, Amazon, Humble e itch.io vienen activas. Otras once se activan con un clic y cuatro más se descargan desde la página Tiendas.
 - **Logros en un solo sitio.** Lee los logros de tus tiendas y de RetroAchievements, los enseña en la ficha de cada juego y te avisa cuando desbloqueas uno mientras juegas. Solo los lee: hay que conectar cada cuenta.
 - **Emuladores como una tienda más.** Atrio reconoce 89 emuladores. Cada uno tiene su tarjeta, su filtro en la biblioteca y su icono en las portadas. No incluye emuladores, juegos ni BIOS.

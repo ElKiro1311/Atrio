@@ -8,6 +8,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace Playnite.Atrio
@@ -103,7 +104,7 @@ namespace Playnite.Atrio
                         return item;
                     }
                 }
-                catch (Exception e) when (e is IOException || e is UnauthorizedAccessException)
+                catch (Exception e) when (e is IOException || e is UnauthorizedAccessException || e is JsonException)
                 {
                     // The launcher is writing it, it's read again in the next round.
                 }
@@ -122,7 +123,7 @@ namespace Playnite.Atrio
         }
     }
 
-    /// <summary>Reads what a program adds to its log after a given moment.</summary>
+    /// <summary>Reads what a program adds to its log after a given moment, in whole lines.</summary>
     public class LogFollower
     {
         private const int StartLength = 256;
@@ -176,32 +177,44 @@ namespace Playnite.Atrio
 
                 start = current;
                 stream.Seek(position, SeekOrigin.Begin);
-                using (var reader = new StreamReader(stream))
+                var bytes = new byte[stream.Length - position];
+                var read = stream.Read(bytes, 0, bytes.Length);
+
+                // A line that's still being written waits for the next round.
+                var end = read == 0 ? -1 : Array.LastIndexOf(bytes, (byte)'\n', read - 1);
+                if (end < 0)
                 {
-                    var text = reader.ReadToEnd();
-                    position = stream.Length;
-                    return text.Split('\n').ToList();
+                    return new List<string>();
                 }
+
+                position += end + 1;
+                return Encoding.UTF8.GetString(bytes, 0, end).Split('\n').ToList();
             }
         }
     }
 
     /// <summary>
     /// The launcher takes an order to install a game, but it asks for the folder first in a dialog of its
-    /// own. That dialog takes keys without being in the foreground, and its log tells when it's up and how it ended.
+    /// own. That dialog takes keys through messages, and its log tells when it's up and how it ended.
     /// </summary>
     public class EpicDirectInstallController : DirectInstallController
     {
         private const string Process = "EpicGamesLauncher";
         private const int TabsToShortcut = 4;
 
+        // One dialog at a time: two installs at once would mix their keys in it.
+        private static readonly SemaphoreSlim dialogTurn = new SemaphoreSlim(1, 1);
+
         private static readonly TimeSpan dialogPatience = TimeSpan.FromSeconds(90);
+        private static readonly TimeSpan configPatience = TimeSpan.FromSeconds(15);
         private static readonly TimeSpan answerPatience = TimeSpan.FromSeconds(6);
         private static readonly TimeSpan startPatience = TimeSpan.FromSeconds(30);
         private static readonly TimeSpan checkPause = TimeSpan.FromSeconds(1);
         private static readonly TimeSpan dialogPause = TimeSpan.FromMilliseconds(1200);
         private static readonly TimeSpan keysPause = TimeSpan.FromMilliseconds(400);
         private static readonly TimeSpan keysAnswerPatience = TimeSpan.FromSeconds(2);
+
+        private readonly Queue<string> logLines = new Queue<string>();
 
         public EpicDirectInstallController(Game game, InstallController store) : base(game, store)
         {
@@ -228,10 +241,10 @@ namespace Playnite.Atrio
             yield return StoreWindows.EnterKey;
         }
 
-        /// <summary>Null while the dialog is open.</summary>
-        public static bool? ReadDialogAnswer(string logLine)
+        /// <summary>Null while the dialog of this game is open.</summary>
+        public static bool? ReadDialogAnswer(string logLine, string fullId)
         {
-            if (!logLine.Contains("selector concluded"))
+            if (!logLine.Contains("selector concluded") || !logLine.Contains(fullId))
             {
                 return null;
             }
@@ -239,13 +252,13 @@ namespace Playnite.Atrio
             return logLine.Contains("accepted=true");
         }
 
-        private async Task<bool> WaitForLogAsync(LogFollower log, TimeSpan patience, Func<string, bool> wanted)
+        /// <summary>Goes through the lines in order and leaves the ones after the wanted one for next time.</summary>
+        private bool TakeLine(LogFollower log, Func<string, bool> wanted)
         {
-            var started = DateTime.Now;
-            while (DateTime.Now - started < patience)
+            log.ReadNew().ForEach(logLines.Enqueue);
+            while (logLines.Count > 0)
             {
-                await Task.Delay(checkPause, Cancellation).ConfigureAwait(false);
-                if (log.ReadNew().Any(wanted))
+                if (wanted(logLines.Dequeue()))
                 {
                     return true;
                 }
@@ -254,15 +267,101 @@ namespace Playnite.Atrio
             return false;
         }
 
-        private async Task<bool?> WaitForAnswerAsync(LogFollower log, TimeSpan patience)
+        private async Task<bool> WaitForLineAsync(LogFollower log, TimeSpan patience, Func<string, bool> wanted)
+        {
+            var started = DateTime.Now;
+            while (!TakeLine(log, wanted))
+            {
+                if (DateTime.Now - started >= patience)
+                {
+                    return false;
+                }
+
+                await Task.Delay(checkPause, Cancellation).ConfigureAwait(false);
+            }
+
+            return true;
+        }
+
+        private async Task<bool?> WaitForAnswerAsync(LogFollower log, EpicGameId id, TimeSpan patience)
         {
             bool? answer = null;
-            await WaitForLogAsync(log, patience, a =>
+            await WaitForLineAsync(log, patience, a =>
             {
-                answer = ReadDialogAnswer(a) ?? answer;
+                answer = ReadDialogAnswer(a, id.FullId);
                 return answer != null;
             }).ConfigureAwait(false);
             return answer;
+        }
+
+        private bool? ReadAnswer(LogFollower log, EpicGameId id)
+        {
+            bool? answer = null;
+            TakeLine(log, a =>
+            {
+                answer = ReadDialogAnswer(a, id.FullId);
+                return answer != null;
+            });
+            return answer;
+        }
+
+        /// <summary>Null if the launcher never got to the dialog of this game.</summary>
+        private async Task<bool?> GoThroughDialogAsync(EpicGameId id, LogFollower log)
+        {
+            ProcessStarter.StartUrl(id.InstallUri);
+            if (!await WaitForLineAsync(log, dialogPatience, a => a.Contains("Dispatching install for AppId " + id.FullId)).ConfigureAwait(false) ||
+                !await WaitForLineAsync(log, configPatience, a => a.Contains("PopulateInstallConfigFromCurrent: AppId=" + id.FullId)).ConfigureAwait(false) ||
+                !await WaitForLineAsync(log, configPatience, a => a.Contains("FINAL DestinationPath")).ConfigureAwait(false))
+            {
+                Logger.Warn($"The Epic launcher didn't get to the install of {id.FullId}.");
+                return null;
+            }
+
+            await Task.Delay(dialogPause, Cancellation).ConfigureAwait(false);
+            var window = StoreWindows.Find(Process, (_, type) => type == "UnrealWindow");
+            if (window == IntPtr.Zero)
+            {
+                return null;
+            }
+
+            // The launcher already came up with the order, and its dialog ignores the keys when it isn't active.
+            StoreWindows.Show(window);
+            await Task.Delay(keysPause, Cancellation).ConfigureAwait(false);
+
+            // The person may have got there first, and the keys would land on the library.
+            var answer = ReadAnswer(log, id);
+            if (answer == null)
+            {
+                foreach (var key in GetShortcutKeys())
+                {
+                    StoreWindows.PostKey(window, key);
+                }
+
+                answer = await WaitForAnswerAsync(log, id, keysAnswerPatience).ConfigureAwait(false);
+            }
+
+            if (answer == null)
+            {
+                foreach (var key in GetInstallKeys())
+                {
+                    StoreWindows.PostKey(window, key);
+                }
+
+                answer = await WaitForAnswerAsync(log, id, answerPatience).ConfigureAwait(false);
+            }
+
+            if (answer == true)
+            {
+                StoreWindows.Minimize(window);
+            }
+            else if (answer == null)
+            {
+                // The dialog of this game is different. It's there with everything filled in.
+                Logger.Warn($"The Epic launcher didn't take the install dialog of {id.FullId}.");
+                StoreWindows.Show(window);
+            }
+
+            return answer ?? true;
         }
 
         protected override async Task<bool> InstallDirectlyAsync(InstallActionArgs args)
@@ -275,51 +374,32 @@ namespace Playnite.Atrio
             }
 
             var log = new LogFollower(EpicClientFiles.LogFile);
-            ProcessStarter.StartUrl(id.InstallUri);
-            if (!await WaitForLogAsync(log, dialogPatience, a => a.Contains("FINAL DestinationPath")).ConfigureAwait(false))
+            bool? goesAhead;
+            await dialogTurn.WaitAsync(Cancellation).ConfigureAwait(false);
+            try
             {
-                Logger.Warn($"The Epic launcher didn't get to the install of {id.FullId}.");
+                goesAhead = await GoThroughDialogAsync(id, log).ConfigureAwait(false);
+            }
+            finally
+            {
+                dialogTurn.Release();
+            }
+
+            if (goesAhead == null)
+            {
                 return false;
             }
 
-            await Task.Delay(dialogPause, Cancellation).ConfigureAwait(false);
-            var window = StoreWindows.Find(Process, (_, type) => type == "UnrealWindow");
-
-            // The launcher already came up with the order, and its dialog ignores the keys when it isn't active.
-            StoreWindows.Show(window);
-            await Task.Delay(keysPause, Cancellation).ConfigureAwait(false);
-            foreach (var key in GetShortcutKeys())
+            if (goesAhead == false)
             {
-                StoreWindows.PostKey(window, key);
+                Abandon();
+                return true;
             }
 
-            var answer = await WaitForAnswerAsync(log, keysAnswerPatience).ConfigureAwait(false);
-            if (answer == null)
-            {
-                foreach (var key in GetInstallKeys())
-                {
-                    StoreWindows.PostKey(window, key);
-                }
-
-                answer = await WaitForAnswerAsync(log, answerPatience).ConfigureAwait(false);
-            }
-
-            var accepted = answer == true;
-            if (!accepted)
-            {
-                // The dialog of this game is different. It's there with everything filled in.
-                Logger.Warn($"The Epic launcher didn't take the install dialog of {id.FullId}.");
-                StoreWindows.Show(window);
-            }
-            else
-            {
-                StoreWindows.Minimize(window);
-            }
-
-            return await WatchInstallAsync(accepted).ConfigureAwait(false);
+            return await WatchInstallAsync(id, log).ConfigureAwait(false);
         }
 
-        private async Task<bool> WatchInstallAsync(bool accepted)
+        private async Task<bool> WatchInstallAsync(EpicGameId id, LogFollower log)
         {
             var started = DateTime.Now;
             var seen = false;
@@ -327,6 +407,13 @@ namespace Playnite.Atrio
             while (true)
             {
                 await Task.Delay(checkPause, Cancellation).ConfigureAwait(false);
+                if (!seen && ReadAnswer(log, id) == false)
+                {
+                    // The dialog stayed for the person, and they said no.
+                    Abandon();
+                    return true;
+                }
+
                 var item = await Task.Run(() => EpicClientFiles.FindInstall(Game.GameId), Cancellation).ConfigureAwait(false);
                 if (item == null)
                 {
@@ -337,8 +424,9 @@ namespace Playnite.Atrio
                         return true;
                     }
 
-                    if (!seen && accepted && DateTime.Now - started > startPatience)
+                    if (!seen && DateTime.Now - started > startPatience)
                     {
+                        // Nobody knows if the person is still looking at the dialog: the add-on keeps watching.
                         Logger.Warn($"The Epic launcher didn't start to install {Game.GameId}.");
                         return false;
                     }

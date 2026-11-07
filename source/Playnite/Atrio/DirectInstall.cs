@@ -84,13 +84,19 @@ namespace Playnite.Atrio
                     return;
                 }
             }
-            catch (OperationCanceledException)
+            catch (OperationCanceledException) when (Cancellation.IsCancellationRequested)
             {
                 return;
             }
             catch (Exception e) when (!PlayniteEnvironment.ThrowAllErrors)
             {
+                // A request that runs out of time also ends here: it looks like a cancellation, but nobody cancelled.
                 Logger.Warn(e, $"Failed to install {Game.GameId} directly.");
+            }
+
+            if (Cancellation.IsCancellationRequested)
+            {
+                return;
             }
 
             DirectInstallProgress.Clear(Game.Id);
@@ -121,6 +127,7 @@ namespace Playnite.Atrio
             if (AtrioInfo.GetTestSetting("ATRIO_SIN_TIENDA") != null)
             {
                 Logger.Info("Test run: the store would open now.");
+                StoreFailed = true;
                 Abandon();
                 return;
             }
@@ -175,6 +182,8 @@ namespace Playnite.Atrio
     /// </summary>
     public abstract class AssistedInstallController : DirectInstallController
     {
+        private static readonly TimeSpan answerPause = TimeSpan.FromSeconds(2);
+
         protected AssistedInstallController(Game game, InstallController store) : base(game, store)
         {
         }
@@ -193,7 +202,7 @@ namespace Playnite.Atrio
             {
                 await AssistAsync();
             }
-            catch (Exception e) when (!(e is OperationCanceledException) && !PlayniteEnvironment.ThrowAllErrors)
+            catch (Exception e) when (!Cancellation.IsCancellationRequested && !PlayniteEnvironment.ThrowAllErrors)
             {
                 Logger.Warn(e, $"Couldn't go through the install of {Game.GameId}, the store stays open.");
             }
@@ -201,11 +210,27 @@ namespace Playnite.Atrio
             return true;
         }
 
-        /// <summary>Stops here because the store is waiting for a decision that only the person can make.</summary>
-        protected void AskPerson(IntPtr window, string noticeKey, string store)
+        /// <summary>Atrio can't go on: the window comes to the front with a word about it, and the person finishes by hand.</summary>
+        protected void HandOver(IntPtr window, string store)
         {
-            DirectInstallProgress.SetNotice(Game.Id, string.Format(ResourceProvider.GetString(noticeKey), store));
+            DirectInstallProgress.SetNotice(Game.Id, string.Format(ResourceProvider.GetString("LOCAtrioFinishInStore"), store));
             StoreWindows.Show(window);
+        }
+
+        /// <summary>
+        /// Stops here because the store is waiting for a decision that only the person can make. The
+        /// notice stays while the store keeps asking, and then the button goes back to installing.
+        /// </summary>
+        protected async Task AskPersonAsync(IntPtr window, string store, Func<bool> stillAsking)
+        {
+            DirectInstallProgress.SetNotice(Game.Id, string.Format(ResourceProvider.GetString("LOCAtrioAcceptInStore"), store));
+            StoreWindows.Show(window);
+            while (stillAsking())
+            {
+                await Task.Delay(answerPause, Cancellation).ConfigureAwait(false);
+            }
+
+            DirectInstallProgress.Set(Game.Id, 0);
         }
     }
 

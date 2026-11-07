@@ -16,6 +16,7 @@ using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Security.Cryptography;
 using System.Text.RegularExpressions;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace Playnite.Atrio
@@ -74,7 +75,9 @@ namespace Playnite.Atrio
         private const int BufferSize = 1 << 20;
 
         private static readonly TimeSpan exitPause = TimeSpan.FromSeconds(2);
+        private static readonly TimeSpan requestPatience = TimeSpan.FromSeconds(60);
         private static readonly HttpClient client = new HttpClient { Timeout = System.Threading.Timeout.InfiniteTimeSpan };
+        private Process runningInstaller;
 
         public GogDirectInstallController(Game game, InstallController store) : base(game, store)
         {
@@ -106,10 +109,16 @@ namespace Playnite.Atrio
 
         private async Task<string> GetTextAsync(string url, string accessToken)
         {
+            using (var limit = CancellationTokenSource.CreateLinkedTokenSource(Cancellation))
             using (var request = new HttpRequestMessage(HttpMethod.Get, url))
             {
-                request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
-                using (var response = await client.SendAsync(request, Cancellation).ConfigureAwait(false))
+                limit.CancelAfter(requestPatience);
+                if (accessToken != null)
+                {
+                    request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
+                }
+
+                using (var response = await client.SendAsync(request, limit.Token).ConfigureAwait(false))
                 {
                     response.EnsureSuccessStatusCode();
                     return await response.Content.ReadAsStringAsync().ConfigureAwait(false);
@@ -121,9 +130,9 @@ namespace Playnite.Atrio
         {
             try
             {
-                return GogDownloads.ParseChecksum(await client.GetStringAsync(url).ConfigureAwait(false));
+                return GogDownloads.ParseChecksum(await GetTextAsync(url, null).ConfigureAwait(false));
             }
-            catch (HttpRequestException e)
+            catch (Exception e) when (e is HttpRequestException || (e is OperationCanceledException && !Cancellation.IsCancellationRequested))
             {
                 // Not all files have one, and HTTPS already protects the way here.
                 Logger.Debug($"GOG has no checksum for a file of {Game.GameId}: {e.Message}");
@@ -133,48 +142,63 @@ namespace Playnite.Atrio
 
         private async Task DownloadAsync(string url, string path, string expectedChecksum, long doneBefore, long total)
         {
-            using (var response = await client.GetAsync(url, HttpCompletionOption.ResponseHeadersRead, Cancellation).ConfigureAwait(false))
+            // A connection that goes silent would leave the button installing forever. This one
+            // limit is moved forward with each read, and when it runs out it closes the connection.
+            using (var silence = CancellationTokenSource.CreateLinkedTokenSource(Cancellation))
             {
-                response.EnsureSuccessStatusCode();
-                using (var source = await response.Content.ReadAsStreamAsync().ConfigureAwait(false))
-                using (var target = new FileStream(path, FileMode.Create, FileAccess.Write, FileShare.None, BufferSize, true))
-                using (var hash = MD5.Create())
+                silence.CancelAfter(requestPatience);
+                using (var response = await client.GetAsync(url, HttpCompletionOption.ResponseHeadersRead, silence.Token).ConfigureAwait(false))
+                using (silence.Token.Register(response.Dispose))
                 {
-                    var buffer = new byte[BufferSize];
-                    long written = 0;
-                    var reported = -1;
-                    int read;
-                    while ((read = await source.ReadAsync(buffer, 0, buffer.Length, Cancellation).ConfigureAwait(false)) > 0)
-                    {
-                        hash.TransformBlock(buffer, 0, read, null, 0);
-                        await target.WriteAsync(buffer, 0, read, Cancellation).ConfigureAwait(false);
-                        written += read;
-                        var percent = (int)Math.Min(99, (doneBefore + written) * 100 / Math.Max(1, total));
-                        if (percent != reported)
-                        {
-                            reported = percent;
-                            DirectInstallProgress.Set(Game.Id, percent);
-                        }
-                    }
+                    response.EnsureSuccessStatusCode();
+                    await CopyAsync(response, silence, path, expectedChecksum, doneBefore, total).ConfigureAwait(false);
+                }
+            }
+        }
 
-                    hash.TransformFinalBlock(new byte[0], 0, 0);
-                    var checksum = BitConverter.ToString(hash.Hash).Replace("-", string.Empty).ToLowerInvariant();
-                    if (expectedChecksum != null && checksum != expectedChecksum)
+        private async Task CopyAsync(HttpResponseMessage response, CancellationTokenSource silence, string path, string expectedChecksum, long doneBefore, long total)
+        {
+            using (var source = await response.Content.ReadAsStreamAsync().ConfigureAwait(false))
+            using (var target = new FileStream(path, FileMode.Create, FileAccess.Write, FileShare.None, BufferSize, true))
+            using (var hash = MD5.Create())
+            {
+                var buffer = new byte[BufferSize];
+                long written = 0;
+                var reported = -1;
+                int read;
+                while ((read = await source.ReadAsync(buffer, 0, buffer.Length, silence.Token).ConfigureAwait(false)) > 0)
+                {
+                    silence.CancelAfter(requestPatience);
+                    hash.TransformBlock(buffer, 0, read, null, 0);
+                    await target.WriteAsync(buffer, 0, read, Cancellation).ConfigureAwait(false);
+                    written += read;
+                    var percent = (int)Math.Min(99, (doneBefore + written) * 100 / Math.Max(1, total));
+                    if (percent != reported)
                     {
-                        throw new InvalidDataException($"The file of {Game.GameId} arrived damaged.");
+                        reported = percent;
+                        DirectInstallProgress.Set(Game.Id, percent);
                     }
+                }
+
+                hash.TransformFinalBlock(new byte[0], 0, 0);
+                var checksum = BitConverter.ToString(hash.Hash).Replace("-", string.Empty).ToLowerInvariant();
+                if (expectedChecksum != null && checksum != expectedChecksum)
+                {
+                    throw new InvalidDataException($"The file of {Game.GameId} arrived damaged.");
                 }
             }
         }
 
         /// <summary>The first file is the program, the rest are the data it takes from its side.</summary>
-        private async Task<string> DownloadInstallerAsync(JToken installer, string accessToken, string folder)
+        private async Task<string> DownloadInstallerAsync(JToken installer, string folder)
         {
             var total = installer["total_size"]?.Value<long>() ?? 0;
             long done = 0;
             string program = null;
             foreach (var file in installer["files"])
             {
+                // Each time: a big game takes longer than the access lasts.
+                var accessToken = await Task.Run(() => ReadAccessToken(), Cancellation).ConfigureAwait(false);
                 var link = JObject.Parse(await GetTextAsync(file["downlink"].ToString(), accessToken).ConfigureAwait(false));
                 var url = link["downlink"].ToString();
                 var name = Path.GetFileName(new Uri(url).LocalPath);
@@ -206,21 +230,31 @@ namespace Playnite.Atrio
                 DirectInstallProgress.SetNotice(Game.Id, ResourceProvider.GetString("LOCAtrioFinishInstaller"));
             }
 
+            Process installer;
             try
             {
-                using (var installer = Process.Start(info))
-                {
-                    while (!installer.HasExited)
-                    {
-                        await Task.Delay(exitPause, Cancellation).ConfigureAwait(false);
-                    }
-                }
-
-                return true;
+                installer = Process.Start(info);
             }
             catch (Win32Exception e) when (e.NativeErrorCode == OperationCancelledByPerson)
             {
                 return false;
+            }
+
+            try
+            {
+                while (installer?.HasExited == false)
+                {
+                    await Task.Delay(exitPause, Cancellation).ConfigureAwait(false);
+                }
+
+                installer?.Dispose();
+                return true;
+            }
+            catch (OperationCanceledException)
+            {
+                // Atrio stops following it, but it's still working with its files.
+                runningInstaller = installer;
+                throw;
             }
         }
 
@@ -242,11 +276,12 @@ namespace Playnite.Atrio
             }
 
             var folder = Path.Combine(Path.GetTempPath(), "Atrio", "GOG", Game.GameId);
+            CleanOldDownloads(folder);
             Directory.CreateDirectory(folder);
             try
             {
                 Logger.Info($"Downloading the installer of {Game.GameId} of GOG.");
-                var program = await DownloadInstallerAsync(installer, accessToken, folder).ConfigureAwait(false);
+                var program = await DownloadInstallerAsync(installer, folder).ConfigureAwait(false);
                 if (program == null)
                 {
                     Logger.Warn($"The installer of {Game.GameId} of GOG has no program.");
@@ -272,7 +307,43 @@ namespace Playnite.Atrio
             }
             finally
             {
+                DeleteWhenFree(folder);
+            }
+        }
+
+        private void DeleteWhenFree(string folder)
+        {
+            var installer = runningInstaller;
+            if (installer == null)
+            {
                 TryDelete(folder);
+                return;
+            }
+
+            Task.Run(async () =>
+            {
+                using (installer)
+                {
+                    while (!installer.HasExited)
+                    {
+                        await Task.Delay(exitPause).ConfigureAwait(false);
+                    }
+                }
+
+                TryDelete(folder);
+            });
+        }
+
+        /// <summary>What was left by an Atrio that closed in the middle of a download.</summary>
+        private void CleanOldDownloads(string folder)
+        {
+            var parent = Path.GetDirectoryName(folder);
+            if (Directory.Exists(parent))
+            {
+                foreach (var old in Directory.GetDirectories(parent).Where(a => !a.Equals(folder, StringComparison.OrdinalIgnoreCase)))
+                {
+                    TryDelete(old);
+                }
             }
         }
 

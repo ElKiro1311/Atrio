@@ -370,7 +370,7 @@ namespace Playnite.Atrio
                 {
                     manifest = await Task.Run(() => SteamClientFiles.FindManifest(Game.GameId), Cancellation);
                 }
-                catch (IOException)
+                catch (Exception e) when (e is IOException || e is UnauthorizedAccessException)
                 {
                     continue;
                 }
