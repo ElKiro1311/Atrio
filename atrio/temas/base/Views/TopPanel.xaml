@@ -67,6 +67,48 @@
         <TextBlock Text="&#xE721;" Style="{DynamicResource AtrioBarIcon}" HorizontalAlignment="Center" />
     </DataTemplate>
 
+    <!-- The bell is always there. It lights up and counts when there are messages, which open in the popup of the bar. -->
+    <Style x:Key="TopPanelNotificationsToggle" TargetType="ToggleButton">
+        <Setter Property="Focusable" Value="False" />
+        <Setter Property="Cursor" Value="Hand" />
+        <Setter Property="Margin" Value="6,0,0,0" />
+        <Setter Property="VerticalAlignment" Value="Center" />
+        <Setter Property="WindowChrome.IsHitTestVisibleInChrome" Value="True" />
+        <Setter Property="ToolTip" Value="{DynamicResource LOCNotifications}" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="ToggleButton">
+                    <Border x:Name="Fondo" Width="34" Height="34" CornerRadius="@@radio@@" Background="Transparent">
+                        <Grid>
+                            <TextBlock x:Name="Campana" Text="&#xEA8F;" FontFamily="{DynamicResource AtrioIconFont}" FontSize="16"
+                                       Foreground="{DynamicResource GlyphBrush}"
+                                       HorizontalAlignment="Center" VerticalAlignment="Center" />
+                            <Border x:Name="Cuenta" MinWidth="16" Height="16" CornerRadius="8" Padding="4,0,4,0"
+                                    Background="{DynamicResource GlyphBrush}" IsHitTestVisible="False"
+                                    HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,2,1,0">
+                                <TextBlock Text="{Api Notifications.Count}" FontSize="10" FontWeight="Bold"
+                                           Foreground="{DynamicResource TextBrushDark}"
+                                           HorizontalAlignment="Center" VerticalAlignment="Center" />
+                            </Border>
+                        </Grid>
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <DataTrigger Binding="{Api Notifications.Count}" Value="0">
+                            <Setter TargetName="Campana" Property="Foreground" Value="{DynamicResource TextBrushDarker}" />
+                            <Setter TargetName="Cuenta" Property="Visibility" Value="Collapsed" />
+                        </DataTrigger>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="Fondo" Property="Background" Value="{DynamicResource AtrioCardHoverBrush}" />
+                        </Trigger>
+                        <Trigger Property="IsChecked" Value="True">
+                            <Setter TargetName="Fondo" Property="Background" Value="{DynamicResource AtrioCardHoverBrush}" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
     <Style TargetType="{x:Type TopPanel}">
         <Setter Property="Template">
             <Setter.Value>
@@ -75,8 +117,31 @@
                                 d:DataContext="{x:Static DesignMainViewModel.DesignIntance}">
                         <StackPanel x:Name="PART_PanelMainItems" Orientation="Horizontal" />
                         <StackPanel x:Name="PART_PanelMainPluginItems" Orientation="Horizontal" Margin="4,0,0,0" />
-                        <CheckBox x:Name="PART_ToggleNotifications" Style="{DynamicResource TopPanelNotificationsToggle}" />
+                        <Grid>
+                            <CheckBox x:Name="PART_ToggleNotifications" Style="{DynamicResource TopPanelNotificationsToggle}" />
+                            <!-- Relative and not Bottom: with Windows set for right hand, Bottom flips the popup to the other side. -->
+                            <Popup x:Name="AtrioNotificaciones" Placement="Relative" PlacementTarget="{Binding ElementName=PART_ToggleNotifications}"
+                                   HorizontalOffset="-326" VerticalOffset="40"
+                                   StaysOpen="False" AllowsTransparency="True" PopupAnimation="Fade"
+                                   IsOpen="{Binding IsChecked, ElementName=PART_ToggleNotifications, Mode=TwoWay}">
+                                <Border Margin="12" Width="360" MaxHeight="460" BorderThickness="1"
+                                        CornerRadius="@@radioTarjeta@@"
+                                        Background="{DynamicResource PopupBackgroundBrush}"
+                                        BorderBrush="{DynamicResource PopupBorderBrush}">
+                                    <Border.Effect>
+                                        <DropShadowEffect BlurRadius="22" ShadowDepth="4" Direction="270" Opacity="0.5" Color="Black" />
+                                    </Border.Effect>
+                                    <NotificationPanel />
+                                </Border>
+                            </Popup>
+                        </Grid>
                     </StackPanel>
+                    <ControlTemplate.Triggers>
+                        <!-- With the popup open a click on the bell only closes it: otherwise it would open it again. -->
+                        <Trigger SourceName="AtrioNotificaciones" Property="IsOpen" Value="True">
+                            <Setter TargetName="PART_ToggleNotifications" Property="IsHitTestVisible" Value="False" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
                 </ControlTemplate>
             </Setter.Value>
         </Setter>

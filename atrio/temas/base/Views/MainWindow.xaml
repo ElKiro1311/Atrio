@@ -13,23 +13,6 @@
                             BorderThickness="{TemplateBinding BorderThickness}"
                             d:DesignWidth="1280" d:DesignHeight="960">
                         <Grid>
-                            <Grid.Resources>
-                                <Storyboard x:Key="VisibilityOn">
-                                    <ThicknessAnimationUsingKeyFrames Storyboard.TargetProperty="Margin"
-                                                 Storyboard.TargetName="PART_Notifications">
-                                        <SplineThicknessKeyFrame KeyTime="00:00:00" Value="0,52,-260,0" />
-                                        <SplineThicknessKeyFrame KeyTime="0:0:0.10" Value="0,52,0,0" />
-                                    </ThicknessAnimationUsingKeyFrames>
-                                </Storyboard>
-                                <Storyboard x:Key="VisibilityOff">
-                                    <ThicknessAnimationUsingKeyFrames Storyboard.TargetProperty="Margin"
-                                                 Storyboard.TargetName="PART_Notifications">
-                                        <SplineThicknessKeyFrame KeyTime="00:00:00" Value="0,52,0,0" />
-                                        <SplineThicknessKeyFrame KeyTime="0:0:0.10" Value="0,52,-260,0" />
-                                    </ThicknessAnimationUsingKeyFrames>
-                                </Storyboard>
-                            </Grid.Resources>
-
                             <!-- The art of the game in focus, blurred until only its colors remain -->
                             <FadeImage Source="{Binding AmbientImage}" Stretch="UniformToFill" Opacity="@@ambiente@@" FadeSeconds="0.2"
                                        IsBlurEnabled="True" BlurAmount="60" UseBlurredCopy="True"
@@ -48,13 +31,7 @@
                                 <Sidebar Panel.ZIndex="999" DockPanel.Dock="Top" />
                                 <ContentControl Name="PART_ContentView" DockPanel.Dock="Top" />
                             </DockPanel>
-                            <NotificationPanel x:Name="PART_Notifications"
-                                               WindowChrome.IsHitTestVisibleInChrome="True"
-                                               Width="260"
-                                               HorizontalAlignment="Right" VerticalAlignment="Stretch"
-                                               AnimatedVisibility.Visibility="{Settings NotificationPanelVisible}"
-                                               AnimatedVisibility.Visible="{StaticResource VisibilityOn}"
-                                               AnimatedVisibility.Collapsed="{StaticResource VisibilityOff}" />
+                            <!-- The messages open in the popup of the bell, in the top bar. -->
                         </Grid>
                     </Border>
                 </ControlTemplate>

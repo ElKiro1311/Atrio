@@ -1538,4 +1538,5 @@ Open new issue on Playnite's GitHub page with a request to fix corruption in you
 
 {0}</sys:String>
     <sys:String x:Key="LOCAtrioUpdaterStillOpen">Atrio is still open. Close it and try again.</sys:String>
+    <sys:String x:Key="LOCAtrioNoNotifications">You have no notifications</sys:String>
 </ResourceDictionary>

@@ -1,0 +1,62 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+                    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+                    mc:Ignorable="d">
+
+    <!-- Lives in the popup of the bell: a title, the messages, and a word when there are none. -->
+    <Style TargetType="{x:Type NotificationPanel}">
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="NotificationPanel">
+                    <DockPanel d:DesignWidth="360" d:DesignHeight="300"
+                               d:DataContext="{x:Static DesignMainViewModel.DesignIntance}">
+                        <DockPanel DockPanel.Dock="Top" Margin="16,12,8,10">
+                            <Button Name="PART_ButtonClose" DockPanel.Dock="Right" VerticalAlignment="Center"
+                                    Style="{DynamicResource AtrioLinkButton}" Padding="6"
+                                    Content="&#xE711;" FontFamily="{DynamicResource AtrioIconFont}" FontSize="11"
+                                    ToolTip="{DynamicResource LOCCloseLabel}" />
+                            <Button Name="PART_ButtonDismissAll" DockPanel.Dock="Right" VerticalAlignment="Center"
+                                    Style="{DynamicResource AtrioLinkButton}" Margin="0,0,10,0" FontSize="12"
+                                    Content="{DynamicResource LOCDismissAll}" />
+                            <TextBlock Text="{DynamicResource LOCNotifications}" VerticalAlignment="Center"
+                                       FontFamily="{DynamicResource FontFamily}" FontSize="15" FontWeight="SemiBold"
+                                       Foreground="{DynamicResource TextBrush}" />
+                        </DockPanel>
+                        <Border DockPanel.Dock="Top" Height="1" Background="{DynamicResource AtrioBorderBrush}" />
+                        <Grid>
+                            <StackPanel x:Name="Vacio" Visibility="Collapsed" Margin="16,26,16,30" HorizontalAlignment="Center">
+                                <TextBlock Text="&#xEA8F;" FontFamily="{DynamicResource AtrioIconFont}" FontSize="26"
+                                           Foreground="{DynamicResource TextBrushDarker}" Opacity="0.6" HorizontalAlignment="Center" />
+                                <TextBlock Text="{DynamicResource LOCAtrioNoNotifications}" Margin="0,10,0,0"
+                                           FontFamily="{DynamicResource FontFamily}" FontSize="13"
+                                           Foreground="{DynamicResource TextBrushDarker}"
+                                           TextWrapping="Wrap" TextAlignment="Center" HorizontalAlignment="Center" />
+                            </StackPanel>
+                            <ItemsControl Name="PART_ItemsMessages" Margin="0,4,0,10">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <Button Style="{DynamicResource NotificationMessage}" />
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                                <ItemsControl.Template>
+                                    <ControlTemplate>
+                                        <ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
+                                            <ItemsPresenter />
+                                        </ScrollViewer>
+                                    </ControlTemplate>
+                                </ItemsControl.Template>
+                            </ItemsControl>
+                        </Grid>
+                    </DockPanel>
+                    <ControlTemplate.Triggers>
+                        <DataTrigger Binding="{Api Notifications.Count}" Value="0">
+                            <Setter TargetName="Vacio" Property="Visibility" Value="Visible" />
+                            <Setter TargetName="PART_ButtonDismissAll" Property="Visibility" Value="Collapsed" />
+                        </DataTrigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+</ResourceDictionary>

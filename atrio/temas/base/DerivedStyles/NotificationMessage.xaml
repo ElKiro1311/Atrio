@@ -1,0 +1,46 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+                    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+                    mc:Ignorable="d">
+
+    <!-- One message of the popup of the bell. Clicking it does what it says; the cross only removes it. -->
+    <Style x:Key="NotificationMessage" TargetType="Button">
+        <Setter Property="Command" Value="{Binding ActivateCommand}" />
+        <Setter Property="Margin" Value="10,6,10,0" />
+        <Setter Property="Cursor" Value="Hand" />
+        <Setter Property="Focusable" Value="False" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Button">
+                    <Border x:Name="Tarjeta" CornerRadius="@@radio@@" Padding="12,10,6,10"
+                            Background="{DynamicResource AtrioCardBrush}"
+                            d:DataContext="{x:Static DesignMainViewModel.DesignNotificationIntance}">
+                        <DockPanel>
+                            <Button DockPanel.Dock="Right" VerticalAlignment="Top" Padding="6,3,6,3"
+                                    Style="{DynamicResource AtrioLinkButton}"
+                                    Content="&#xE711;" FontFamily="{DynamicResource AtrioIconFont}" FontSize="10"
+                                    ToolTip="{DynamicResource LOCCloseLabel}"
+                                    Command="{Binding CloseCommand}" />
+                            <TextBlock x:Name="Icono" DockPanel.Dock="Left" VerticalAlignment="Top" Margin="0,1,10,0"
+                                       Text="&#xE946;" FontFamily="{DynamicResource AtrioIconFont}" FontSize="14"
+                                       Foreground="{DynamicResource GlyphBrush}" />
+                            <TextBlock Text="{Binding Text}" TextWrapping="Wrap"
+                                       FontFamily="{DynamicResource FontFamily}" FontSize="13"
+                                       Foreground="{DynamicResource TextBrush}" />
+                        </DockPanel>
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="Tarjeta" Property="Background" Value="{DynamicResource AtrioCardHoverBrush}" />
+                        </Trigger>
+                        <DataTrigger Binding="{Binding Type}" Value="Error">
+                            <Setter TargetName="Icono" Property="Text" Value="&#xE783;" />
+                            <Setter TargetName="Icono" Property="Foreground" Value="{DynamicResource WarningBrush}" />
+                        </DataTrigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+</ResourceDictionary>
