@@ -64,6 +64,8 @@ namespace Playnite.Atrio
 
         public static string LogFile => Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), @"EpicGamesLauncher\Saved\Logs\EpicGamesLauncher.log");
 
+        public static string SettingsFile => Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), @"EpicGamesLauncher\Saved\Config\WindowsEditor\GameUserSettings.ini");
+
         /// <summary>The catalog is plain JSON in base 64. Null if the game isn't there.</summary>
         public static EpicGameId ParseCatalog(string catalog, string appName)
         {
@@ -111,6 +113,37 @@ namespace Playnite.Atrio
             }
 
             return null;
+        }
+
+        /// <summary>The install dialog starts with the last answer to its shortcut box, and ticked if there's none.</summary>
+        public static bool ParseShortcutBox(string settings)
+        {
+            var inSection = false;
+            foreach (var line in settings.Split('\n').Select(a => a.Trim()))
+            {
+                if (line.StartsWith("["))
+                {
+                    inSection = line.Equals("[Portal.Shortcut]", StringComparison.OrdinalIgnoreCase);
+                }
+                else if (inSection && line.StartsWith("AutoCreate=", StringComparison.OrdinalIgnoreCase))
+                {
+                    return !line.EndsWith("=False", StringComparison.OrdinalIgnoreCase);
+                }
+            }
+
+            return true;
+        }
+
+        public static bool IsShortcutBoxTicked()
+        {
+            try
+            {
+                return ParseShortcutBox(ReadShared(SettingsFile));
+            }
+            catch (Exception e) when (e is IOException || e is UnauthorizedAccessException)
+            {
+                return true;
+            }
         }
 
         private static string ReadShared(string path)
@@ -221,8 +254,8 @@ namespace Playnite.Atrio
         }
 
         /// <summary>
-        /// The way to the shortcut box of the dialog. With the launcher just started the first key doesn't
-        /// count and this ends up pressing the install button, so the dialog can be over after these keys.
+        /// The way to the shortcut box of the dialog. With the launcher just started the focus begins one
+        /// place further and this ends up pressing the install button, so the dialog can be over after these keys.
         /// </summary>
         public static IEnumerable<int> GetShortcutKeys()
         {
@@ -332,12 +365,18 @@ namespace Playnite.Atrio
             var answer = ReadAnswer(log, id);
             if (answer == null)
             {
+                var ticked = EpicClientFiles.IsShortcutBoxTicked();
                 foreach (var key in GetShortcutKeys())
                 {
                     StoreWindows.PostKey(window, key);
                 }
 
                 answer = await WaitForAnswerAsync(log, id, keysAnswerPatience).ConfigureAwait(false);
+                if (answer == null && !ticked)
+                {
+                    // The box was empty and that key ticked it. Only now it's known that the key didn't end the dialog.
+                    StoreWindows.PostKey(window, StoreWindows.SpaceKey);
+                }
             }
 
             if (answer == null)

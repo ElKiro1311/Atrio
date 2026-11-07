@@ -142,6 +142,17 @@ namespace Playnite.Tests
                 EpicDirectInstallController.GetInstallKeys().ToList());
         }
 
+        [TestCase("[Portal.Shortcut]\r\nAutoCreate=False\r\nbasil:2673:Basil=True\r\n", false)]
+        [TestCase("[Portal.Shortcut]\r\nbasil:2673:Basil=False\r\nAutoCreate=True\r\n", true)]
+        [TestCase("[Portal.Shortcut]\r\nbasil:2673:Basil=False\r\n", true)]
+        [TestCase("[Other]\r\nAutoCreate=False\r\n[Portal.Shortcut]\r\nAutoCreate=True\r\n", true)]
+        [TestCase("[Portal.Shortcut]\r\nAutoCreate=True\r\n[Other]\r\nAutoCreate=False\r\n", true)]
+        [TestCase("", true)]
+        public void EpicShortcutBoxStartsWithTheLastAnswerTest(string settings, bool ticked)
+        {
+            Assert.AreEqual(ticked, EpicClientFiles.ParseShortcutBox(settings));
+        }
+
         [TestCase("AppInstallUriHandler: Install-location selector concluded for AppId ns:item:app (accepted=true); navigating to Library", true)]
         [TestCase("AppInstallUriHandler: Install-location selector concluded for AppId ns:item:app (accepted=false); navigating to Library", false)]
         [TestCase("AppInstallUriHandler: Install-location selector concluded for AppId other:game:here (accepted=false); navigating to Library", null)]
