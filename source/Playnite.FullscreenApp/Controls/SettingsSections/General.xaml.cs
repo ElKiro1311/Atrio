@@ -107,6 +107,15 @@ namespace Playnite.FullscreenApp.Controls.SettingsSections
                 nameof(FullscreenSettings.ClearFiltersOnStartup),
                 BindingMode.TwoWay,
                 UpdateSourceTrigger.PropertyChanged);
+
+            var unifier = Playnite.Atrio.GameUnifier.Current;
+            ToggleSteamDirectInstall.Visibility = unifier == null ? Visibility.Collapsed : Visibility.Visible;
+            ToggleSteamDirectInstall.IsChecked = unifier?.Settings.SteamDirectInstall == true;
+            ToggleSteamDirectInstall.Click += (_, __) =>
+            {
+                unifier.Settings.SteamDirectInstall = ToggleSteamDirectInstall.IsChecked == true;
+                unifier.Settings.Save();
+            };
         }
     }
 }

@@ -237,14 +237,7 @@ namespace Playnite.FullscreenApp.ViewModels
 
             ActivateSelectedCommand = new RelayCommand<object>((a) =>
             {
-                if (SelectedGame?.IsInstalled == true)
-                {
-                    StartGame(SelectedGame.Game, true);
-                }
-                else if (SelectedGame?.IsInstalled == false)
-                {
-                    InstallGame(SelectedGame.Game);
-                }
+                SelectedGameDetails?.ContextActionCommand.Execute(null);
             }, (a) => Database?.IsOpen == true);
 
             OpenSearchCommand = new RelayCommand<object>((a) =>

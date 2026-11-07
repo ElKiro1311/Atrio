@@ -239,6 +239,8 @@
                                         <TextBlock Text="{Binding UnifySummary}" Style="{DynamicResource AtrioCaption}" FontSize="13" TextWrapping="Wrap" Margin="0,-6,0,14" />
                                         <CheckBox Content="{DynamicResource LOCAtrioUnifyToggle}" IsChecked="{Binding UnifyDuplicates}" />
                                         <CheckBox Content="{DynamicResource LOCAtrioAskToggle}" IsChecked="{Binding AskStoreOnStart}" Margin="0,10,0,0" />
+                                        <CheckBox Content="{DynamicResource LOCAtrioSteamDirectToggle}" IsChecked="{Binding SteamDirectInstall}" Margin="0,10,0,0"
+                                                  ToolTip="{DynamicResource LOCAtrioSteamDirectHint}" />
                                     </StackPanel>
                                 </Border>
 

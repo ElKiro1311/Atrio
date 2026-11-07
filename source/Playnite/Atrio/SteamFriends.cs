@@ -169,6 +169,13 @@ namespace Playnite.Atrio
             }
         }
 
+        /// <summary>The access of the session of the browser, null without one. It stays in memory.</summary>
+        internal static async Task<string> GetAccessTokenAsync(CancellationToken token)
+        {
+            var current = await GetSessionAsync(token).ConfigureAwait(false);
+            return current.State == SteamFriendsState.Ready ? current.AccessToken : null;
+        }
+
         private static async Task<SteamSession> GetSessionAsync(CancellationToken token)
         {
             await sessionLock.WaitAsync(token).ConfigureAwait(false);

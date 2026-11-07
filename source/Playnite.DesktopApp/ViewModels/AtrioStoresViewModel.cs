@@ -155,6 +155,18 @@ namespace Playnite.DesktopApp.ViewModels
             }
         }
 
+        public bool SteamDirectInstall
+        {
+            get => GameUnifier.Current?.Settings.SteamDirectInstall == true;
+            set
+            {
+                var unifier = GameUnifier.Current;
+                unifier.Settings.SteamDirectInstall = value;
+                unifier.Settings.Save();
+                OnPropertyChanged();
+            }
+        }
+
         public RelayCommand<StoreCard> OpenClientCommand { get; }
         public RelayCommand<StoreCard> ConfigureCommand { get; }
         public RelayCommand<StoreCard> UpdateLibraryCommand { get; }
@@ -379,6 +391,7 @@ namespace Playnite.DesktopApp.ViewModels
             UpdateSummary();
             OnPropertyChanged(nameof(UnifyDuplicates));
             OnPropertyChanged(nameof(AskStoreOnStart));
+            OnPropertyChanged(nameof(SteamDirectInstall));
             OnPropertyChanged(nameof(LibraryCheckFrequency));
             OnPropertyChanged(nameof(LastLibraryCheckText));
         }

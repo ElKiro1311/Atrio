@@ -1363,6 +1363,8 @@ Abre un nuevo problema en la página de GitHub de Playnite con una solicitud par
     <sys:String x:Key="LOCAtrioUnifyTitle">Juegos repetidos</sys:String>
     <sys:String x:Key="LOCAtrioUnifyToggle">Mostrar cada juego una sola vez aunque lo tenga en varias tiendas</sys:String>
     <sys:String x:Key="LOCAtrioAskToggle">Preguntarme qué tienda usar cuando haya más de una opción</sys:String>
+    <sys:String x:Key="LOCAtrioSteamDirectToggle">Instalar los juegos de Steam sin abrir Steam</sys:String>
+    <sys:String x:Key="LOCAtrioSteamDirectHint">Se instalan en la biblioteca predeterminada de Steam. Necesita tu sesión de Steam en el navegador de Atrio; sin ella, Steam se abre como siempre.</sys:String>
     <sys:String x:Key="LOCAtrioUnifySummary">{0} juegos están en varias tiendas ({1} entradas repetidas ocultas).</sys:String>
     <sys:String x:Key="LOCAtrioPriorityTitle">Orden de preferencia de las tiendas</sys:String>
     <sys:String x:Key="LOCAtrioPriorityHint">Se usa cuando un juego aún no está instalado en ninguna.</sys:String>

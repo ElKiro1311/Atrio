@@ -1,4 +1,5 @@
-﻿using Playnite.Commands;
+﻿using Playnite.Atrio;
+using Playnite.Commands;
 using Playnite.SDK;
 using Playnite.SDK.Models;
 using System;
@@ -16,6 +17,10 @@ namespace Playnite.FullscreenApp.ViewModels
         private readonly GamesEditor gamesEditor;
         private readonly FullscreenAppViewModel mainModel;
         private IDialogsFactory dialogs;
+        private readonly List<Game> copies = new List<Game>();
+
+        // A game in several stores is installed through one of its copies.
+        private Game InstallingCopy => copies.FirstOrDefault(a => a.IsInstalling);
 
         private GamesCollectionViewEntry game;
         public GamesCollectionViewEntry Game
@@ -40,9 +45,11 @@ namespace Playnite.FullscreenApp.ViewModels
                 {
                     return resources.GetString("LOCGameLaunching");
                 }
-                else if (Game?.IsInstalling == true)
+                else if (InstallingCopy != null)
                 {
-                    return resources.GetString("LOCSetupRunning");
+                    var percent = SteamInstallProgress.Get(InstallingCopy.Id);
+                    var installing = resources.GetString("LOCSetupRunning");
+                    return percent > 0 ? $"{installing} {percent} %" : installing;
                 }
                 else if (Game?.IsUninstalling == true)
                 {
@@ -85,13 +92,16 @@ namespace Playnite.FullscreenApp.ViewModels
             this.mainModel = mainModel;
             this.dialogs = dialogs;
             Game = gameView;
-            Game.Game.PropertyChanged += Game_PropertyChanged;
+            copies = Game.Copies.Select(a => a.Game).ToList();
+            copies.ForEach(a => a.PropertyChanged += Game_PropertyChanged);
+            SteamInstallProgress.Changed += SteamInstallProgress_Changed;
             InitializeCommands();
         }
 
         public void Dispose()
         {
-            Game.Game.PropertyChanged -= Game_PropertyChanged;
+            copies.ForEach(a => a.PropertyChanged -= Game_PropertyChanged);
+            SteamInstallProgress.Changed -= SteamInstallProgress_Changed;
         }
 
         private void Game_PropertyChanged(object sender, System.ComponentModel.PropertyChangedEventArgs e)
@@ -99,11 +109,19 @@ namespace Playnite.FullscreenApp.ViewModels
             OnPropertyChanged(nameof(ContextActionDescription));
         }
 
+        private void SteamInstallProgress_Changed(object sender, Guid game)
+        {
+            if (copies.Any(a => a.Id == game))
+            {
+                OnPropertyChanged(nameof(ContextActionDescription));
+            }
+        }
+
         public void InitializeCommands()
         {
             ContextActionCommand = new RelayCommand<object>((a) =>
             {
-                if (Game?.IsInstalling == true || Game?.IsUninstalling == true)
+                if (InstallingCopy != null || Game?.IsUninstalling == true)
                 {
                     CheckSetup();
                 }
@@ -129,7 +147,7 @@ namespace Playnite.FullscreenApp.ViewModels
                 resources.GetString("LOCCancelMonitoringAskTitle"),
                 MessageBoxButton.YesNo) == MessageBoxResult.Yes)
             {
-                gamesEditor.CancelGameMonitoring(Game.Game);
+                gamesEditor.CancelGameMonitoring(InstallingCopy ?? Game.Game);
             }
         }
 

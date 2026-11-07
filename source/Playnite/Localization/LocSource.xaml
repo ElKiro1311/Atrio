@@ -1368,6 +1368,8 @@ Open new issue on Playnite's GitHub page with a request to fix corruption in you
     <sys:String x:Key="LOCAtrioUnifyTitle">Repeated games</sys:String>
     <sys:String x:Key="LOCAtrioUnifyToggle">Show a game once, even if I own it in several stores</sys:String>
     <sys:String x:Key="LOCAtrioAskToggle">Ask me which store to use when there is more than one option</sys:String>
+    <sys:String x:Key="LOCAtrioSteamDirectToggle">Install Steam games without opening Steam</sys:String>
+    <sys:String x:Key="LOCAtrioSteamDirectHint">Goes to the default Steam library. It needs your Steam session in the Atrio browser, without it Steam opens as usual.</sys:String>
     <sys:String x:Key="LOCAtrioUnifySummary">{0} games are in several stores ({1} repeated entries hidden).</sys:String>
     <sys:String x:Key="LOCAtrioPriorityTitle">Preferred store order</sys:String>
     <sys:String x:Key="LOCAtrioPriorityHint">Used when a game is not installed anywhere yet.</sys:String>

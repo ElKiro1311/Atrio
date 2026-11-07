@@ -23,6 +23,9 @@ namespace Playnite.Atrio
         /// <summary>Asks which store to use when a unified game has more than one valid option.</summary>
         public bool AskStoreOnStart { get; set; } = true;
 
+        /// <summary>Tells the Steam client to install a game instead of opening its window.</summary>
+        public bool SteamDirectInstall { get; set; } = true;
+
         /// <summary>Plugin IDs from most to least preferred. Unknown stores go last.</summary>
         public List<Guid> StorePriority { get; set; } = GetDefaultStorePriority();
 

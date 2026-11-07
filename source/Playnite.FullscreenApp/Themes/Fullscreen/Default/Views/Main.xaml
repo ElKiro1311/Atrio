@@ -277,11 +277,11 @@
                                     <!--Install-->
                                     <ButtonEx x:Name="PART_ButtonInstall"
                                               Style="{DynamicResource ButtonBottomPrimary}"
-                                              Content="{DynamicResource LOCInstallGame}" />
+                                              Content="{Binding SelectedGameDetails.ContextActionDescription}" />
                                     <!--Play-->
                                     <ButtonEx x:Name="PART_ButtonPlay"
                                               Style="{DynamicResource ButtonBottomPrimary}"
-                                              Content="{DynamicResource LOCPlayGame}" />
+                                              Content="{Binding SelectedGameDetails.ContextActionDescription}" />
                                     <!--Details-->
                                     <ButtonEx x:Name="PART_ButtonDetails"
                                               Style="{DynamicResource ButtonBottomMenu}"

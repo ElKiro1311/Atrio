@@ -150,7 +150,7 @@ namespace Playnite.FullscreenApp.Atrio
                     Log(string.Join(", ", Application.Current.Windows.OfType<Window>().Select(a => $"{a.GetType().Name} {a.IsVisible} {a.ActualWidth}x{a.ActualHeight}")));
                     break;
                 case "estado":
-                    Log($"juego: {model.SelectedGame?.Name}, filtro: {model.ActiveFilterPreset?.Name}, juegos: {model.GamesView.CollectionView.Count}, tema: {ThemeManager.CurrentTheme?.Id}/{Application.Current.Resources.MergedDictionaries.Count(a => a.Source?.OriginalString.Contains("ViejoPrueba") == true)}, foco: {DescribeFocus()}");
+                    Log($"juego: {model.SelectedGame?.Name}, instalado: {model.SelectedGame?.IsInstalled}, instalando: {model.SelectedGame?.IsInstalling}, accion: {model.SelectedGameDetails?.ContextActionDescription}, carpeta: {model.SelectedGame?.Game.InstallDirectory}, filtro: {model.ActiveFilterPreset?.Name}, juegos: {model.GamesView.CollectionView.Count}, foco: {DescribeFocus()}");
                     break;
                 case "fuentes":
                     Log(string.Join(" | ", Application.Current.Resources.MergedDictionaries.Select(a => a.Source?.OriginalString).Take(14)));
@@ -171,6 +171,21 @@ namespace Playnite.FullscreenApp.Atrio
                     break;
                 case "seccion":
                     Later(() => PressButton(argument));
+                    break;
+                case "juegosteam":
+                    var steamGame = model.GamesView.Items.FirstOrDefault(a => !a.IsInstalled && a.Game.PluginId == SteamContent.SteamPluginId && a.Copies.Count == 1);
+                    Log("juego de Steam sin instalar: " + steamGame?.Name + " " + steamGame?.Game.GameId);
+                    model.SelectedGame = steamGame;
+                    break;
+                case "instalar":
+                    Later(() => model.InstallGame(model.SelectedGame.Game));
+                    break;
+                case "quitarinstalado":
+                    var installed = model.Database.Games.Get(model.SelectedGame.Game.Id);
+                    installed.IsInstalled = false;
+                    installed.IsInstalling = false;
+                    installed.InstallDirectory = null;
+                    model.Database.Games.Update(installed);
                     break;
                 case "busca":
                     model.AppSettings.Fullscreen.FilterSettings.Name = argument;
