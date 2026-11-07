@@ -99,8 +99,8 @@ namespace Playnite.Tests
                 page.SetPixel((int)(x * scale), (int)(y * scale), color);
             }
 
-            Paint(615, 403, continueColor ?? buttonBlue);
-            Paint(480, 403, licenseColor ?? background);
+            Paint(615, 392, continueColor ?? buttonBlue);
+            Paint(480, 392, licenseColor ?? background);
             if (shortcuts)
             {
                 Paint(152, 266, Color.White);
@@ -389,6 +389,52 @@ namespace Playnite.Tests
             }
         }
 
+        [TestCase("Command line: uplay://install/109", "109", true)]
+        [TestCase("Command line: uplay://install/1090", "109", false)]
+        [TestCase("Command line: uplay://install/109 -lang", "109", true)]
+        [TestCase("Command line: uplay://launch/109/0", "109", false)]
+        public void UbisoftKnowsItsOrderInTheLogTest(string line, string game, bool order)
+        {
+            Assert.AreEqual(order, UbisoftClientFiles.IsInstallOrder(line, game));
+        }
+
+        [TestCase("INFO DownloadEdisonSetupNew.cpp (57) Download initiated for product: 109, build: D93F248F70E2.", "109", true)]
+        [TestCase("INFO DownloadEdisonSetupNew.cpp (57) Download initiated for product: 1090, build: D93F248F70E2.", "109", false)]
+        [TestCase("INFO Startup.cpp (185) Client launched with argOffline: false", "109", false)]
+        public void UbisoftDownloadStartComesFromItsLogTest(string line, string game, bool start)
+        {
+            Assert.AreEqual(start, UbisoftClientFiles.IsDownloadStart(line, game));
+        }
+
+        [Test]
+        public void UbisoftGameIsThereWhenItsDownloadFolderEmptiesTest()
+        {
+            var folder = Path.Combine(Path.GetTempPath(), "atrio-ubisoft-" + Guid.NewGuid().ToString("N"));
+            var download = Path.Combine(folder, "uplay_download");
+            try
+            {
+                Directory.CreateDirectory(download);
+                File.WriteAllText(Path.Combine(folder, "uplay_install.state"), "state");
+                Assert.IsFalse(UbisoftClientFiles.IsDownloadComplete(folder), "only the state and an empty download");
+
+                File.WriteAllText(Path.Combine(download, "chunk"), "data");
+                Assert.IsFalse(UbisoftClientFiles.IsDownloadComplete(folder), "downloading");
+
+                Directory.CreateDirectory(Path.Combine(folder, "system"));
+                Assert.IsFalse(UbisoftClientFiles.IsDownloadComplete(folder), "moving the files out");
+
+                File.Delete(Path.Combine(download, "chunk"));
+                Assert.IsTrue(UbisoftClientFiles.IsDownloadComplete(folder), "all there, the download folder stays empty");
+
+                Directory.Delete(download);
+                Assert.IsTrue(UbisoftClientFiles.IsDownloadComplete(folder), "without the download folder");
+            }
+            finally
+            {
+                Directory.Delete(folder, true);
+            }
+        }
+
         [Test]
         public void UbisoftOnlyClicksTheTickedShortcutsTest()
         {
@@ -434,6 +480,17 @@ namespace Playnite.Tests
             using (var page = UbisoftPage(1071, licenseColor: buttonBlue))
             {
                 Assert.AreEqual(UbisoftStep.License, UbisoftDirectInstallController.Classify(page));
+            }
+        }
+
+        [Test]
+        public void UbisoftReadsTheButtonAboveItsTextTest()
+        {
+            // Measured on the English page of the language: the middle of the button falls on a letter.
+            using (var page = UbisoftPage())
+            {
+                page.SetPixel(615, 403, Color.FromArgb(189, 174, 245));
+                Assert.AreEqual(UbisoftStep.Continue, UbisoftDirectInstallController.Classify(page));
             }
         }
 

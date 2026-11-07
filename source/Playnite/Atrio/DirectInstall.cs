@@ -132,11 +132,7 @@ namespace Playnite.Atrio
                 return;
             }
 
-            store.Installed += (_, e) =>
-            {
-                DirectInstallProgress.Clear(Game.Id);
-                InvokeOnInstalled(e);
-            };
+            store.Installed += (_, e) => StoreInstalled(e);
             store.InstallCancelled += (_, e) => Abandon();
             try
             {
@@ -151,6 +147,13 @@ namespace Playnite.Atrio
                 ReportStoreFailure(e.Message);
                 Abandon();
             }
+        }
+
+        /// <summary>The add-on noticed the game. Some add-ons notice it before all of it is there.</summary>
+        protected virtual void StoreInstalled(GameInstalledEventArgs args)
+        {
+            DirectInstallProgress.Clear(Game.Id);
+            InvokeOnInstalled(args);
         }
 
         /// <summary>The add-on couldn't even start, there's nothing to wait for.</summary>

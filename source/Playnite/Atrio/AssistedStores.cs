@@ -1,3 +1,4 @@
+using Microsoft.Win32;
 using Newtonsoft.Json;
 using Playnite.Common;
 using Playnite.SDK.Models;
@@ -5,9 +6,11 @@ using Playnite.SDK.Plugins;
 using System;
 using System.Collections.Generic;
 using System.Drawing;
+using System.IO;
 using System.Linq;
 using System.Net.Http;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 
 namespace Playnite.Atrio
@@ -117,6 +120,50 @@ namespace Playnite.Atrio
         License
     }
 
+    /// <summary>The files of Ubisoft Connect on this computer. None of them have anything of the account.</summary>
+    public static class UbisoftClientFiles
+    {
+        private const string DownloadFolder = "uplay_download";
+        private const string StateFile = "uplay_install.state";
+
+        public static string LogFile
+        {
+            get
+            {
+                var folder = Registry.GetValue(@"HKEY_LOCAL_MACHINE\SOFTWARE\WOW6432Node\Ubisoft\Launcher", "InstallDir", null) as string;
+                return string.IsNullOrEmpty(folder) ? null : Path.Combine(folder, @"logs\launcher_log.txt");
+            }
+        }
+
+        /// <summary>The launcher got the order of this game: the log being read is the right one.</summary>
+        public static bool IsInstallOrder(string line, string gameId)
+        {
+            return Regex.IsMatch(line, "uplay://install/" + Regex.Escape(gameId) + @"(\D|$)");
+        }
+
+        public static bool IsDownloadStart(string line, string gameId)
+        {
+            return line.Contains("Download initiated for product: " + gameId + ",");
+        }
+
+        /// <summary>
+        /// The launcher puts the game in the registry as soon as the download starts, so the add-on finds it
+        /// right away. The files arrive to a folder inside the one of the game and leave it when they're all there.
+        /// </summary>
+        public static bool IsDownloadComplete(string folder)
+        {
+            var download = Path.Combine(folder, DownloadFolder);
+            if (Directory.Exists(download) && Directory.EnumerateFileSystemEntries(download).Any())
+            {
+                return false;
+            }
+
+            return Directory.EnumerateFileSystemEntries(folder).
+                Select(Path.GetFileName).
+                Any(a => !a.Equals(DownloadFolder, StringComparison.OrdinalIgnoreCase) && !a.Equals(StateFile, StringComparison.OrdinalIgnoreCase));
+        }
+    }
+
     /// <summary>
     /// Ubisoft Connect installs with a small window of several pages. It always has the same size
     /// and its button in the same place, and that button only gets wider on the page of the license.
@@ -130,7 +177,10 @@ namespace Playnite.Atrio
         // Measured on a window of this size, the rest come from it for other scales.
         private const double BaseWidth = 714;
         private static readonly Point continuePoint = new Point(615, 403);
-        private static readonly Point licensePoint = new Point(480, 403);
+
+        // The colour of the button is read above its text: a letter can fall on any point of the middle line.
+        private static readonly Point continueColorPoint = new Point(615, 392);
+        private static readonly Point licenseColorPoint = new Point(480, 392);
         private static readonly Point menuShortcutPoint = new Point(152, 266);
         private static readonly Point desktopShortcutPoint = new Point(152, 300);
 
@@ -146,6 +196,11 @@ namespace Playnite.Atrio
         private static readonly TimeSpan windowPatience = TimeSpan.FromSeconds(90);
         private static readonly TimeSpan checkPause = TimeSpan.FromSeconds(1);
         private static readonly TimeSpan pagePause = TimeSpan.FromSeconds(2);
+        private static readonly TimeSpan closedPatience = TimeSpan.FromSeconds(4);
+        private static readonly TimeSpan filesPause = TimeSpan.FromSeconds(3);
+
+        private bool orderSeen;
+        private volatile bool downloadStarted;
 
         public UbisoftDirectInstallController(Game game, InstallController store) : base(game, store)
         {
@@ -201,12 +256,12 @@ namespace Playnite.Atrio
 
         public static UbisoftStep Classify(Bitmap page)
         {
-            if (!IsButtonColor(GetColor(page, continuePoint)))
+            if (!IsButtonColor(GetColor(page, continueColorPoint)))
             {
                 return UbisoftStep.Unknown;
             }
 
-            if (IsButtonColor(GetColor(page, licensePoint)) || HasLongText(page))
+            if (IsButtonColor(GetColor(page, licenseColorPoint)) || HasLongText(page))
             {
                 return UbisoftStep.License;
             }
@@ -243,10 +298,86 @@ namespace Playnite.Atrio
             StoreWindows.PostClick(window, (int)(point.X * scale), (int)(point.Y * scale));
         }
 
+        /// <summary>True once the launcher wrote that it started to download this game.</summary>
+        private bool ReadLog(LogFollower log)
+        {
+            if (log == null || downloadStarted)
+            {
+                return downloadStarted;
+            }
+
+            try
+            {
+                foreach (var line in log.ReadNew())
+                {
+                    orderSeen |= UbisoftClientFiles.IsInstallOrder(line, Game.GameId);
+                    downloadStarted |= UbisoftClientFiles.IsDownloadStart(line, Game.GameId);
+                }
+            }
+            catch (IOException)
+            {
+                // The launcher is writing it, it's read again in the next round.
+            }
+
+            return downloadStarted;
+        }
+
+        private static IntPtr FindPages()
+        {
+            return StoreWindows.Find(Process, (_, type) => type == WindowClass);
+        }
+
+        /// <summary>
+        /// Nothing else gets pressed. The window stays until the end, and the page of the download ends up
+        /// with a blue button right where the one to go on was: it's the one to play.
+        /// </summary>
+        private void DownloadOnItsWay()
+        {
+            Logger.Info($"Ubisoft Connect is downloading {Game.GameId}.");
+            StoreWindows.Minimize(FindPages());
+            StoreWindows.Minimize(StoreWindows.Find(Process));
+        }
+
+        /// <summary>
+        /// The window went away. Without a download it was the person closing it. False if it came back
+        /// and there's still something to do in it.
+        /// </summary>
+        private async Task<bool> WindowClosedAsync(LogFollower log)
+        {
+            var closed = DateTime.Now;
+            while (!ReadLog(log) && DateTime.Now - closed < closedPatience)
+            {
+                await Task.Delay(checkPause, Cancellation).ConfigureAwait(false);
+                if (!downloadStarted && FindPages() != IntPtr.Zero)
+                {
+                    return false;
+                }
+            }
+
+            if (downloadStarted)
+            {
+                DownloadOnItsWay();
+            }
+            else if (orderSeen)
+            {
+                Logger.Info($"The install of {Game.GameId} was closed in Ubisoft Connect.");
+                Abandon();
+            }
+            else
+            {
+                // Without its log nobody knows: the add-on keeps watching, as always.
+                StoreWindows.Minimize(StoreWindows.Find(Process));
+            }
+
+            return true;
+        }
+
         protected override async Task AssistAsync()
         {
+            var log = UbisoftClientFiles.LogFile is string file ? new LogFollower(file) : null;
             var started = DateTime.Now;
             var seen = false;
+            var licensePressed = false;
             var pressesWithoutChange = 0;
             long? lastRead = null;
             long? lastPressed = null;
@@ -254,13 +385,17 @@ namespace Playnite.Atrio
             while (DateTime.Now - started < windowPatience)
             {
                 await Task.Delay(checkPause, Cancellation).ConfigureAwait(false);
-                window = StoreWindows.Find(Process, (_, type) => type == WindowClass);
+                if (ReadLog(log))
+                {
+                    DownloadOnItsWay();
+                    return;
+                }
+
+                window = FindPages();
                 if (window == IntPtr.Zero)
                 {
-                    if (seen)
+                    if (seen && await WindowClosedAsync(log).ConfigureAwait(false))
                     {
-                        Logger.Info($"Ubisoft Connect took the install of {Game.GameId}.");
-                        StoreWindows.Minimize(StoreWindows.Find(Process));
                         return;
                     }
 
@@ -268,6 +403,19 @@ namespace Playnite.Atrio
                 }
 
                 seen = true;
+                if (licensePressed)
+                {
+                    // The license is the last page, and nothing is pressed after it: the page of the download
+                    // ends up with the button to play. Only the log can say that the download started.
+                    if (!orderSeen)
+                    {
+                        DownloadOnItsWay();
+                        return;
+                    }
+
+                    continue;
+                }
+
                 using (var page = StoreWindows.Capture(window))
                 {
                     if (page == null || page.Width < MinPageWidth)
@@ -279,7 +427,7 @@ namespace Playnite.Atrio
                     var fingerprint = GetFingerprint(page);
                     var settled = fingerprint == lastRead;
                     lastRead = fingerprint;
-                    if (!settled)
+                    if (!settled || ReadLog(log))
                     {
                         continue;
                     }
@@ -292,7 +440,12 @@ namespace Playnite.Atrio
 
                     if (step == UbisoftStep.License && !DirectInstall.AcceptsStoreTerms)
                     {
-                        await AskPersonAsync(window, StoreName, () => StoreWindows.Find(Process, (_, type) => type == WindowClass) != IntPtr.Zero).ConfigureAwait(false);
+                        do
+                        {
+                            await AskPersonAsync(window, StoreName, () => !ReadLog(log) && FindPages() != IntPtr.Zero).ConfigureAwait(false);
+                        }
+                        while (!await WindowClosedAsync(log).ConfigureAwait(false));
+
                         return;
                     }
 
@@ -305,22 +458,85 @@ namespace Playnite.Atrio
                         return;
                     }
 
-                    foreach (var box in GetTickedShortcuts(page))
+                    if (step == UbisoftStep.Shortcuts)
                     {
-                        Click(window, page, box);
-                        await Task.Delay(400, Cancellation).ConfigureAwait(false);
+                        foreach (var box in GetTickedShortcuts(page))
+                        {
+                            Click(window, page, box);
+                            await Task.Delay(400, Cancellation).ConfigureAwait(false);
+                        }
                     }
 
                     // The button is here in its two widths.
                     Click(window, page, continuePoint);
+                    licensePressed |= step == UbisoftStep.License;
                     lastPressed = fingerprint;
                 }
 
                 await Task.Delay(pagePause, Cancellation).ConfigureAwait(false);
             }
 
+            if (ReadLog(log))
+            {
+                DownloadOnItsWay();
+                return;
+            }
+
             Logger.Warn($"Ubisoft Connect didn't get through the install of {Game.GameId}.");
             HandOver(window, StoreName);
+        }
+
+        /// <summary>The add-on finds the game when the download starts: Atrio waits for its files.</summary>
+        protected override void StoreInstalled(GameInstalledEventArgs args)
+        {
+            downloadStarted = true;
+            _ = WaitForFilesAsync(args);
+        }
+
+        private async Task WaitForFilesAsync(GameInstalledEventArgs args)
+        {
+            var folder = args?.InstalledInfo?.InstallDirectory;
+            var seen = false;
+            try
+            {
+                while (!string.IsNullOrEmpty(folder))
+                {
+                    var exists = Directory.Exists(folder);
+                    if (!exists)
+                    {
+                        if (seen)
+                        {
+                            // Cancelled from the launcher, which takes the folder away.
+                            Logger.Info($"The download of {Game.GameId} went away from its folder.");
+                            Abandon();
+                            return;
+                        }
+
+                        break;
+                    }
+
+                    seen = true;
+                    try
+                    {
+                        if (UbisoftClientFiles.IsDownloadComplete(folder))
+                        {
+                            break;
+                        }
+                    }
+                    catch (Exception e) when (e is IOException || e is UnauthorizedAccessException)
+                    {
+                        // The launcher is moving the files, they're looked at again in the next round.
+                    }
+
+                    await Task.Delay(filesPause, Cancellation).ConfigureAwait(false);
+                }
+            }
+            catch (OperationCanceledException)
+            {
+                return;
+            }
+
+            base.StoreInstalled(args);
         }
     }
 
