@@ -2,6 +2,7 @@ using Playnite.Atrio;
 using Playnite.Commands;
 using Playnite.Common;
 using Playnite.Converters;
+using Playnite.DesktopApp.Atrio;
 using Playnite.SDK;
 using Playnite.SDK.Models;
 using System;
@@ -25,6 +26,9 @@ namespace Playnite.DesktopApp.ViewModels
         public string Caption { get; set; }
         public string RecentText { get; set; }
         public string TotalText { get; set; }
+
+        /// <summary>A short note at the foot of the cover, like how many achievements are left.</summary>
+        public string BadgeText { get; set; }
     }
 
     public class HomeNewsCard
@@ -319,6 +323,87 @@ namespace Playnite.DesktopApp.ViewModels
             };
         }
 
+        /// <summary>
+        /// The games with most of their achievements unlocked, the closest to 100 % first. Each copy of a game
+        /// counts for the game the page shows, and the one with more progress wins.
+        /// </summary>
+        internal static HomeShelf CreateAlmostDoneShelf(List<GamesCollectionViewEntry> entries, IEnumerable<AchievementProgress.Entry> progress)
+        {
+            var byCopy = new Dictionary<Guid, GamesCollectionViewEntry>();
+            var byId = new Dictionary<Guid, GamesCollectionViewEntry>();
+            foreach (var entry in entries)
+            {
+                byId[entry.Id] = entry;
+                byCopy[entry.Id] = entry;
+                foreach (var copy in entry.Copies ?? new List<GameCopyEntry>())
+                {
+                    if (copy?.Game != null && !byCopy.ContainsKey(copy.Game.Id))
+                    {
+                        byCopy[copy.Game.Id] = entry;
+                    }
+                }
+            }
+
+            var best = new Dictionary<Guid, AchievementProgress.Entry>();
+            foreach (var item in progress ?? Enumerable.Empty<AchievementProgress.Entry>())
+            {
+                if (byCopy.TryGetValue(item.GameId, out var entry) &&
+                    (!best.TryGetValue(entry.Id, out var other) || AlmostDoneShelf.GetPercent(item.Unlocked, item.Total) > AlmostDoneShelf.GetPercent(other.Unlocked, other.Total)))
+                {
+                    best[entry.Id] = item;
+                }
+            }
+
+            var games = best.
+                Where(a => AlmostDoneShelf.Qualifies(a.Value.Unlocked, a.Value.Total)).
+                Select(a => new { Entry = byId[a.Key], Progress = a.Value }).
+                OrderByDescending(a => AlmostDoneShelf.GetPercent(a.Progress.Unlocked, a.Progress.Total)).
+                ThenBy(a => a.Progress.Total - a.Progress.Unlocked).
+                ThenByDescending(a => a.Entry.LastActivity ?? DateTime.MinValue).
+                Take(ShelfSize).
+                ToList();
+            if (games.Count == 0)
+            {
+                return null;
+            }
+
+            return new HomeShelf
+            {
+                Title = ResourceProvider.GetString("LOCAtrioHomeAlmostDone"),
+                Subtitle = ResourceProvider.GetString("LOCAtrioHomeAlmostDoneHint"),
+                Cards = games.Select((a, index) =>
+                {
+                    var text = AlmostDoneShelf.GetText(a.Progress.Unlocked, a.Progress.Total);
+                    return new HomeCard
+                    {
+                        Game = a.Entry,
+                        GroupLabel = " ",
+                        IsWide = index == 0,
+                        Caption = index == 0 ? text : null,
+                        BadgeText = index == 0 ? null : text
+                    };
+                }).ToList()
+            };
+        }
+
+        /// <summary>The almost finished games come once the add-on of the achievements has its numbers ready.</summary>
+        private async void AddAlmostDoneShelf(List<HomeShelf> list)
+        {
+            var progress = await AchievementProgress.GetAsync(main);
+            var shelf = CreateAlmostDoneShelf(entries, progress);
+            if (shelf == null || main.IsDisposing || Shelves != list)
+            {
+                return;
+            }
+
+            // After the recent games and the shelves the player pinned, before the suggestions.
+            var recent = ResourceProvider.GetString("LOCAtrioHomeRecent");
+            var index = Math.Max(list.FindLastIndex(a => a.HasCollection), list.FindIndex(a => a.Title == recent)) + 1;
+            var updated = new List<HomeShelf>(list);
+            updated.Insert(index, shelf);
+            Shelves = updated;
+        }
+
         private HomeShelf CreateCollectionShelf(GameCollection collection)
         {
             var games = main.CollectionsModel.GetMembers(collection);
@@ -446,6 +531,7 @@ namespace Playnite.DesktopApp.ViewModels
             add(CreatePlayNextShelf());
             add(CreateAddedShelf());
             Shelves = list;
+            AddAlmostDoneShelf(list);
             UpdateAllGames();
             LoadNews(played);
             main.UpdateAmbient();

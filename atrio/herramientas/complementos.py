@@ -94,7 +94,9 @@ def traducir(item, carpeta):
         hechos = 0
         for clave, texto in textos.items():
             patron = r'(x:Key="LOCPlayAch_' + re.escape(clave) + r'"[^>]*>).*?(</sys:String>)'
-            xaml, cuantos = re.subn(patron, lambda m: m.group(1) + escape(texto) + m.group(2), xaml, count=1, flags=re.S)
+            # Los saltos de linea van como &#10;, igual que en los textos originales del complemento.
+            valor = escape(texto).replace('\r\n', '\n').replace('\n', '&#10;')
+            xaml, cuantos = re.subn(patron, lambda m: m.group(1) + valor + m.group(2), xaml, count=1, flags=re.S)
             hechos += cuantos
         with open(archivo, 'w', encoding='utf-8', newline='') as f:
             f.write(xaml)
