@@ -330,6 +330,15 @@
                                                                                             </Border.Style>
                                                                                             <TextBlock Text="{Binding Note}" Style="{DynamicResource TextBlockBaseStyle}" FontSize="17" />
                                                                                         </Border>
+                                                                                        <!-- The game is open right now, from Atrio or from anywhere else -->
+                                                                                        <Border VerticalAlignment="Top" HorizontalAlignment="Left" Margin="8" Padding="10,3,11,4"
+                                                                                                CornerRadius="8" Background="#D9101218"
+                                                                                                Visibility="{Binding Game.IsOpen, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                                                                            <StackPanel Orientation="Horizontal">
+                                                                                                <Ellipse Width="9" Height="9" Fill="{DynamicResource PositiveBrush}" VerticalAlignment="Center" Margin="0,0,7,0" />
+                                                                                                <TextBlock Text="{DynamicResource LOCAtrioOpenFact}" Style="{DynamicResource TextBlockBaseStyle}" FontSize="15" />
+                                                                                            </StackPanel>
+                                                                                        </Border>
                                                                                         <Border x:Name="Outline" CornerRadius="10" BorderThickness="4" Margin="-4" BorderBrush="Transparent" />
                                                                                     </Grid>
                                                                                     <ControlTemplate.Triggers>

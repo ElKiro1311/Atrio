@@ -272,7 +272,8 @@ namespace Playnite.FullscreenApp.Atrio
                 case "juegofalso":
                     // juegofalso <name>|<folder>: an installed game of the test data whose folder holds a fake program.
                     var fakeParts = argument.Split('|');
-                    model.Database.Games.Add(new Playnite.SDK.Models.Game(fakeParts[0]) { IsInstalled = true, InstallDirectory = fakeParts[1] });
+                    // Played just now, so it's the first of the start.
+                    model.Database.Games.Add(new Playnite.SDK.Models.Game(fakeParts[0]) { IsInstalled = true, InstallDirectory = fakeParts[1], LastActivity = DateTime.Now, Playtime = 600 });
                     break;
                 case "quitarjuego":
                     var gone = model.Database.Games.FirstOrDefault(a => a.Name == argument);
