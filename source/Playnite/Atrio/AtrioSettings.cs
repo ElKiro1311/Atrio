@@ -29,6 +29,12 @@ namespace Playnite.Atrio
         /// <summary>The mode for the couch opens on its start with rows, as it was left the last time.</summary>
         public bool FullscreenStartsAtHome { get; set; } = true;
 
+        /// <summary>Marks the games that are open right now, also the ones opened outside Atrio.</summary>
+        public bool DetectOpenGames { get; set; } = true;
+
+        /// <summary>Holding View and Menu for a second switches between the open game and the mode for the couch.</summary>
+        public bool GuideComboReturns { get; set; } = true;
+
         /// <summary>
         /// Lets Atrio accept the terms of a game when a store asks for them. It's the person's decision and
         /// it's off unless they turn it on: without it the install stops there and the store shows the terms.

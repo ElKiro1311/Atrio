@@ -566,16 +566,7 @@ namespace Playnite.FullscreenApp.ViewModels
 
         private void GameControllerInputButtonChanged(object sender, OnControllerButtonStateChangedArgs e)
         {
-            if (AppSettings.Fullscreen.EnableGameControllerSupport &&
-                AppSettings.Fullscreen.GuideButtonFocus &&
-                e.Button == ControllerInput.Guide &&
-                e.State == ControllerInputState.Released)
-            {
-                if (!AppSettings.Fullscreen.GuideButtonFocusOnlyWhenNoGameRunning ||
-                    (AppSettings.Fullscreen.GuideButtonFocusOnlyWhenNoGameRunning && !GamesEditor.RunningGames.HasItems()))
-                    RestoreWindow();
-            }
-
+            ProcessGuideInput(e);
             foreach (var plugin in Extensions.Plugins.Values)
             {
                 try
@@ -626,6 +617,7 @@ namespace Playnite.FullscreenApp.ViewModels
 
         private void Controllers_Stopped(object sender, GameStoppedEventArgs e)
         {
+            returnWindow = IntPtr.Zero;
             if (GameStatusVisible)
             {
                 GameStatusVisible = false;
@@ -644,6 +636,7 @@ namespace Playnite.FullscreenApp.ViewModels
 
         private void Controllers_Starting(object sender, OnGameStartingEventArgs e)
         {
+            returnWindow = IntPtr.Zero;
             if (GameDetailsVisible)
             {
                 GameDetailsFocused = false;
@@ -674,6 +667,8 @@ namespace Playnite.FullscreenApp.ViewModels
             if (GameStatusView != null)
             {
                 GameStatusView.GameStatusText = ResourceProvider.GetString(LOC.GameIsRunning).Format(e.Source.Game.Name);
+                GameStatusView.CanReturn = true;
+                GameStatusView.ReturnHint = GetReturnHint();
             }
         }
 
@@ -1318,12 +1313,12 @@ namespace Playnite.FullscreenApp.ViewModels
                 if (gameStatusScreen is null)
                     return;
 
+                // The first button that shows: "Back to the game" goes only while the game is open.
                 if (gameStatusScreen.Template.FindName("PART_PanelActionButtons", gameStatusScreen) is Panel actionButtons &&
-                    actionButtons.Children.Count > 0)
+                    actionButtons.Children.OfType<UIElement>().FirstOrDefault(a => a.Visibility == Visibility.Visible && a.Focusable) is UIElement child &&
+                    !child.IsFocused)
                 {
-                    var child = actionButtons.Children[0];
-                    if (!child.IsFocused && child.Focusable)
-                        actionButtons.Children[0].Focus();
+                    child.Focus();
                 }
             }
         }

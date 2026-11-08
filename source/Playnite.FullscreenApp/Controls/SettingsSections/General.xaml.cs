@@ -124,6 +124,15 @@ namespace Playnite.FullscreenApp.Controls.SettingsSections
                 unifier.Settings.AcceptStoreTerms = ToggleAcceptStoreTerms.IsChecked == true;
                 unifier.Settings.Save();
             };
+
+            ToggleDetectOpenGames.Visibility = ToggleDirectInstall.Visibility;
+            ToggleDetectOpenGames.IsChecked = unifier?.Settings.DetectOpenGames == true;
+            ToggleDetectOpenGames.Click += (_, __) =>
+            {
+                unifier.Settings.DetectOpenGames = ToggleDetectOpenGames.IsChecked == true;
+                unifier.Settings.Save();
+                Playnite.Atrio.OpenGames.SetEnabled(unifier.Settings.DetectOpenGames);
+            };
         }
     }
 }

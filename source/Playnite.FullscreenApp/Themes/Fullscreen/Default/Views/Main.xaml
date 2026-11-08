@@ -50,7 +50,10 @@
             <StackPanel Orientation="Horizontal" Margin="0,0,30,0"
                         Visibility="{Binding SelectedGame.IsInstalled, Converter={StaticResource BooleanToVisibilityConverter}}">
                 <Ellipse Width="11" Height="11" Fill="{DynamicResource PositiveBrush}" VerticalAlignment="Center" Margin="0,0,10,0" />
-                <TextBlock Text="{DynamicResource LOCGameIsInstalledTitle}" Style="{DynamicResource GameFactText}" />
+                <TextBlock Text="{DynamicResource LOCGameIsInstalledTitle}" Style="{DynamicResource GameFactText}"
+                           Visibility="{Binding SelectedGame.IsOpen, Converter={StaticResource InvertedBooleanToVisibilityConverter}}" />
+                <TextBlock Text="{DynamicResource LOCAtrioOpenFact}" Style="{DynamicResource GameFactText}"
+                           Visibility="{Binding SelectedGame.IsOpen, Converter={StaticResource BooleanToVisibilityConverter}}" />
             </StackPanel>
 
             <StackPanel Orientation="Horizontal" Margin="0,0,30,0"

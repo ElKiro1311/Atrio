@@ -167,6 +167,19 @@ namespace Playnite.DesktopApp.ViewModels
             }
         }
 
+        public bool DetectOpenGames
+        {
+            get => GameUnifier.Current?.Settings.DetectOpenGames == true;
+            set
+            {
+                var unifier = GameUnifier.Current;
+                unifier.Settings.DetectOpenGames = value;
+                unifier.Settings.Save();
+                OpenGames.SetEnabled(value);
+                OnPropertyChanged();
+            }
+        }
+
         public bool AcceptStoreTerms
         {
             get => GameUnifier.Current?.Settings.AcceptStoreTerms == true;
@@ -404,6 +417,7 @@ namespace Playnite.DesktopApp.ViewModels
             OnPropertyChanged(nameof(UnifyDuplicates));
             OnPropertyChanged(nameof(AskStoreOnStart));
             OnPropertyChanged(nameof(DirectInstall));
+            OnPropertyChanged(nameof(DetectOpenGames));
             OnPropertyChanged(nameof(AcceptStoreTerms));
             OnPropertyChanged(nameof(LibraryCheckFrequency));
             OnPropertyChanged(nameof(LastLibraryCheckText));

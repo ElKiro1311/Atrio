@@ -334,6 +334,8 @@ namespace Playnite.FullscreenApp.ViewModels
                 GameListFocused = true;
             });
 
+            InitializeGuideCommands();
+
             SwitchToDesktopCommand = new RelayCommand(() => SwitchToDesktopMode());
             SelectFilterPresetCommand = new RelayCommand(() => SelectFilterPreset());
             MinimizeCommand = new RelayCommand(() => MinimizeWindow());

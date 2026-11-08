@@ -15,6 +15,7 @@
     <SolidColorBrush x:Key="AtrioBorderBrush" Color="{DynamicResource PanelSeparatorColor}" />
     <SolidColorBrush x:Key="AtrioPlayBrush" Color="{DynamicResource GlyphColor}" />
     <SolidColorBrush x:Key="AtrioPlayHoverBrush" Color="{DynamicResource GlyphColor}" />
+    <SolidColorBrush x:Key="AtrioOpenBrush" Color="#8BC53F" />
     <SolidColorBrush x:Key="AtrioPlayTextBrush" Color="{DynamicResource TextColorDark}" />
     <SolidColorBrush x:Key="AtrioBadgeBrush" Color="#D90B0D12" />
     <SolidColorBrush x:Key="AtrioSidebarBrush" Color="Transparent" />

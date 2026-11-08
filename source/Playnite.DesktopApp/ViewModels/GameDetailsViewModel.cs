@@ -105,7 +105,7 @@ namespace Playnite.DesktopApp.ViewModels
         {
             get
             {
-                return Game != null && Game.IsRunning;
+                return Game != null && Game.IsOpen;
             }
         }
 
@@ -178,11 +178,23 @@ namespace Playnite.DesktopApp.ViewModels
             OnPropertyChanged(nameof(ContextActionDescription));
         }
 
+        /// <summary>The copy with programs running right now, whoever opened it. Null when nothing is detected.</summary>
+        private Game GetOpenCopy()
+        {
+            return Game == null ? null : OpenGames.GetOpenCopy(Game.Copies.Select(a => a.Game));
+        }
+
+        public bool CanStop => Game?.IsInstalling != true && Game?.IsUninstalling != true && GetOpenCopy() != null;
+
         public string ContextActionDescription
         {
             get
             {
-                if (Game?.IsRunning == true)
+                if (CanStop)
+                {
+                    return resources.GetString("LOCAtrioStopGame");
+                }
+                else if (Game?.IsRunning == true)
                 {
                     return resources.GetString("LOCGameRunning");
                 }
@@ -724,6 +736,10 @@ namespace Playnite.DesktopApp.ViewModels
                 {
                     CheckSetup();
                 }
+                else if (CanStop)
+                {
+                    StopGame();
+                }
                 else if (Game?.IsRunning == true || Game?.IsLaunching == true)
                 {
                     CheckExecution();
@@ -756,6 +772,24 @@ namespace Playnite.DesktopApp.ViewModels
 
             settings.PropertyChanged += Settings_PropertyChanged;
             DirectInstallProgress.Changed += DirectInstallProgress_Changed;
+            OpenGames.Changed += OpenGames_Changed;
+        }
+
+        private void OpenGames_Changed(object sender, OpenGamesChangedEventArgs e)
+        {
+            if (Game != null && Game.Copies.Any(a => e.All.Contains(a.Game.Id)))
+            {
+                NotifyStateChange();
+            }
+        }
+
+        private async void StopGame()
+        {
+            var copy = GetOpenCopy();
+            if (copy != null)
+            {
+                await OpenGames.StopAsync(copy, Game.DisplayName, dialogs);
+            }
         }
 
         private static readonly Tuple<string, string>[] steamPages = new[]
@@ -939,6 +973,7 @@ namespace Playnite.DesktopApp.ViewModels
         public void Dispose()
         {
             DirectInstallProgress.Changed -= DirectInstallProgress_Changed;
+            OpenGames.Changed -= OpenGames_Changed;
             contentToken.Cancel();
             if (game != null)
             {
@@ -964,7 +999,13 @@ namespace Playnite.DesktopApp.ViewModels
                 UpdatePageLinks(SteamContent.GetAppId(game.Copies.Select(a => a.Game)));
             }
 
+            NotifyStateChange();
+        }
+
+        private void NotifyStateChange()
+        {
             OnPropertyChanged(nameof(IsRunning));
+            OnPropertyChanged(nameof(CanStop));
             OnPropertyChanged(nameof(IsInstalling));
             OnPropertyChanged(nameof(IsUninstalling));
             OnPropertyChanged(nameof(IsLaunching));

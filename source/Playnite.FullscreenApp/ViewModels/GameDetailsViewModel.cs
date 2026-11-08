@@ -33,11 +33,18 @@ namespace Playnite.FullscreenApp.ViewModels
             }
         }
 
+        /// <summary>The copy with something running from its folder, opened from Atrio or from anywhere else.</summary>
+        private Game OpenCopy => InstallingCopy == null && Game?.IsUninstalling != true ? OpenGames.GetOpenCopy(copies) : null;
+
         public string ContextActionDescription
         {
             get
             {
-                if (Game?.IsRunning == true)
+                if (OpenCopy != null)
+                {
+                    return resources.GetString("LOCAtrioReturnToGame");
+                }
+                else if (Game?.IsRunning == true)
                 {
                     return resources.GetString("LOCGameRunning");
                 }
@@ -93,6 +100,7 @@ namespace Playnite.FullscreenApp.ViewModels
             copies = Game.Copies.Select(a => a.Game).ToList();
             copies.ForEach(a => a.PropertyChanged += Game_PropertyChanged);
             DirectInstallProgress.Changed += DirectInstallProgress_Changed;
+            OpenGames.Changed += OpenGames_Changed;
             InitializeCommands();
         }
 
@@ -100,6 +108,15 @@ namespace Playnite.FullscreenApp.ViewModels
         {
             copies.ForEach(a => a.PropertyChanged -= Game_PropertyChanged);
             DirectInstallProgress.Changed -= DirectInstallProgress_Changed;
+            OpenGames.Changed -= OpenGames_Changed;
+        }
+
+        private void OpenGames_Changed(object sender, OpenGamesChangedEventArgs e)
+        {
+            if (copies.Any(a => e.All.Contains(a.Id)))
+            {
+                OnPropertyChanged(nameof(ContextActionDescription));
+            }
         }
 
         private void Game_PropertyChanged(object sender, System.ComponentModel.PropertyChangedEventArgs e)
@@ -129,6 +146,10 @@ namespace Playnite.FullscreenApp.ViewModels
                 if (InstallingCopy != null || Game?.IsUninstalling == true)
                 {
                     CheckSetup();
+                }
+                else if (OpenCopy != null)
+                {
+                    mainModel.ReturnToGame(OpenCopy.Id);
                 }
                 else if (Game?.IsRunning == true || Game?.IsLaunching == true)
                 {

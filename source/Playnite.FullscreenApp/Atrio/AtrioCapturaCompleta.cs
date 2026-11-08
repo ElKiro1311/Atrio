@@ -199,6 +199,52 @@ namespace Playnite.FullscreenApp.Atrio
                 case "instalar":
                     Later(() => model.InstallGame(model.SelectedGame.Game));
                     break;
+                case "juegofalso":
+                    // juegofalso <name>|<folder>: an installed game of the test data whose folder holds a fake program.
+                    var fakeParts = argument.Split('|');
+                    model.Database.Games.Add(new Playnite.SDK.Models.Game(fakeParts[0]) { IsInstalled = true, InstallDirectory = fakeParts[1] });
+                    break;
+                case "quitarjuego":
+                    var gone = model.Database.Games.FirstOrDefault(a => a.Name == argument);
+                    if (gone != null)
+                    {
+                        model.Database.Games.Remove(gone);
+                    }
+
+                    break;
+                case "lanza":
+                    // lanza <exe>|<arguments>: a program opened outside Atrio, as the person or their store would.
+                    var launchParts = argument.Split('|');
+                    var launched = System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(launchParts[0], launchParts.Length > 1 ? launchParts[1] : string.Empty) { UseShellExecute = false });
+                    Log($"lanzado: pid {launched.Id}");
+                    break;
+                case "esperaabierto":
+                    // esperaabierto <name>|<si|no>|<seconds>
+                    var waitParts = argument.Split('|');
+                    var waited = model.Database.Games.FirstOrDefault(a => a.Name == waitParts[0]);
+                    var openWatch = System.Diagnostics.Stopwatch.StartNew();
+                    while (waited != null && Playnite.Atrio.OpenGames.IsOpen(waited.Id) != (waitParts[1] == "si") && openWatch.Elapsed.TotalSeconds < double.Parse(waitParts[2]))
+                    {
+                        await Task.Delay(100);
+                    }
+
+                    await Task.Delay(300);
+                    Log($"abierto '{waitParts[0]}' = {(waited == null ? "sin juego" : Playnite.Atrio.OpenGames.IsOpen(waited.Id).ToString())} tras {openWatch.Elapsed.TotalSeconds:0.0} s");
+                    break;
+                case "estadoabierto":
+                    // What the Guide button shows while a game is open, without bringing any window to the front.
+                    var openOne = model.Database.Games.FirstOrDefault(a => a.Name == argument);
+                    if (openOne != null)
+                    {
+                        model.ShowOpenGameStatus(openOne.Id);
+                    }
+
+                    Log($"estado: visible={model.GameStatusVisible} texto='{model.GameStatusView?.GameStatusText}' volver={model.GameStatusView?.CanReturn} pista='{model.GameStatusView?.ReturnHint}'");
+                    break;
+                case "botonluego":
+                    // A button whose action opens a modal question: pressed later so the script goes on.
+                    Later(() => PressButton(argument));
+                    break;
                 case "quitarinstalado":
                     var installed = model.Database.Games.Get(model.SelectedGame.Game.Id);
                     installed.IsInstalled = false;
@@ -308,7 +354,17 @@ namespace Playnite.FullscreenApp.Atrio
                 if (button.Name == name || (button.Content as string) == name)
                 {
                     Log("pulso: " + button.Name);
-                    button.Command?.Execute(button.CommandParameter);
+                    if (button.Command != null)
+                    {
+                        button.Command.Execute(button.CommandParameter);
+                    }
+                    else if (button is System.Windows.Controls.Button plain)
+                    {
+                        // Buttons with a click handler instead of a command, like the ones of the questions.
+                        (new System.Windows.Automation.Peers.ButtonAutomationPeer(plain).GetPattern(System.Windows.Automation.Peers.PatternInterface.Invoke)
+                            as System.Windows.Automation.Provider.IInvokeProvider)?.Invoke();
+                    }
+
                     return;
                 }
             }

@@ -67,8 +67,12 @@ namespace Playnite.FullscreenApp.Controls.Views
             PanelActionButtons = Template.FindName("PART_PanelActionButtons", this) as Panel;
             if (PanelActionButtons != null)
             {
+                // While the game is open: back to it, or close it. Then the library, with the game still open.
+                PanelActionButtons.Children.Add(CreateOpenGameButton("LOCAtrioReturnToGame", mainModel.ReturnToGameCommand));
+                PanelActionButtons.Children.Add(CreateOpenGameButton("LOCAtrioCloseGame", mainModel.CloseOpenGameCommand));
+
                 var buttonClose = new ButtonEx();
-                buttonClose.Content = ResourceProvider.GetString(LOC.CloseLabel);
+                buttonClose.Content = ResourceProvider.GetString("LOCAtrioGoToLibrary");
                 buttonClose.SetResourceReference(ButtonEx.StyleProperty, "ButtonGameStatusAction");
                 buttonClose.Command = mainModel.CloseGameStatusCommand;
                 PanelActionButtons.Children.Add(buttonClose);
@@ -99,6 +103,22 @@ namespace Playnite.FullscreenApp.Controls.Views
 
                 BindingOperations.SetBinding(ImageCover, Image.SourceProperty, sourceBinding);
             }
+        }
+
+        private ButtonEx CreateOpenGameButton(string text, System.Windows.Input.ICommand command)
+        {
+            var button = new ButtonEx
+            {
+                Content = ResourceProvider.GetString(text),
+                Command = command
+            };
+
+            button.SetResourceReference(ButtonEx.StyleProperty, "ButtonGameStatusAction");
+            BindingTools.SetBinding(button,
+                VisibilityProperty,
+                nameof(GameStatusViewModel.CanReturn),
+                converter: new System.Windows.Controls.BooleanToVisibilityConverter());
+            return button;
         }
     }
 }

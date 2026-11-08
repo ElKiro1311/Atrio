@@ -1023,8 +1023,8 @@ Desactiva esta opción si utilizas herramientas que traducen las entradas del ma
     <sys:String x:Key="LOCSettingsSwapConfirmCancelButtonsDescriptions">Invierte los enlaces del botón A/B para confirmación y cancelación.</sys:String>
     <sys:String x:Key="LOCSettingsPrimaryControllerOnly">Sólo mando de juego principal</sys:String>
     <sys:String x:Key="LOCSettingsPrimaryControllerOnlyDescription">Sólo aceptar entradas del mando de juego principal cuando esté activado.</sys:String>
-    <sys:String x:Key="LOCSettingsRefocusOnGuidButton">El botón de la guía enfoca Playnite</sys:String>
-    <sys:String x:Key="LOCSettingsRefocusOnGuidButtonOnlyWhenNoGame"></sys:String>
+    <sys:String x:Key="LOCSettingsRefocusOnGuidButton">El botón Guía trae Atrio al frente</sys:String>
+    <sys:String x:Key="LOCSettingsRefocusOnGuidButtonOnlyWhenNoGame">Solo si no hay ningún juego abierto</sys:String>
     <sys:String x:Key="LOCSettingsInterfaceVolume">Volumen de interfaz</sys:String>
     <sys:String x:Key="LOCSettingsMusiVolume">Volumen de fondo</sys:String>
     <sys:String x:Key="LOCSettingsMuteBackground">Silenciar cuando se este de fondo</sys:String>
@@ -1587,4 +1587,21 @@ Abre un nuevo problema en la página de GitHub de Playnite con una solicitud par
     <sys:String x:Key="LOCAtrioUpdaterStillOpen">Atrio sigue abierto. Ciérralo y vuelve a intentarlo.</sys:String>
     <sys:String x:Key="LOCFullscreenSettingsDesktopNotif">Los ajustes del modo de pantalla completa están en el menú de ajustes de ese modo.</sys:String>
     <sys:String x:Key="LOCAtrioNoNotifications">No tienes notificaciones</sys:String>
+    <sys:String x:Key="LOCAtrioOpenMark">- En ejecución</sys:String>
+    <sys:String x:Key="LOCAtrioStopGame">Detener</sys:String>
+    <sys:String x:Key="LOCAtrioStopGameTitle">Detener el juego</sys:String>
+    <sys:String x:Key="LOCAtrioStopGameAsk">¿Cerrar {0}? Atrio le pide al juego que se cierre, como si pulsaras Alt+F4.</sys:String>
+    <sys:String x:Key="LOCAtrioStopGameForceAsk">{0} sigue abierto. ¿Forzar el cierre? Se perderá lo que no hayas guardado.</sys:String>
+    <sys:String x:Key="LOCAtrioStopGameDenied">No se pudo cerrar {0}. Puede que se abriera como administrador: ciérralo desde el propio juego.</sys:String>
+    <sys:String x:Key="LOCAtrioDetectOpenGamesToggle">Detectar los juegos abiertos, también los que abras fuera de Atrio</sys:String>
+    <sys:String x:Key="LOCAtrioDetectOpenGamesHint">Cada pocos segundos Atrio mira qué programas están abiertos y desde qué carpeta. Nunca toca los juegos.</sys:String>
+    <sys:String x:Key="LOCAtrioReturnToGame">Volver al juego</sys:String>
+    <sys:String x:Key="LOCAtrioGoToLibrary">Ir a la biblioteca</sys:String>
+    <sys:String x:Key="LOCAtrioGuideComboToggle">Mantener Vista + Menú un segundo vuelve a Atrio</sys:String>
+    <sys:String x:Key="LOCAtrioGuideComboHint">Funciona aunque Steam o la Barra de juegos de Windows usen el botón Guía. Con un juego abierto, cambia entre el juego y Atrio.</sys:String>
+    <sys:String x:Key="LOCAtrioReturnHintCombo">Mientras juegas, mantén Vista + Menú para volver aquí</sys:String>
+    <sys:String x:Key="LOCAtrioReturnHintGuide">Mientras juegas, pulsa Guía para volver aquí</sys:String>
+    <sys:String x:Key="LOCAtrioReturnHintBoth">Mientras juegas, pulsa Guía o mantén Vista + Menú para volver aquí</sys:String>
+    <sys:String x:Key="LOCAtrioCloseGame">Cerrar el juego</sys:String>
+    <sys:String x:Key="LOCAtrioOpenFact">En ejecución</sys:String>
 </ResourceDictionary>

@@ -12,6 +12,7 @@
     </LinearGradientBrush>
     <SolidColorBrush x:Key="AtrioPlayHoverBrush" Color="@@jugarHover@@" />
     <SolidColorBrush x:Key="AtrioPlayTextBrush" Color="@@textoJugar@@" />
+    <SolidColorBrush x:Key="AtrioOpenBrush" Color="@@abierto@@" />
     <CornerRadius x:Key="AtrioCardRadius">@@radioTarjeta@@</CornerRadius>
     <sys:Double x:Key="AtrioCoverRadius">@@radioPortada@@</sys:Double>
     <sys:Double x:Key="AtrioSidebarWidth">@@anchoBarra@@</sys:Double>

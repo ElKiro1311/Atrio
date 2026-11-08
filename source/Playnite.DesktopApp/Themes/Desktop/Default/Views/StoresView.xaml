@@ -244,6 +244,8 @@
                                         <CheckBox Content="{DynamicResource LOCAtrioAcceptTermsToggle}" IsChecked="{Binding AcceptStoreTerms}" Margin="0,10,0,0"
                                                   IsEnabled="{Binding DirectInstall}"
                                                   ToolTip="{DynamicResource LOCAtrioAcceptTermsHint}" />
+                                        <CheckBox Content="{DynamicResource LOCAtrioDetectOpenGamesToggle}" IsChecked="{Binding DetectOpenGames}" Margin="0,10,0,0"
+                                                  ToolTip="{DynamicResource LOCAtrioDetectOpenGamesHint}" />
                                     </StackPanel>
                                 </Border>
 

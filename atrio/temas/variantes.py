@@ -33,6 +33,7 @@ BASE = {
     'ambiente': '0.5',
     'veloSuperior': '#8C0B0C10',
     'veloInferior': '#E60B0C10',
+    'abierto': '#8BC53F',
 }
 
 ATRIO = 'LOCAtrioThemeFamilyAtrio'
@@ -171,6 +172,7 @@ VARIANTES = [
             'alturaHeroe': '420',
             'tamanoMenu': '13',
             'texto': '#EFF6EE',
+            'abierto': '#B5E37A',
             'textoTenue': '#A0AA95',
             'textoSobreAcento': '#23281E',
             'fondo': '#4C5844',

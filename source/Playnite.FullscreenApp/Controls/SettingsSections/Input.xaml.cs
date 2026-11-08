@@ -83,6 +83,15 @@ namespace Playnite.FullscreenApp.Controls.SettingsSections
                 BindingMode.TwoWay,
                 UpdateSourceTrigger.PropertyChanged);
 
+            var unifier = Playnite.Atrio.GameUnifier.Current;
+            ToggleGuideCombo.Visibility = unifier == null ? Visibility.Collapsed : Visibility.Visible;
+            ToggleGuideCombo.IsChecked = unifier?.Settings.GuideComboReturns == true;
+            ToggleGuideCombo.Click += (_, __) =>
+            {
+                unifier.Settings.GuideComboReturns = ToggleGuideCombo.IsChecked == true;
+                unifier.Settings.Save();
+            };
+
             SliderNavigationSpeed.Minimum = 20;
             SliderNavigationSpeed.Maximum = 300;
             SliderNavigationSpeed.TickFrequency = 10;

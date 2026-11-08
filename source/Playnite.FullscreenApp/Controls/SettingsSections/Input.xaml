@@ -29,6 +29,10 @@
         <pctrls:CheckBoxEx x:Name="ToggleGuideFocusOnlyWhenNoGame" Padding="50,0,0,0"
                            IsEnabled="{Binding IsChecked, ElementName=ToggleControllerInput}"
                            Content="{DynamicResource LOCSettingsRefocusOnGuidButtonOnlyWhenNoGame}"/>
+        <pctrls:CheckBoxEx x:Name="ToggleGuideCombo"
+                           IsEnabled="{Binding IsChecked, ElementName=ToggleControllerInput}"
+                           Content="{DynamicResource LOCAtrioGuideComboToggle}"
+                           Tag="{DynamicResource LOCAtrioGuideComboHint}"/>
         <DockPanel Margin="0,20,0,10">
             <TextBlock Text="{DynamicResource LOCGameListNavigationSpeed}"
                        Style="{DynamicResource SettingsSectionText}"/>

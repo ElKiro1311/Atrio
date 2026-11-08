@@ -29,10 +29,21 @@
                                     </DataTemplate>
                                 </ItemsControl.ItemTemplate>
                             </ItemsControl>
-                            <TextBlock Text="{Binding DisplayName}" TextTrimming="CharacterEllipsis"
-                                       VerticalAlignment="Center" FontSize="13" />
+                            <!-- Like Steam: an open game goes green with "- Running" after its name, which only shortens the name. -->
+                            <DockPanel HorizontalAlignment="Left" VerticalAlignment="Center">
+                                <TextBlock x:Name="OpenMark" DockPanel.Dock="Right" Text="{DynamicResource LOCAtrioOpenMark}"
+                                           Foreground="{DynamicResource AtrioOpenBrush}" FontSize="13" Margin="4,0,0,0"
+                                           Visibility="Collapsed" />
+                                <TextBlock x:Name="GameName" Text="{Binding DisplayName}" TextTrimming="CharacterEllipsis" FontSize="13" />
+                            </DockPanel>
                         </DockPanel>
                     </Border>
+                    <ControlTemplate.Triggers>
+                        <DataTrigger Binding="{Binding IsOpen}" Value="True">
+                            <Setter TargetName="OpenMark" Property="Visibility" Value="Visible" />
+                            <Setter TargetName="GameName" Property="Foreground" Value="{DynamicResource AtrioOpenBrush}" />
+                        </DataTrigger>
+                    </ControlTemplate.Triggers>
                 </ControlTemplate>
             </Setter.Value>
         </Setter>

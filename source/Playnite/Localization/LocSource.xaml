@@ -1590,4 +1590,21 @@ Open new issue on Playnite's GitHub page with a request to fix corruption in you
 {0}</sys:String>
     <sys:String x:Key="LOCAtrioUpdaterStillOpen">Atrio is still open. Close it and try again.</sys:String>
     <sys:String x:Key="LOCAtrioNoNotifications">You have no notifications</sys:String>
+    <sys:String x:Key="LOCAtrioOpenMark">- Running</sys:String>
+    <sys:String x:Key="LOCAtrioStopGame">Stop</sys:String>
+    <sys:String x:Key="LOCAtrioStopGameTitle">Stop the game</sys:String>
+    <sys:String x:Key="LOCAtrioStopGameAsk">Close {0}? Atrio asks the game to close, as if you pressed Alt+F4.</sys:String>
+    <sys:String x:Key="LOCAtrioStopGameForceAsk">{0} is still open. Force it to close? Anything you haven't saved will be lost.</sys:String>
+    <sys:String x:Key="LOCAtrioStopGameDenied">Couldn't close {0}. It may be running as administrator: close it from the game itself.</sys:String>
+    <sys:String x:Key="LOCAtrioDetectOpenGamesToggle">Detect the open games, also the ones you open outside Atrio</sys:String>
+    <sys:String x:Key="LOCAtrioDetectOpenGamesHint">Every few seconds Atrio checks which programs are running and from which folder. It never touches the games.</sys:String>
+    <sys:String x:Key="LOCAtrioReturnToGame">Back to the game</sys:String>
+    <sys:String x:Key="LOCAtrioGoToLibrary">Go to the library</sys:String>
+    <sys:String x:Key="LOCAtrioGuideComboToggle">Holding View + Menu for a second brings Atrio back</sys:String>
+    <sys:String x:Key="LOCAtrioGuideComboHint">Works even when Steam or the Windows Game Bar use the Guide button. With a game open, it switches between the game and Atrio.</sys:String>
+    <sys:String x:Key="LOCAtrioReturnHintCombo">While you play, hold View + Menu to come back here</sys:String>
+    <sys:String x:Key="LOCAtrioReturnHintGuide">While you play, press Guide to come back here</sys:String>
+    <sys:String x:Key="LOCAtrioReturnHintBoth">While you play, press Guide or hold View + Menu to come back here</sys:String>
+    <sys:String x:Key="LOCAtrioCloseGame">Close the game</sys:String>
+    <sys:String x:Key="LOCAtrioOpenFact">Running</sys:String>
 </ResourceDictionary>

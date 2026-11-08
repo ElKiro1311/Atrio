@@ -57,16 +57,55 @@ namespace Playnite
             Unifier.GroupsChanged += Unifier_GroupsChanged;
             Database.Games.ItemCollectionChanged += Games_ItemCollectionChanged;
             Database.Games.ItemUpdated += Games_ItemUpdated;
+            OpenGames.Changed += OpenGames_Changed;
+            if (PlayniteApplication.Current != null)
+            {
+                var games = Database.Games;
+                OpenGames.Attach(() => games, PlayniteApplication.Current.SyncContext, Unifier.Settings.DetectOpenGames);
+            }
         }
 
         private void Games_ItemCollectionChanged(object sender, ItemCollectionChangedEventArgs<Game> e)
         {
             Unifier.ScheduleRebuild();
+            OpenGames.LibraryChanged();
         }
 
         private void Games_ItemUpdated(object sender, ItemUpdatedEventArgs<Game> e)
         {
             Unifier.ScheduleRebuild();
+            if (e.UpdatedItems.Any(a => a.OldData.IsInstalled != a.NewData.IsInstalled ||
+                a.OldData.InstallDirectory != a.NewData.InstallDirectory))
+            {
+                OpenGames.LibraryChanged();
+            }
+        }
+
+        private void OpenGames_Changed(object sender, OpenGamesChangedEventArgs e)
+        {
+            if (Items == null)
+            {
+                return;
+            }
+
+            // The list shows one entry per unified game: any of its copies counts.
+            var ids = new HashSet<Guid>(e.All);
+            foreach (var id in e.All)
+            {
+                var group = Unifier.GetGroup(id);
+                if (group?.Copies != null)
+                {
+                    ids.UnionWith(group.Copies.Select(a => a.Id));
+                }
+            }
+
+            foreach (var item in Items)
+            {
+                if (ids.Contains(item.Id))
+                {
+                    item.NotifyOpenChanged();
+                }
+            }
         }
 
         private void Unifier_GroupsChanged(object sender, EventArgs e)
@@ -98,6 +137,7 @@ namespace Playnite
             Unifier.GroupsChanged -= Unifier_GroupsChanged;
             Database.Games.ItemCollectionChanged -= Games_ItemCollectionChanged;
             Database.Games.ItemUpdated -= Games_ItemUpdated;
+            OpenGames.Changed -= OpenGames_Changed;
             Items = null;
         }
 

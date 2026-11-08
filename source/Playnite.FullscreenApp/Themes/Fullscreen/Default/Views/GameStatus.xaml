@@ -28,21 +28,25 @@
                             <RowDefinition Height="Auto" />
                             <RowDefinition Height="Auto" />
                             <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
                             <RowDefinition Height="*" />
                         </Grid.RowDefinitions>
 
-                        <FadeImage Grid.RowSpan="6" Stretch="Fill" Source="{Binding Game.DisplayBackgroundImageObject}"
+                        <FadeImage Grid.RowSpan="7" Stretch="Fill" Source="{Binding Game.DisplayBackgroundImageObject}"
                                    UseBlurredCopy="True" IsBlurEnabled="True" BlurAmount="200"
                                    Opacity="0.5" IsHitTestVisible="False" />
-                        <Border Grid.RowSpan="6" Background="#8C080A0F" IsHitTestVisible="False" />
+                        <Border Grid.RowSpan="7" Background="#8C080A0F" IsHitTestVisible="False" />
 
                         <Image Name="PART_ImageCover" Grid.Row="1"
                                RenderOptions.BitmapScalingMode="Fant"
                                Height="400" HorizontalAlignment="Center"
                                RoundedClip.Radius="{DynamicResource CoverClipRadius}" />
 
-                        <ContentControl Grid.Row="2" Style="{DynamicResource ProgressIndicator}" Focusable="False"
-                                        Height="36" Width="36" Margin="0,30,0,0" HorizontalAlignment="Center" />
+                        <!-- The wheel turns while the game starts; once it's open there's nothing to wait for. -->
+                        <Border Grid.Row="2" Margin="0,30,0,0" HorizontalAlignment="Center"
+                                Visibility="{Binding CanReturn, Converter={StaticResource InvertedBooleanToVisibilityConverter}}">
+                            <ContentControl Style="{DynamicResource ProgressIndicator}" Focusable="False" Height="36" Width="36" />
+                        </Border>
 
                         <TextBlock Name="PART_TextStatus" TextWrapping="Wrap" Grid.Row="3"
                                    Style="{StaticResource TextBlockBaseStyle}"
@@ -52,6 +56,12 @@
 
                         <StackPanel Name="PART_PanelActionButtons" Orientation="Horizontal"
                                     HorizontalAlignment="Center" Grid.Row="4" />
+
+                        <TextBlock Grid.Row="5" Text="{Binding ReturnHint}" TextWrapping="Wrap"
+                                   Style="{StaticResource TextBlockBaseStyle}" Opacity="0.7"
+                                   FontSize="18" TextAlignment="Center" MaxWidth="1100"
+                                   HorizontalAlignment="Center" Margin="0,22,0,0"
+                                   Visibility="{Binding CanReturn, Converter={StaticResource BooleanToVisibilityConverter}}" />
                     </Grid>
                 </ControlTemplate>
             </Setter.Value>

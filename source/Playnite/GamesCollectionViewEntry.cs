@@ -61,6 +61,16 @@ namespace Playnite
         public bool IsUninstalling => Game.IsUninstalling;
         public bool IsLaunching => Game.IsLaunching;
         public bool IsRunning => Game.IsRunning;
+
+        /// <summary>Some copy of the game is running right now, opened from Atrio or from anywhere else.</summary>
+        public bool IsOpen => Game.IsRunning || OpenGames.IsOpen(Game.Id) ||
+            (HasMultipleCopies && Copies.Any(a => a.Game.IsRunning || OpenGames.IsOpen(a.Game.Id)));
+
+        public void NotifyOpenChanged()
+        {
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(IsOpen)));
+        }
+
         public bool IsCustomGame => Game.IsCustomGame;
         public ulong Playtime => Game.Playtime;
         public DateTime? Added => Game.Added;
@@ -474,6 +484,11 @@ namespace Playnite
             {
                 PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(DisplayBackgroundImage)));
                 PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(DisplayBackgroundImageObject)));
+            }
+
+            if (propertyName == nameof(Game.IsRunning))
+            {
+                PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(IsOpen)));
             }
 
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));

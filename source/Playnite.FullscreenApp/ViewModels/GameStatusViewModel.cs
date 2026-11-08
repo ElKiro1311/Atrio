@@ -19,6 +19,30 @@ namespace Playnite.FullscreenApp.ViewModels
             }
         }
 
+        private bool canReturn;
+        /// <summary>The game is open: it can be brought back to the front or closed from here.</summary>
+        public bool CanReturn
+        {
+            get => canReturn;
+            set
+            {
+                canReturn = value;
+                OnPropertyChanged();
+            }
+        }
+
+        private string returnHint;
+        /// <summary>How to come back to Atrio while playing, with the buttons that are on.</summary>
+        public string ReturnHint
+        {
+            get => returnHint;
+            set
+            {
+                returnHint = value;
+                OnPropertyChanged();
+            }
+        }
+
         public GamesCollectionViewEntry Game { get; }
 
         public GameStatusViewModel(GamesCollectionViewEntry game)

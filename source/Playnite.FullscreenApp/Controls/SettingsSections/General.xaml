@@ -41,6 +41,9 @@
         <pctrls:CheckBoxEx x:Name="ToggleAcceptStoreTerms"
                            Content="{DynamicResource LOCAtrioAcceptTermsToggle}"
                            Tag="{DynamicResource LOCAtrioAcceptTermsHint}"/>
+        <pctrls:CheckBoxEx x:Name="ToggleDetectOpenGames"
+                           Content="{DynamicResource LOCAtrioDetectOpenGamesToggle}"
+                           Tag="{DynamicResource LOCAtrioDetectOpenGamesHint}"/>
         <pctrls:CheckBoxEx x:Name="ToggleAsyncImageLoad"
                            Content="{DynamicResource LOCSettingsAsyncImageLoading}"
                            ContentStringFormat="{}{0} *"
