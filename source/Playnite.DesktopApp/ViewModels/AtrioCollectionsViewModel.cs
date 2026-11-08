@@ -115,10 +115,23 @@ namespace Playnite.DesktopApp.ViewModels
         public RelayCommand<FrameworkElement> MoreCommand { get; }
         public RelayCommand<object> SaveFiltersCommand { get; }
         public RelayCommand<object> CancelDraftCommand { get; }
+        public RelayCommand<object> ImportSteamCommand { get; }
 
         public CollectionsViewModel(DesktopAppViewModel main)
         {
             this.main = main;
+            ImportSteamCommand = new RelayCommand<object>(_ =>
+            {
+                try
+                {
+                    ImportFromSteam();
+                }
+                catch (Exception e) when (!PlayniteEnvironment.ThrowAllErrors)
+                {
+                    LogManager.GetLogger().Error(e, "Failed to import the collections of Steam.");
+                    main.Dialogs.ShowErrorMessage(e.Message, ResourceProvider.GetString("LOCAtrioSteamCollectionsTitle"));
+                }
+            });
             NewCollectionCommand = new RelayCommand<object>(_ =>
             {
                 if (CreateCollection(null) != null)
@@ -561,6 +574,148 @@ namespace Playnite.DesktopApp.ViewModels
             {
                 category.Name = name;
                 main.Database.Categories.Update(category);
+            }
+        }
+
+        /// <summary>"20 collections", "6 collections and favorites" or "Only favorites".</summary>
+        private static string GetAccountText(SteamCollectionAccount account)
+        {
+            var lists = account.Collections.Count(a => !a.IsFavorites);
+            var favorites = account.Collections.Any(a => a.IsFavorites && a.AppIds.Count > 0);
+            if (lists == 0)
+            {
+                return ResourceProvider.GetString("LOCAtrioSteamCollectionsOnlyFavorites");
+            }
+
+            return string.Format(ResourceProvider.GetString(favorites ? "LOCAtrioSteamCollectionsAccountFavorites" : "LOCAtrioSteamCollectionsAccount"), lists);
+        }
+
+        /// <summary>
+        /// Brings the collections of the library of Steam: each one becomes a collection with the games of it that are
+        /// in the library, and a collection with the same name gets the ones it is missing. Nothing is removed from any.
+        /// The favorites of Steam can become favorites too, if the player says so. Steam itself is only read.
+        /// </summary>
+        public void ImportFromSteam()
+        {
+            var title = ResourceProvider.GetString("LOCAtrioSteamCollectionsTitle");
+            var accounts = SteamCollections.Read(SteamCollections.FindSteamPath());
+            if (accounts.Count == 0)
+            {
+                main.Dialogs.ShowMessage(ResourceProvider.GetString("LOCAtrioSteamCollectionsNone"), title);
+                return;
+            }
+
+            var account = accounts[0];
+            if (accounts.Count > 1)
+            {
+                var options = accounts.Select(a => new GenericItemOption(a.Name, GetAccountText(a))).ToList();
+                var chosen = main.Dialogs.ChooseItemWithSearch(
+                    options,
+                    search => options.Where(a => search.IsNullOrEmpty() || a.Name.IndexOf(search, StringComparison.CurrentCultureIgnoreCase) >= 0).ToList(),
+                    null,
+                    ResourceProvider.GetString("LOCAtrioSteamCollectionsChooseAccount"));
+                if (chosen == null)
+                {
+                    return;
+                }
+
+                account = accounts[options.IndexOf(chosen)];
+            }
+
+            // The games of Steam in the library, by their id there.
+            var steamGames = main.Database.Games.
+                Where(a => a.PluginId == SteamContent.SteamPluginId && !a.GameId.IsNullOrEmpty()).
+                GroupBy(a => a.GameId).
+                ToDictionary(a => a.Key, a => a.First());
+            List<Game> GamesOf(SteamCollection collection) => collection.AppIds.
+                Where(steamGames.ContainsKey).
+                Select(a => steamGames[a]).
+                ToList();
+
+            // A collection with none of its games in the library would only come over empty.
+            var named = account.Collections.Where(a => !a.IsDynamic && !a.IsFavorites && !a.Name.IsNullOrWhiteSpace()).ToList();
+            var lists = named.Where(a => GamesOf(a).Count > 0).ToList();
+            var empty = named.Count - lists.Count;
+            var dynamic = account.Collections.Count(a => a.IsDynamic);
+            var favorites = account.Collections.FirstOrDefault(a => a.IsFavorites);
+            var favoriteGames = favorites == null ? new List<Game>() : GamesOf(favorites);
+            if (lists.Count == 0 && favoriteGames.Count == 0)
+            {
+                main.Dialogs.ShowMessage(ResourceProvider.GetString("LOCAtrioSteamCollectionsNone"), title);
+                return;
+            }
+
+            var summary = new System.Text.StringBuilder();
+            summary.AppendLine(string.Format(ResourceProvider.GetString("LOCAtrioSteamCollectionsAsk"), lists.Count, account.Name));
+            summary.AppendLine();
+            foreach (var collection in lists.Take(25))
+            {
+                summary.AppendLine($"• {collection.Name} ({GamesOf(collection).Count})");
+            }
+
+            if (lists.Count > 25)
+            {
+                summary.AppendLine("• …");
+            }
+
+            summary.AppendLine();
+            summary.AppendLine(ResourceProvider.GetString("LOCAtrioSteamCollectionsMerge"));
+            if (dynamic > 0)
+            {
+                summary.AppendLine(string.Format(ResourceProvider.GetString("LOCAtrioSteamCollectionsDynamic"), dynamic));
+            }
+
+            if (empty > 0)
+            {
+                summary.AppendLine(string.Format(ResourceProvider.GetString("LOCAtrioSteamCollectionsEmpty"), empty));
+            }
+
+            if (lists.Count > 0 && main.Dialogs.ShowMessage(summary.ToString().TrimEnd(), title, MessageBoxButton.YesNo, MessageBoxImage.Question) != MessageBoxResult.Yes)
+            {
+                return;
+            }
+
+            var created = 0;
+            var filled = 0;
+            var missing = 0;
+            foreach (var collection in lists)
+            {
+                var games = GamesOf(collection);
+                missing += collection.AppIds.Count - games.Count;
+                var category = main.Database.Categories.FirstOrDefault(a => string.Equals(a.Name, collection.Name, StringComparison.CurrentCultureIgnoreCase));
+                if (category == null)
+                {
+                    category = main.Database.Categories.Add(collection.Name);
+                    created++;
+                }
+
+                if (games.Count > 0)
+                {
+                    GameCollections.AddGames(main.Database, category.Id, games, GameUnifier.Current);
+                    filled += games.Count;
+                }
+            }
+
+            var newFavorites = favoriteGames.Where(a => !a.Favorite).ToList();
+            if (newFavorites.Count > 0 && main.Dialogs.ShowMessage(
+                    string.Format(ResourceProvider.GetString("LOCAtrioSteamCollectionsFavoritesAsk"), newFavorites.Count),
+                    title,
+                    MessageBoxButton.YesNo,
+                    MessageBoxImage.Question) == MessageBoxResult.Yes)
+            {
+                main.GamesEditor.SetFavoriteGames(newFavorites, true);
+            }
+
+            Refresh();
+            if (lists.Count > 0)
+            {
+                var done = string.Format(ResourceProvider.GetString("LOCAtrioSteamCollectionsDone"), lists.Count, created, filled);
+                if (missing > 0)
+                {
+                    done += Environment.NewLine + Environment.NewLine + string.Format(ResourceProvider.GetString("LOCAtrioSteamCollectionsMissing"), missing);
+                }
+
+                main.Dialogs.ShowMessage(done, title);
             }
         }
 

@@ -90,6 +90,9 @@
                             <DockPanel Margin="0,0,28,4">
                                 <StackPanel Orientation="Horizontal" DockPanel.Dock="Right" VerticalAlignment="Center">
                                     <Button Style="{DynamicResource AtrioGhostButton}" MinHeight="32" Padding="12,0,12,0" Margin="0,0,8,0"
+                                            Content="{DynamicResource LOCAtrioSteamCollectionsImport}" Command="{Binding ImportSteamCommand}"
+                                            ToolTip="{DynamicResource LOCAtrioSteamCollectionsImportHint}" />
+                                    <Button Style="{DynamicResource AtrioGhostButton}" MinHeight="32" Padding="12,0,12,0" Margin="0,0,8,0"
                                             Content="{DynamicResource LOCAtrioCollectionNewDynamic}" Command="{Binding NewDynamicCollectionCommand}"
                                             Visibility="{Binding HasLibraryPanes, Converter={StaticResource BooleanToVisibilityConverter}}" />
                                     <Button Style="{DynamicResource AtrioPlayButton}" MinHeight="32" Padding="14,0,14,0"
