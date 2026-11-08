@@ -30,10 +30,15 @@ try {
     }
 
     & (Join-Path $PSScriptRoot 'compilar.ps1') -Zip -Version $Version
+    # Dos paquetes con lo mismo: el de las actualizaciones, sin carpeta, que es el que buscan las versiones
+    # instaladas, y el de descargar a mano, con todo dentro de una carpeta Atrio.
     $paquete = "salida\Atrio-$Version.zip"
-    if (-not (Test-Path $paquete)) { throw "No se ha creado $paquete" }
+    $descarga = 'salida\Atrio.zip'
+    foreach ($archivo in @($paquete, $descarga)) {
+        if (-not (Test-Path $archivo)) { throw "No se ha creado $archivo" }
+    }
 
-    gh release create "v$Version" $paquete --repo $repositorio --target (git rev-parse HEAD) --title "Atrio $Version" --notes-file $novedades
+    gh release create "v$Version" $paquete $descarga --repo $repositorio --target (git rev-parse HEAD) --title "Atrio $Version" --notes-file $novedades
     if ($LASTEXITCODE -ne 0) { throw 'No se pudo crear la versión en GitHub.' }
 }
 finally {

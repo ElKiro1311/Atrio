@@ -22,10 +22,12 @@
     <Thickness x:Key="AtrioBrowserBarMargin">14,8,14,8</Thickness>
 
     <!-- An achievement icon of a game page. A click opens what the achievement is about, right next to it. -->
+    <!-- It takes the focus when its card opens, so that the arrows go to the one next to it -->
     <Style x:Key="AtrioAchievementIcon" TargetType="ToggleButton">
         <Setter Property="OverridesDefaultStyle" Value="True" />
         <Setter Property="Cursor" Value="Hand" />
-        <Setter Property="Focusable" Value="False" />
+        <Setter Property="Focusable" Value="True" />
+        <Setter Property="FocusVisualStyle" Value="{x:Null}" />
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="ToggleButton">
@@ -39,6 +41,70 @@
                         </Trigger>
                         <Trigger Property="IsChecked" Value="True">
                             <Setter TargetName="Outline" Property="BorderBrush" Value="{DynamicResource GlyphBrush}" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- A whole row that opens the card of an achievement, for the easiest ones still missing -->
+    <Style x:Key="AtrioAchievementRow" TargetType="ToggleButton">
+        <Setter Property="OverridesDefaultStyle" Value="True" />
+        <Setter Property="Cursor" Value="Hand" />
+        <Setter Property="Focusable" Value="True" />
+        <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+        <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+        <Setter Property="Foreground" Value="{DynamicResource TextBrush}" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="ToggleButton">
+                    <Border x:Name="Root" Background="Transparent" BorderThickness="1" BorderBrush="Transparent"
+                            CornerRadius="@@radio@@" Padding="6,5,10,5">
+                        <ContentPresenter />
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="Root" Property="Background" Value="{DynamicResource AtrioCardHoverBrush}" />
+                        </Trigger>
+                        <Trigger Property="IsChecked" Value="True">
+                            <Setter TargetName="Root" Property="Background" Value="{DynamicResource AtrioCardHoverBrush}" />
+                            <Setter TargetName="Root" Property="BorderBrush" Value="{DynamicResource GlyphBrush}" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- The pills of a card: smaller than the ones of a page, so that a few fit in a row -->
+    <Style x:Key="AtrioSmallPill" TargetType="ToggleButton">
+        <Setter Property="OverridesDefaultStyle" Value="True" />
+        <Setter Property="Foreground" Value="{DynamicResource TextBrushDarker}" />
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="BorderBrush" Value="{DynamicResource AtrioBorderBrush}" />
+        <Setter Property="FontFamily" Value="{DynamicResource FontFamily}" />
+        <Setter Property="FontSize" Value="12" />
+        <Setter Property="Margin" Value="0,0,6,0" />
+        <Setter Property="Cursor" Value="Hand" />
+        <Setter Property="Focusable" Value="False" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="ToggleButton">
+                    <Border x:Name="Root" Height="26" Padding="10,0,10,0" CornerRadius="13"
+                            Background="{TemplateBinding Background}" BorderThickness="1"
+                            BorderBrush="{TemplateBinding BorderBrush}">
+                        <ContentPresenter VerticalAlignment="Center" />
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="Root" Property="BorderBrush" Value="{DynamicResource GlyphBrush}" />
+                            <Setter Property="Foreground" Value="{DynamicResource TextBrush}" />
+                        </Trigger>
+                        <Trigger Property="IsChecked" Value="True">
+                            <Setter TargetName="Root" Property="Background" Value="{DynamicResource GlyphBrush}" />
+                            <Setter TargetName="Root" Property="BorderBrush" Value="{DynamicResource GlyphBrush}" />
+                            <Setter Property="Foreground" Value="{DynamicResource AtrioPlayTextBrush}" />
                         </Trigger>
                     </ControlTemplate.Triggers>
                 </ControlTemplate>
@@ -151,15 +217,48 @@
                     <TextBlock Text="{Binding AchievementNote}" FontSize="13" TextWrapping="Wrap" Margin="0,0,0,8" />
                 </StackPanel>
 
-                <Button x:Name="Guide" Style="{DynamicResource AtrioGhostButton}" HorizontalAlignment="Left" MinHeight="30" FontSize="12"
-                        Padding="12,0,14,0" Margin="0,2,0,0"
-                        Command="{Binding DataContext.SearchAchievementGuideCommand, RelativeSource={RelativeSource AncestorType={x:Type GameOverview}}}"
-                        CommandParameter="{Binding DisplayNameResolved}">
-                    <StackPanel Orientation="Horizontal">
-                        <TextBlock Text="&#xE721;" FontFamily="{DynamicResource AtrioIconFont}" FontSize="12" Margin="0,1,8,0" VerticalAlignment="Center" />
-                        <TextBlock Text="{DynamicResource LOCAtrioAchievementGuide}" VerticalAlignment="Center" />
-                    </StackPanel>
-                </Button>
+                <!-- Straight to a guide where the store has them (RetroAchievements, Steam), and a web search anyway -->
+                <WrapPanel x:Name="Guide" Margin="0,2,0,0">
+                    <Button Style="{DynamicResource AtrioGhostButton}" MinHeight="30" FontSize="12" Padding="12,0,14,0" Margin="0,0,10,6"
+                            Command="{Binding DataContext.OpenAchievementGuideCommand, RelativeSource={RelativeSource AncestorType={x:Type GameOverview}}}"
+                            CommandParameter="{Binding}">
+                        <Button.Visibility>
+                            <MultiBinding Converter="{StaticResource AchievementGuideConverter}" ConverterParameter="direct">
+                                <Binding />
+                                <Binding Path="DataContext.HasSteamGuides" RelativeSource="{RelativeSource AncestorType={x:Type GameOverview}}" />
+                            </MultiBinding>
+                        </Button.Visibility>
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="&#xE82D;" FontFamily="{DynamicResource AtrioIconFont}" FontSize="12" Margin="0,1,8,0" VerticalAlignment="Center" />
+                            <TextBlock VerticalAlignment="Center">
+                                <TextBlock.Text>
+                                    <MultiBinding Converter="{StaticResource AchievementGuideConverter}" ConverterParameter="direct">
+                                        <Binding />
+                                        <Binding Path="DataContext.HasSteamGuides" RelativeSource="{RelativeSource AncestorType={x:Type GameOverview}}" />
+                                    </MultiBinding>
+                                </TextBlock.Text>
+                            </TextBlock>
+                        </StackPanel>
+                    </Button>
+                    <Button Style="{DynamicResource AtrioGhostButton}" MinHeight="30" FontSize="12" Padding="12,0,14,0" Margin="0,0,0,6"
+                            Command="{Binding DataContext.SearchAchievementGuideCommand, RelativeSource={RelativeSource AncestorType={x:Type GameOverview}}}"
+                            CommandParameter="{Binding DisplayNameResolved}">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="&#xE721;" FontFamily="{DynamicResource AtrioIconFont}" FontSize="12" Margin="0,1,8,0" VerticalAlignment="Center" />
+                            <TextBlock VerticalAlignment="Center">
+                                <TextBlock.Text>
+                                    <MultiBinding Converter="{StaticResource AchievementGuideConverter}" ConverterParameter="web">
+                                        <Binding />
+                                        <Binding Path="DataContext.HasSteamGuides" RelativeSource="{RelativeSource AncestorType={x:Type GameOverview}}" />
+                                    </MultiBinding>
+                                </TextBlock.Text>
+                            </TextBlock>
+                        </StackPanel>
+                    </Button>
+                </WrapPanel>
+
+                <TextBlock Text="{DynamicResource LOCAtrioAchievementKeysHint}" FontSize="11" Margin="0,6,0,0" HorizontalAlignment="Right"
+                           Foreground="{DynamicResource TextBrushDarker}" Opacity="0.8" />
             </StackPanel>
         </Border>
         <DataTemplate.Triggers>

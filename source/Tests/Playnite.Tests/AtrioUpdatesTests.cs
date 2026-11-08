@@ -116,5 +116,62 @@ namespace Playnite.Tests
                 Directory.Delete(root, true);
             }
         }
+
+        [Test]
+        public void PackageForUpdatesGoesBeforeTheOneToDownloadTest()
+        {
+            const string json = @"[
+                {""tag_name"":""v1.4.8"",""draft"":false,""prerelease"":false,""assets"":[
+                    {""name"":""Atrio.zip"",""url"":""descarga"",""size"":2},
+                    {""name"":""Atrio-1.4.8.zip"",""url"":""actualizacion"",""size"":1}]},
+                {""tag_name"":""v1.4.9"",""draft"":false,""prerelease"":false,""assets"":[
+                    {""name"":""Atrio.zip"",""url"":""solo-descarga"",""size"":2}]},
+                {""tag_name"":""v1.5.0"",""draft"":false,""prerelease"":false,""assets"":[
+                    {""name"":""Atrio-otro.zip"",""url"":""otro"",""size"":2},
+                    {""name"":""Atrio-1.5.0.zip"",""url"":""exacto"",""size"":1}]}
+            ]";
+
+            var releases = AtrioUpdates.ParseReleases(json);
+            Assert.AreEqual("actualizacion", releases.Single(a => a.Version == new Version(1, 4, 8)).PackageUrl);
+            Assert.AreEqual("solo-descarga", releases.Single(a => a.Version == new Version(1, 4, 9)).PackageUrl);
+            Assert.AreEqual("exacto", releases.Single(a => a.Version == new Version(1, 5, 0)).PackageUrl);
+        }
+
+        [Test]
+        public void PackageRootTest()
+        {
+            Assert.AreEqual("Atrio/", AtrioUpdates.GetPackageRoot(new[] { "Atrio/", "Atrio/Atrio.exe", @"Atrio\Themes\tema.xaml" }));
+            Assert.IsNull(AtrioUpdates.GetPackageRoot(new[] { "Atrio.exe", "Themes/tema.xaml" }));
+            Assert.IsNull(AtrioUpdates.GetPackageRoot(new[] { "Atrio/Atrio.exe", "LEEME.txt" }));
+            Assert.IsNull(AtrioUpdates.GetPackageRoot(new[] { "Atrio.exe", "Atrio/otra.txt" }));
+            Assert.IsNull(AtrioUpdates.GetPackageRoot(new string[0]));
+        }
+
+        [Test]
+        public void PackageWithItsFolderUnpacksWithoutItTest()
+        {
+            var root = NewFolder();
+            try
+            {
+                var path = Path.Combine(root, "Atrio.zip");
+                using (var zip = ZipFile.Open(path, ZipArchiveMode.Create))
+                {
+                    zip.CreateEntry("Atrio/");
+                    AddEntry(zip, "Atrio/Atrio.exe", "programa");
+                    AddEntry(zip, "Atrio/Themes/Desktop/tema.xaml", "tema");
+                }
+
+                var folder = Path.Combine(root, "p");
+                AtrioUpdates.Unpack(path, folder, CancellationToken.None);
+
+                Assert.AreEqual("programa", File.ReadAllText(Path.Combine(folder, "Atrio.exe")));
+                Assert.AreEqual("tema", File.ReadAllText(Path.Combine(folder, @"Themes\Desktop\tema.xaml")));
+                Assert.IsFalse(Directory.Exists(Path.Combine(folder, "Atrio")));
+            }
+            finally
+            {
+                Directory.Delete(root, true);
+            }
+        }
     }
 }

@@ -49,14 +49,20 @@ namespace Playnite.Converters
     {
         public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
         {
-            if (!(value is DateTime time) || time.Year <= 1970)
+            return value is DateTime time ? Format(time, true) : string.Empty;
+        }
+
+        /// <summary>"10 Oct 2026, 19:24", or only "10 Oct 2026" without the time. Empty for no date.</summary>
+        public static string Format(DateTime time, bool withTime)
+        {
+            if (time.Year <= 1970)
             {
                 return string.Empty;
             }
 
             var language = Localization.ApplicationLanguageCultureInfo;
-            return time.ToString(AchievementStateConverter.GetFormat("LOCAtrioAchievementShortDateFormat", "d MMM yyyy"), language) +
-                ", " + time.ToString("t", language);
+            var date = time.ToString(AchievementStateConverter.GetFormat("LOCAtrioAchievementShortDateFormat", "d MMM yyyy"), language);
+            return withTime ? date + ", " + time.ToString("t", language) : date;
         }
 
         public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
@@ -182,14 +188,25 @@ namespace Playnite.Converters
     /// The button under the icons of a game page: "Show more (11)" while some are left,
     /// "Show fewer" once all of them are there. Expects the total and how many are on the page;
     /// the parameter is how many the page shows first. Empty when those are all there is.
+    /// Instead of the total it takes the achievements and, third, which ones the page shows.
     /// Bound to a visibility, it says whether the button is there at all.
     /// </summary>
     public class AchievementMoreConverter : IMultiValueConverter
     {
         public object Convert(object[] values, Type targetType, object parameter, CultureInfo culture)
         {
+            var total = 0;
+            if (values?.Length > 0 && values[0] is int count)
+            {
+                total = count;
+            }
+            else if (values?.Length > 0 && values[0] is System.Collections.IEnumerable list && !(values[0] is string))
+            {
+                total = Atrio.AchievementCard.Count(list, values.Length > 2 && values[2] is int filter ? filter : Atrio.AchievementCard.ShowAll);
+            }
+
             var text = GetText(
-                values?.Length > 0 && values[0] is int count ? count : 0,
+                total,
                 values?.Length > 1 && values[1] is int number ? number : 0,
                 System.Convert.ToInt32(parameter ?? 0, CultureInfo.InvariantCulture));
             if (targetType == typeof(Visibility))
@@ -210,6 +227,48 @@ namespace Playnite.Converters
             return total > shown ?
                 string.Format(ResourceProvider.GetString("LOCAtrioAchievementsShowMore"), total - shown) :
                 ResourceProvider.GetString("LOCAtrioAchievementsShowFewer");
+        }
+
+        public object[] ConvertBack(object value, Type[] targetTypes, object parameter, CultureInfo culture)
+        {
+            throw new NotSupportedException();
+        }
+    }
+
+    /// <summary>
+    /// The guide buttons of an achievement. Expects the achievement and whether the game is on Steam.
+    /// With the parameter "direct", the button that goes straight to a guide: "See it on RetroAchievements"
+    /// or "Achievement guides on Steam", or nothing for the other stores (as a visibility, whether it is there).
+    /// With "web", the search: "Search the web" next to the other one, "Search for a guide" alone.
+    /// </summary>
+    public class AchievementGuideConverter : IMultiValueConverter
+    {
+        public object Convert(object[] values, Type targetType, object parameter, CultureInfo culture)
+        {
+            var achievement = values?.Length > 0 ? values[0] : null;
+            var onSteam = values?.Length > 1 && values[1] as bool? == true;
+            var direct = GetDirectKey(achievement, onSteam);
+            if (parameter as string == "web")
+            {
+                return ResourceProvider.GetString(direct == null ? "LOCAtrioAchievementGuide" : "LOCAtrioAchievementGuideWeb");
+            }
+
+            if (targetType == typeof(Visibility))
+            {
+                return direct == null ? Visibility.Collapsed : Visibility.Visible;
+            }
+
+            return direct == null ? string.Empty : ResourceProvider.GetString(direct);
+        }
+
+        public static string GetDirectKey(object achievement, bool onSteam)
+        {
+            if (Atrio.AchievementCard.GetRetroUrl(achievement) != null)
+            {
+                return "LOCAtrioAchievementGuideRetro";
+            }
+
+            return onSteam ? "LOCAtrioAchievementGuideSteam" : null;
         }
 
         public object[] ConvertBack(object value, Type[] targetTypes, object parameter, CultureInfo culture)

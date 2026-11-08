@@ -5,7 +5,8 @@
 #
 #   -Salida <carpeta>  Dónde dejarla. Por defecto salida\Atrio. Conserva los datos que haya en ella.
 #   -Banco             Añade el banco de pruebas fuera de pantalla (solo para desarrollo).
-#   -Zip               Además crea salida\Atrio-<version>.zip para publicar.
+#   -Zip               Además crea los paquetes para publicar: salida\Atrio-<version>.zip, el de las
+#                      actualizaciones, y salida\Atrio.zip, el de descargar, con todo dentro de una carpeta Atrio.
 #   -Version <x.y.z>   La versión que dirá el programa. Sin esto, la del código fuente, que es más
 #                      baja que cualquier versión publicada.
 param(
@@ -118,9 +119,22 @@ Write-Output "listo: $Salida"
 
 if ($Zip) {
     $nombreVersion = if ($Version -ne '') { $Version } else { [regex]::Match($infoOriginal, $patronVersion).Groups[1].Value }
+    # El de las actualizaciones, con los archivos en la raiz: es el que buscan todas las versiones instaladas.
     $archivo = Join-Path $raiz "salida\Atrio-$nombreVersion.zip"
     if (Test-Path $archivo) { Remove-Item $archivo -Force }
     Compress-Archive -Path (Join-Path $temporal '*') -DestinationPath $archivo
     Write-Output "paquete: $archivo"
+
+    # El de descargar a mano: lo mismo dentro de una carpeta Atrio, para que al descomprimirlo no se esparza.
+    # Su nombre no empieza por "Atrio-", asi que las versiones que ya hay instaladas no lo confunden con el otro.
+    $envoltorio = Join-Path $raiz 'salida\envoltorio'
+    if (Test-Path $envoltorio) { Remove-Item $envoltorio -Recurse -Force }
+    New-Item -ItemType Directory -Force $envoltorio | Out-Null
+    Move-Item $temporal (Join-Path $envoltorio 'Atrio')
+    $descarga = Join-Path $raiz 'salida\Atrio.zip'
+    if (Test-Path $descarga) { Remove-Item $descarga -Force }
+    Compress-Archive -Path (Join-Path $envoltorio 'Atrio') -DestinationPath $descarga
+    Write-Output "descarga: $descarga"
+    $temporal = $envoltorio
 }
 Remove-Item $temporal -Recurse -Force

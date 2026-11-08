@@ -434,6 +434,37 @@ namespace Playnite.DesktopApp.ViewModels
             }
         }
 
+        /// <summary>Which achievements the card shows: all, the unlocked or the locked ones. The choice stays from one game to the next.</summary>
+        public int AchievementFilter
+        {
+            get => AchievementCard.Filter;
+            set
+            {
+                if (AchievementCard.Filter == value)
+                {
+                    return;
+                }
+
+                AchievementCard.Filter = value;
+                AchievementsShown = AchievementCard.FirstCount;
+                OnPropertyChanged();
+            }
+        }
+
+        /// <summary>Whether the rarest achievements go first on the card.</summary>
+        public bool AchievementRarestFirst
+        {
+            get => AchievementCard.RarestFirst;
+            set
+            {
+                AchievementCard.RarestFirst = value;
+                OnPropertyChanged();
+            }
+        }
+
+        /// <summary>Whether the game is on Steam, so that its achievement guides are one click away.</summary>
+        public bool HasSteamGuides => AchievementCard.GetSteamGuidesUrl(steamAppId) != null;
+
         private string heroImage;
         public string HeroImage
         {
@@ -581,11 +612,14 @@ namespace Playnite.DesktopApp.ViewModels
         public RelayCommand<object> ShowAchievementsCommand { get; }
         public RelayCommand<object> HideAchievementsCommand { get; }
 
-        /// <summary>The parameter is how many achievements the game has.</summary>
+        /// <summary>The parameter is how many achievements the game has, or the achievements themselves, of which the card counts the ones it shows.</summary>
         public RelayCommand<object> MoreAchievementsCommand { get; }
 
         /// <summary>The parameter is the name of the achievement.</summary>
         public RelayCommand<string> SearchAchievementGuideCommand { get; }
+
+        /// <summary>The parameter is the achievement: its page on RetroAchievements, or the achievement guides of the game on Steam.</summary>
+        public RelayCommand<object> OpenAchievementGuideCommand { get; }
         public RelayCommand<GameCopyEntry> StartCopyCommand { get; }
         public RelayCommand<GameCopyEntry> PreferCopyCommand { get; }
         public RelayCommand<GameCopyEntry> SplitCopyCommand { get; }
@@ -638,7 +672,22 @@ namespace Playnite.DesktopApp.ViewModels
             ShowAchievementsCommand = new RelayCommand<object>(_ => ShowAchievements = true);
             HideAchievementsCommand = new RelayCommand<object>(_ => ShowAchievements = false);
             MoreAchievementsCommand = new RelayCommand<object>(total =>
-                AchievementsShown = AchievementCard.Next(AchievementsShown, total as int? ?? 0));
+                AchievementsShown = AchievementCard.Next(AchievementsShown, total as int? ?? AchievementCard.Count(total, AchievementFilter)));
+            OpenAchievementGuideCommand = new RelayCommand<object>(achievement =>
+            {
+                try
+                {
+                    var url = AchievementCard.GetDirectGuideUrl(achievement, steamAppId);
+                    if (url != null)
+                    {
+                        GlobalCommands.NavigateUrl(url);
+                    }
+                }
+                catch (Exception e) when (!PlayniteEnvironment.ThrowAllErrors)
+                {
+                    logger.Error(e, "Failed to open the guide of an achievement.");
+                }
+            });
             SearchAchievementGuideCommand = new RelayCommand<string>(name =>
             {
                 try
@@ -727,6 +776,7 @@ namespace Playnite.DesktopApp.ViewModels
             ReviewUrl = appId == null ? null : $"https://store.steampowered.com/recommended/recommendgame/{appId}";
             UpdatePlayedContent();
             steamAppId = appId;
+            OnPropertyChanged(nameof(HasSteamGuides));
             if (appId != null && DesktopAppViewModel.UsesLibraryPanes)
             {
                 // What is already saved comes with the page: the picture changes straight into the

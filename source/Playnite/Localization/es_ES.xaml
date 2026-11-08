@@ -1481,6 +1481,14 @@ Abre un nuevo problema en la página de GitHub de Playnite con una solicitud par
     <sys:String x:Key="LOCAtrioAchievementNote">TU NOTA</sys:String>
     <sys:String x:Key="LOCAtrioAchievementGuide">Buscar una guía</sys:String>
     <sys:String x:Key="LOCAtrioAchievementGuideWords">logro</sys:String>
+    <sys:String x:Key="LOCAtrioAchievementsNext">Lo más fácil que te falta</sys:String>
+    <sys:String x:Key="LOCAtrioAchievementsNextProgress">Llevas {0}</sys:String>
+    <sys:String x:Key="LOCAtrioAchievementsNoneUnlocked">Aún no has desbloqueado ninguno.</sys:String>
+    <sys:String x:Key="LOCAtrioAchievementsAllUnlocked">¡Los tienes todos!</sys:String>
+    <sys:String x:Key="LOCAtrioAchievementGuideSteam">Guías de logros en Steam</sys:String>
+    <sys:String x:Key="LOCAtrioAchievementGuideRetro">Verlo en RetroAchievements</sys:String>
+    <sys:String x:Key="LOCAtrioAchievementGuideWeb">Buscar en la web</sys:String>
+    <sys:String x:Key="LOCAtrioAchievementKeysHint">← → el anterior o el siguiente · Esc cierra</sys:String>
     <sys:String x:Key="LOCAtrioAchievementsMilestones">Hitos</sys:String>
     <sys:String x:Key="LOCAtrioAchievementsLatest">Último logro</sys:String>
     <sys:String x:Key="LOCAtrioAchievementsFirst">Primer logro</sys:String>

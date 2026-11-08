@@ -1,10 +1,12 @@
 using Playnite.SDK;
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using System.Reflection;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Data;
 using System.Windows.Media;
 using System.Windows.Threading;
 
@@ -369,8 +371,136 @@ namespace Playnite.DesktopApp.Atrio
             }
         }
 
+        /// <summary>
+        /// The dates of the add-on, in the language of Atrio. The add-on writes them the way Windows does
+        /// ("10/10/2026 7:24 PM"), on purpose; only what this page shows changes, not how anything reads a date.
+        /// </summary>
+        private sealed class LocalDates : IMultiValueConverter
+        {
+            public readonly IMultiValueConverter Original;
+
+            public LocalDates(IMultiValueConverter original)
+            {
+                Original = original;
+            }
+
+            public object Convert(object[] values, Type targetType, object parameter, CultureInfo culture)
+            {
+                var mode = values?.Length > 1 ? values[1]?.ToString() : null;
+                if (!(values?.Length > 0 && values[0] is DateTime local) || local == DateTime.MinValue || mode == "Relative")
+                {
+                    return Original.Convert(values, targetType, parameter, culture);
+                }
+
+                if (parameter as string == "Exact")
+                {
+                    // The tooltip with the whole date, for when the cell shows less.
+                    return mode == "DateOnly" ? Playnite.Converters.AchievementDateConverter.Format(local, true) : null;
+                }
+
+                return Playnite.Converters.AchievementDateConverter.Format(local, mode != "DateOnly");
+            }
+
+            public object[] ConvertBack(object value, Type[] targetTypes, object parameter, CultureInfo culture)
+            {
+                return Original.ConvertBack(value, targetTypes, parameter, culture);
+            }
+        }
+
+        private static LocalDates localDates;
+
+        /// <summary>The cells of a table that show a date of the add-on take it written by <see cref="LocalDates"/>.</summary>
+        private static void LocalizeDates(DataGrid grid)
+        {
+            foreach (var text in ElementTreeHelper.FindVisualChildren<TextBlock>(grid))
+            {
+                Rebind(text, TextBlock.TextProperty);
+            }
+
+            foreach (var cell in ElementTreeHelper.FindVisualChildren<DataGridCell>(grid))
+            {
+                Rebind(cell, FrameworkElement.ToolTipProperty);
+            }
+        }
+
+        private static void Rebind(DependencyObject target, DependencyProperty property)
+        {
+            var binding = BindingOperations.GetMultiBinding(target, property);
+            if (!(binding?.Converter is IMultiValueConverter converter) || converter is LocalDates || converter.GetType().Name != "DateDisplayModeConverter")
+            {
+                return;
+            }
+
+            if (localDates?.Original != converter)
+            {
+                localDates = new LocalDates(converter);
+            }
+
+            var local = new MultiBinding { Converter = localDates, ConverterParameter = binding.ConverterParameter, Mode = BindingMode.OneWay };
+            foreach (var part in binding.Bindings)
+            {
+                local.Bindings.Add(part);
+            }
+
+            BindingOperations.SetBinding(target, property, local);
+        }
+
+        /// <summary>
+        /// The add-on keeps the minimum width it found on each column the first time, and puts it back each time
+        /// it lays the columns out. The minimum of the names goes there too, so that the add-on itself makes room
+        /// for it by narrowing the other columns, instead of the table running past the edge of its card.
+        /// </summary>
+        private static bool SetConfiguredMinWidth(Assembly addon, DataGridColumn column, double width)
+        {
+            var helper = addon.GetType("PlayniteAchievements.Views.Helpers.ColumnWidthNormalization");
+            var table = helper?.GetField("ConfiguredMinWidths", BindingFlags.NonPublic | BindingFlags.Static)?.GetValue(null);
+            var storedType = helper?.GetNestedType("ConfiguredColumnMinWidth", BindingFlags.NonPublic);
+            var value = storedType?.GetProperty("Value");
+            if (table == null || value == null)
+            {
+                return false;
+            }
+
+            var arguments = new object[] { column, null };
+            if (!(bool)table.GetType().GetMethod("TryGetValue").Invoke(table, arguments))
+            {
+                arguments[1] = Activator.CreateInstance(storedType, true);
+                table.GetType().GetMethod("Add").Invoke(table, new[] { column, arguments[1] });
+            }
+
+            if (value.GetValue(arguments[1]) is double current && Math.Abs(current - width) < 0.5)
+            {
+                return false;
+            }
+
+            value.SetValue(arguments[1], width);
+            return true;
+        }
+
+        /// <summary>Asks the control that owns the table to lay its columns out again, to the width of its card.</summary>
+        private static void LayOutAgain(DataGrid grid)
+        {
+            for (DependencyObject up = grid; up != null; up = VisualTreeHelper.GetParent(up))
+            {
+                if (!(up is UserControl control))
+                {
+                    continue;
+                }
+
+                var field = control.GetType().GetField("_columnPersistence", BindingFlags.NonPublic | BindingFlags.Instance);
+                var service = field?.GetValue(control);
+                if (service != null)
+                {
+                    service.GetType().GetMethod("NormalizeToContainer")?.Invoke(service, new object[] { false });
+                    return;
+                }
+            }
+        }
+
         private static void TidyColumns(DataGrid grid, DependencyProperty keyProperty, string name, bool games)
         {
+            LocalizeDates(grid);
+            var layOutAgain = false;
             foreach (var column in grid.Columns)
             {
                 var key = column.GetValue(keyProperty) as string;
@@ -380,9 +510,14 @@ namespace Playnite.DesktopApp.Atrio
                 }
                 else if (key == "Achievement" || key == "GameSummaryName")
                 {
-                    // The add-on gives back its saved widths each time the rows change, but it leaves the minimum alone:
-                    // the names have room, as long as the table is wide enough for the other columns too.
+                    // The names have room, as long as the table is wide enough for the other columns too.
+                    // The list of games fits as it is, and laying it out again would widen the column of the icons.
                     var wanted = GetNameMinWidth(grid.ActualWidth, key == "Achievement" ? AchievementColumnMinWidth : GameColumnMinWidth);
+                    if (!games && SetConfiguredMinWidth(keyProperty.OwnerType.Assembly, column, wanted))
+                    {
+                        layOutAgain = true;
+                    }
+
                     if (column.MinWidth != wanted)
                     {
                         column.MinWidth = wanted;
@@ -394,6 +529,11 @@ namespace Playnite.DesktopApp.Atrio
                     column.Width = new DataGridLength(GameRowHeight + 12);
                     column.SetValue(WatchedProperty, true);
                 }
+            }
+
+            if (layOutAgain && grid.IsVisible)
+            {
+                LayOutAgain(grid);
             }
         }
 

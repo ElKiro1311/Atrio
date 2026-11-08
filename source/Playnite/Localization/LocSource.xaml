@@ -1485,6 +1485,14 @@ Open new issue on Playnite's GitHub page with a request to fix corruption in you
     <sys:String x:Key="LOCAtrioAchievementNote">YOUR NOTE</sys:String>
     <sys:String x:Key="LOCAtrioAchievementGuide">Search for a guide</sys:String>
     <sys:String x:Key="LOCAtrioAchievementGuideWords">achievement</sys:String>
+    <sys:String x:Key="LOCAtrioAchievementsNext">The easiest ones you're missing</sys:String>
+    <sys:String x:Key="LOCAtrioAchievementsNextProgress">You're at {0}</sys:String>
+    <sys:String x:Key="LOCAtrioAchievementsNoneUnlocked">You haven't unlocked any yet.</sys:String>
+    <sys:String x:Key="LOCAtrioAchievementsAllUnlocked">You've unlocked them all!</sys:String>
+    <sys:String x:Key="LOCAtrioAchievementGuideSteam">Achievement guides on Steam</sys:String>
+    <sys:String x:Key="LOCAtrioAchievementGuideRetro">See it on RetroAchievements</sys:String>
+    <sys:String x:Key="LOCAtrioAchievementGuideWeb">Search the web</sys:String>
+    <sys:String x:Key="LOCAtrioAchievementKeysHint">← → the one before or after · Esc closes</sys:String>
     <sys:String x:Key="LOCAtrioAchievementsMilestones">Milestones</sys:String>
     <sys:String x:Key="LOCAtrioAchievementsLatest">Latest achievement</sys:String>
     <sys:String x:Key="LOCAtrioAchievementsFirst">First achievement</sys:String>

@@ -93,8 +93,7 @@ namespace Playnite.Atrio
             var releases = new List<AtrioRelease>();
             foreach (var release in JsonConvert.DeserializeObject<List<GitHubRelease>>(json) ?? new List<GitHubRelease>())
             {
-                var package = release.Assets?.FirstOrDefault(a => a.Name?.StartsWith("Atrio-", StringComparison.OrdinalIgnoreCase) == true &&
-                                                                  a.Name.EndsWith(".zip", StringComparison.OrdinalIgnoreCase));
+                var package = ChoosePackage(release);
                 if (!release.Draft && !release.Prerelease && package != null &&
                     Version.TryParse(release.TagName?.TrimStart('v', 'V'), out var version))
                 {
@@ -229,16 +228,55 @@ namespace Playnite.Atrio
             }
         }
 
+        /// <summary>The folder the package to download by hand puts everything in.</summary>
+        public const string PackageRootFolder = "Atrio";
+
+        /// <summary>
+        /// The package of a version: the one for updates, with the files at its root, which every version of Atrio looks for
+        /// by its name (Atrio-x.y.z.zip). Since 1.4.8 there is also Atrio.zip, the one to download by hand, with everything
+        /// inside a folder: it is only taken when the other is missing, and unpacking leaves that folder out.
+        /// </summary>
+        private static GitHubAsset ChoosePackage(GitHubRelease release)
+        {
+            var assets = release.Assets?.Where(a => a?.Name != null).ToList() ?? new List<GitHubAsset>();
+            var exact = "Atrio-" + release.TagName?.TrimStart('v', 'V') + ".zip";
+            return assets.FirstOrDefault(a => a.Name.Equals(exact, StringComparison.OrdinalIgnoreCase)) ??
+                assets.FirstOrDefault(a => a.Name.StartsWith("Atrio-", StringComparison.OrdinalIgnoreCase) && a.Name.EndsWith(".zip", StringComparison.OrdinalIgnoreCase)) ??
+                assets.FirstOrDefault(a => a.Name.Equals(PackageRootFolder + ".zip", StringComparison.OrdinalIgnoreCase));
+        }
+
+        /// <summary>
+        /// The folder all the files of a package are in, when there is one: the package to download by hand
+        /// keeps everything inside "Atrio/". Nothing when the files are at its root.
+        /// </summary>
+        public static string GetPackageRoot(IEnumerable<string> entries)
+        {
+            var prefix = PackageRootFolder + "/";
+            var names = entries.Select(a => a.Replace('\\', '/')).Where(a => a.Length > 0).ToList();
+            return names.Count > 0 && names.All(a => a.StartsWith(prefix, StringComparison.OrdinalIgnoreCase)) ? prefix : null;
+        }
+
         /// <summary>Unpacks a version, checking that nothing in it points out of the folder.</summary>
         public static void Unpack(string zipPath, string folder, CancellationToken token)
         {
             var root = Path.GetFullPath(folder).TrimEnd(Path.DirectorySeparatorChar) + Path.DirectorySeparatorChar;
             using (var zip = ZipFile.OpenRead(zipPath))
             {
+                var packageRoot = GetPackageRoot(zip.Entries.Select(a => a.FullName));
                 foreach (var entry in zip.Entries)
                 {
                     token.ThrowIfCancellationRequested();
-                    var name = entry.FullName.Replace('/', Path.DirectorySeparatorChar);
+                    var fullName = entry.FullName.Replace('\\', '/');
+                    if (packageRoot != null)
+                    {
+                        fullName = fullName.Substring(packageRoot.Length);
+                        if (fullName.Length == 0)
+                        {
+                            continue;
+                        }
+                    }
+
+                    var name = fullName.Replace('/', Path.DirectorySeparatorChar);
                     var destination = Path.GetFullPath(Path.Combine(root, name));
                     if (!destination.StartsWith(root, StringComparison.OrdinalIgnoreCase))
                     {

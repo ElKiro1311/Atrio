@@ -30,9 +30,11 @@ Un solo sitio para los juegos de todas tus tiendas. Atrio es un lanzador portát
 
 ## Empezar
 
-1. Descarga el `.zip` de la última versión en [Releases](https://github.com/ElKiro1311/Atrio/releases).
-2. Descomprímelo en una carpeta donde tengas permiso de escritura, por ejemplo `D:\Atrio`. Evita `Archivos de programa`.
-3. Abre `Atrio.exe`.
+1. Descarga `Atrio.zip` de la última versión en [Releases](https://github.com/ElKiro1311/Atrio/releases).
+2. Descomprímelo donde tengas permiso de escritura, por ejemplo en `D:\`: todo queda dentro de una carpeta `Atrio`. Evita `Archivos de programa`.
+3. Abre `Atrio.exe`, dentro de esa carpeta.
+
+El otro paquete de cada versión, `Atrio-<versión>.zip`, es el que usan las actualizaciones automáticas. Tiene lo mismo, sin la carpeta.
 
 Requisitos: Windows 10 o 11. El programa no está firmado, así que Windows puede avisar la primera vez.
 

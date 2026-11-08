@@ -34,6 +34,11 @@
     <pcon:AchievementMilestoneConverter x:Key="AchievementMilestoneConverter" />
     <pcon:AchievementListConverter x:Key="AchievementListConverter" />
     <pcon:AchievementProgressTextConverter x:Key="AchievementProgressTextConverter" />
+    <pcon:AchievementNextConverter x:Key="AchievementNextConverter" />
+    <pcon:AchievementNextHintConverter x:Key="AchievementNextHintConverter" />
+    <pcon:AchievementEmptyConverter x:Key="AchievementEmptyConverter" />
+    <pcon:AchievementFilterConverter x:Key="AchievementFilterConverter" />
+    <pcon:AchievementGuideConverter x:Key="AchievementGuideConverter" />
     <pcon:BidirectionalEnumAndNumberConverter x:Key="BidirectionalEnumAndNumberConverter" />
     <pcon:BooleanToHiddenConverter x:Key="BooleanToHiddenConverter" />
     <pcon:BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />

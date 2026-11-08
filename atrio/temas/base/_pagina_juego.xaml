@@ -504,11 +504,89 @@
                                                 </StackPanel>
                                             </DockPanel>
 
-                                            <ItemsControl Focusable="False" Margin="0,12,-6,0">
+                                            <!-- The easiest ones still missing: the almost done, then the ones most players have -->
+                                            <StackPanel Margin="0,16,0,0" Visibility="{Binding AllAchievementDisplayItems, Converter={StaticResource AchievementNextConverter}}">
+                                                <TextBlock Text="{DynamicResource LOCAtrioAchievementsNext}" Style="{DynamicResource AtrioCaption}" Margin="0,0,0,4" />
+                                                <ItemsControl Focusable="False" Margin="-6,0,-6,0" AchievementKeys.IsEnabled="True"
+                                                              ItemsSource="{Binding AllAchievementDisplayItems, Converter={StaticResource AchievementNextConverter}}">
+                                                    <ItemsControl.ItemTemplate>
+                                                        <DataTemplate>
+                                                            <Grid>
+                                                                <ToggleButton x:Name="Icon" Style="{DynamicResource AtrioAchievementRow}">
+                                                                    <DockPanel>
+                                                                        <Image x:Name="Picture" DockPanel.Dock="Left" Width="36" Height="36" Margin="0,0,10,0"
+                                                                               Source="{Binding DisplayIcon, Converter={StaticResource AchievementIconConverter}}"
+                                                                               Stretch="UniformToFill" RenderOptions.BitmapScalingMode="Fant" RoundedClip.Radius="5" Opacity="0.75" />
+                                                                        <TextBlock DockPanel.Dock="Right" Margin="10,0,0,0" VerticalAlignment="Center" FontSize="12"
+                                                                                   Foreground="{DynamicResource TextBrushDarker}"
+                                                                                   Text="{Binding Converter={StaticResource AchievementNextHintConverter}}"
+                                                                                   ToolTip="{Binding Converter={StaticResource AchievementNextHintConverter}, ConverterParameter=tip}" />
+                                                                        <StackPanel VerticalAlignment="Center">
+                                                                            <TextBlock Text="{Binding DisplayNameResolved}" Style="{DynamicResource BaseTextBlockStyle}" FontSize="13"
+                                                                                       FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
+                                                                            <TextBlock Text="{Binding DescriptionResolved}" Style="{DynamicResource AtrioCaption}" TextTrimming="CharacterEllipsis" />
+                                                                        </StackPanel>
+                                                                    </DockPanel>
+                                                                </ToggleButton>
+                                                                <Popup x:Name="Detail" PlacementTarget="{Binding ElementName=Icon}" Placement="Bottom"
+                                                                       HorizontalOffset="-8" VerticalOffset="-8" StaysOpen="False" AllowsTransparency="True"
+                                                                       PopupAnimation="Fade" IsOpen="{Binding IsChecked, ElementName=Icon, Mode=TwoWay}">
+                                                                    <ContentPresenter Content="{Binding}" ContentTemplate="{DynamicResource AtrioAchievementDetail}" />
+                                                                </Popup>
+                                                            </Grid>
+                                                            <DataTemplate.Triggers>
+                                                                <Trigger SourceName="Detail" Property="IsOpen" Value="True">
+                                                                    <Setter TargetName="Icon" Property="IsHitTestVisible" Value="False" />
+                                                                    <Setter TargetName="Picture" Property="Opacity" Value="1" />
+                                                                </Trigger>
+                                                            </DataTemplate.Triggers>
+                                                        </DataTemplate>
+                                                    </ItemsControl.ItemTemplate>
+                                                </ItemsControl>
+                                            </StackPanel>
+
+                                            <!-- Which ones the icons are, and the rarest first if wanted. The choice stays from one game to the next. -->
+                                            <DockPanel Margin="0,16,0,0">
+                                                <ToggleButton DockPanel.Dock="Right" Style="{DynamicResource AtrioSmallPill}" Margin="0"
+                                                              ToolTip="{DynamicResource LOCAtrioAchievementsSortRare}"
+                                                              IsChecked="{Binding DataContext.AchievementRarestFirst, RelativeSource={RelativeSource AncestorType={x:Type GameOverview}}}">
+                                                    <StackPanel Orientation="Horizontal">
+                                                        <TextBlock Text="&#xE734;" FontFamily="{DynamicResource AtrioIconFont}" FontSize="11" VerticalAlignment="Center" />
+                                                        <TextBlock Text="&#xE74B;" FontFamily="{DynamicResource AtrioIconFont}" FontSize="10" Margin="3,1,0,0" VerticalAlignment="Center" />
+                                                    </StackPanel>
+                                                </ToggleButton>
+                                                <StackPanel Orientation="Horizontal">
+                                                    <RadioButton Style="{DynamicResource AtrioSmallPill}" GroupName="AtrioCardAchievements" Content="{DynamicResource LOCAtrioAchievementsAll}"
+                                                                 IsChecked="{Binding DataContext.AchievementFilter, RelativeSource={RelativeSource AncestorType={x:Type GameOverview}}, Converter={StaticResource AchievementFilterConverter}, ConverterParameter=0}" />
+                                                    <RadioButton Style="{DynamicResource AtrioSmallPill}" GroupName="AtrioCardAchievements" Content="{DynamicResource LOCAtrioAchievementsUnlocked}"
+                                                                 IsChecked="{Binding DataContext.AchievementFilter, RelativeSource={RelativeSource AncestorType={x:Type GameOverview}}, Converter={StaticResource AchievementFilterConverter}, ConverterParameter=1}" />
+                                                    <RadioButton Style="{DynamicResource AtrioSmallPill}" GroupName="AtrioCardAchievements" Content="{DynamicResource LOCAtrioAchievementsLocked}"
+                                                                 IsChecked="{Binding DataContext.AchievementFilter, RelativeSource={RelativeSource AncestorType={x:Type GameOverview}}, Converter={StaticResource AchievementFilterConverter}, ConverterParameter=2}" />
+                                                </StackPanel>
+                                            </DockPanel>
+
+                                            <TextBlock Margin="0,12,0,2" Style="{DynamicResource AtrioCaption}" TextWrapping="Wrap">
+                                                <TextBlock.Text>
+                                                    <MultiBinding Converter="{StaticResource AchievementEmptyConverter}">
+                                                        <Binding Path="AllAchievementDisplayItems" />
+                                                        <Binding Path="DataContext.AchievementFilter" RelativeSource="{RelativeSource AncestorType={x:Type GameOverview}}" />
+                                                    </MultiBinding>
+                                                </TextBlock.Text>
+                                                <TextBlock.Visibility>
+                                                    <MultiBinding Converter="{StaticResource AchievementEmptyConverter}">
+                                                        <Binding Path="AllAchievementDisplayItems" />
+                                                        <Binding Path="DataContext.AchievementFilter" RelativeSource="{RelativeSource AncestorType={x:Type GameOverview}}" />
+                                                    </MultiBinding>
+                                                </TextBlock.Visibility>
+                                            </TextBlock>
+
+                                            <ItemsControl Focusable="False" Margin="0,12,-6,0" AchievementKeys.IsEnabled="True">
                                                 <ItemsControl.ItemsSource>
                                                     <MultiBinding Converter="{StaticResource AchievementPreviewConverter}" ConverterParameter="20">
                                                         <Binding Path="AllAchievementDisplayItems" />
                                                         <Binding Path="DataContext.AchievementsShown" RelativeSource="{RelativeSource AncestorType={x:Type GameOverview}}" />
+                                                        <Binding Path="DataContext.AchievementFilter" RelativeSource="{RelativeSource AncestorType={x:Type GameOverview}}" />
+                                                        <Binding Path="DataContext.AchievementRarestFirst" RelativeSource="{RelativeSource AncestorType={x:Type GameOverview}}" />
                                                     </MultiBinding>
                                                 </ItemsControl.ItemsSource>
                                                 <ItemsControl.ItemsPanel>
@@ -548,17 +626,19 @@
                                             <!-- The rest comes right below, a few rows at a time, and goes away with one more click -->
                                             <Button Style="{DynamicResource AtrioGhostButton}" Margin="0,6,0,0" MinHeight="32" FontSize="12" HorizontalAlignment="Stretch"
                                                     Command="{Binding DataContext.MoreAchievementsCommand, RelativeSource={RelativeSource AncestorType={x:Type GameOverview}}}"
-                                                    CommandParameter="{Binding AchievementCount}">
+                                                    CommandParameter="{Binding AllAchievementDisplayItems}">
                                                 <Button.Content>
                                                     <MultiBinding Converter="{StaticResource AchievementMoreConverter}" ConverterParameter="20">
-                                                        <Binding Path="AchievementCount" />
+                                                        <Binding Path="AllAchievementDisplayItems" />
                                                         <Binding Path="DataContext.AchievementsShown" RelativeSource="{RelativeSource AncestorType={x:Type GameOverview}}" />
+                                                        <Binding Path="DataContext.AchievementFilter" RelativeSource="{RelativeSource AncestorType={x:Type GameOverview}}" />
                                                     </MultiBinding>
                                                 </Button.Content>
                                                 <Button.Visibility>
                                                     <MultiBinding Converter="{StaticResource AchievementMoreConverter}" ConverterParameter="20">
-                                                        <Binding Path="AchievementCount" />
+                                                        <Binding Path="AllAchievementDisplayItems" />
                                                         <Binding Path="DataContext.AchievementsShown" RelativeSource="{RelativeSource AncestorType={x:Type GameOverview}}" />
+                                                        <Binding Path="DataContext.AchievementFilter" RelativeSource="{RelativeSource AncestorType={x:Type GameOverview}}" />
                                                     </MultiBinding>
                                                 </Button.Visibility>
                                             </Button>
