@@ -24,6 +24,13 @@ namespace Playnite.Atrio
         private const int UpdateRunning = 256;
         private const int UpdatePaused = 512;
         private const int UpdateStarted = 1024;
+        private const int Uninstalling = 2048;
+
+        /// <summary>How much the game takes on the disk, as the client counted it.</summary>
+        public long SizeOnDisk { get; set; }
+
+        /// <summary>The client is deleting it.</summary>
+        public bool IsUninstalling => (StateFlags & Uninstalling) != 0;
 
         private static readonly Regex valueRegex = new Regex(@"""(?<key>[^""]+)""\s+""(?<value>[^""]*)""", RegexOptions.Compiled);
 
@@ -75,6 +82,11 @@ namespace Playnite.Atrio
                 {
                     long.TryParse(value, out var bytes);
                     manifest.BytesDownloaded = bytes;
+                }
+                else if (key.Equals("SizeOnDisk", StringComparison.OrdinalIgnoreCase))
+                {
+                    long.TryParse(value, out var bytes);
+                    manifest.SizeOnDisk = bytes;
                 }
             }
 
@@ -174,6 +186,7 @@ namespace Playnite.Atrio
 
         private const string LogonInfoPath = "/IClientCommService/GetAllClientLogonInfo/v1/?access_token={0}";
         private const string InstallPath = "/IClientCommService/InstallClientApp/v1/";
+        private const string UninstallPath = "/IClientCommService/UninstallClientApp/v1/";
         private const string SuccessResult = "1";
         private const int NetBiosNameLength = 15;
 
@@ -303,12 +316,23 @@ namespace Playnite.Atrio
         }
 
         /// <summary>False if the order couldn't be given, which only means the client has to be asked in its window.</summary>
-        public static async Task<bool> RequestAsync(string appId, CancellationToken token)
+        public static Task<bool> RequestAsync(string appId, CancellationToken token)
+        {
+            return SendAsync(InstallPath, "install", appId, token);
+        }
+
+        /// <summary>The same order as the remote downloads have to delete a game. False if it couldn't be given.</summary>
+        public static Task<bool> RequestUninstallAsync(string appId, CancellationToken token)
+        {
+            return SendAsync(UninstallPath, "uninstall", appId, token);
+        }
+
+        private static async Task<bool> SendAsync(string path, string what, string appId, CancellationToken token)
         {
             var accessToken = AtrioInfo.GetTestSetting("ATRIO_STEAM_TOKEN") ?? await SteamFriends.GetAccessTokenAsync(token).ConfigureAwait(false);
             if (accessToken.IsNullOrEmpty())
             {
-                logger.Info("No Steam session in the browser of Atrio to install directly.");
+                logger.Info($"No Steam session in the browser of Atrio to {what} directly.");
                 return false;
             }
 
@@ -325,16 +349,16 @@ namespace Playnite.Atrio
                 { "client_instanceid", session.client_instanceid }
             });
 
-            using (var response = await client.PostAsync(ApiUrl + InstallPath, order, token).ConfigureAwait(false))
+            using (var response = await client.PostAsync(ApiUrl + path, order, token).ConfigureAwait(false))
             {
                 var result = response.Headers.TryGetValues("x-eresult", out var values) ? values.FirstOrDefault() : null;
                 if (!response.IsSuccessStatusCode || (result != null && result != SuccessResult))
                 {
-                    logger.Warn($"Steam refused to install {appId}: {(int)response.StatusCode}, result {result}.");
+                    logger.Warn($"Steam refused to {what} {appId}: {(int)response.StatusCode}, result {result}.");
                     return false;
                 }
 
-                logger.Info($"Steam client told to install {appId}.");
+                logger.Info($"Steam client told to {what} {appId}.");
                 return true;
             }
         }

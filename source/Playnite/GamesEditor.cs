@@ -1192,6 +1192,16 @@ namespace Playnite
                     return;
                 }
 
+                // Without the store in between nobody else asks before the files go.
+                controller = Playnite.Atrio.DirectUninstall.Wrap(game, controller);
+                if (controller is Playnite.Atrio.IDirectUninstall direct &&
+                    Dialogs.ShowMessage(direct.GetQuestion(), resources.GetString("LOCAtrioUninstallTitle"), MessageBoxButton.YesNo, MessageBoxImage.Question) != MessageBoxResult.Yes)
+                {
+                    controller.Dispose();
+                    controller = null;
+                    return;
+                }
+
                 controllers.RemoveInstallController(game.Id);
                 controllers.AddController(controller);
                 UpdateGameState(game.Id, null, null, null, true, null);
