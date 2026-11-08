@@ -9,7 +9,8 @@ param(
     [string]$Argumentos = '',
     [int]$Segundos = 40,
     [string]$ParaCerrar = '',
-    [int]$EsperaFinal = 0
+    [int]$EsperaFinal = 0,
+    [string]$Directorio = ''
 )
 Add-Type -TypeDefinition @'
 using System;
@@ -63,7 +64,9 @@ $nombre = 'AtrioPrueba' + [Guid]::NewGuid().ToString('N').Substring(0, 8)
 $escritorio = [EscritorioAparte]::CreateDesktop($nombre, [IntPtr]::Zero, [IntPtr]::Zero, 0, [uint32]'0x10000000', [IntPtr]::Zero)
 if ($escritorio -eq [IntPtr]::Zero) { throw 'No se pudo crear el escritorio aparte' }
 
-$id = [EscritorioAparte]::Start($nombre, $Exe, $Argumentos, (Split-Path $Exe))
+# -Directorio: otra carpeta de trabajo, como la de un inicio con Windows (System32).
+$carpetaTrabajo = if ($Directorio -ne '') { $Directorio } else { Split-Path $Exe }
+$id = [EscritorioAparte]::Start($nombre, $Exe, $Argumentos, $carpetaTrabajo)
 $proceso = Get-Process -Id $id -ErrorAction SilentlyContinue
 Write-Output "proceso $id en el escritorio $nombre"
 $terminado = $false

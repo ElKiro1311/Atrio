@@ -438,7 +438,8 @@ namespace Playnite.DesktopApp
                 return;
             }
 
-            if (SDL_GameControllerAddMappingsFromFile("gamecontrollerdb.txt") == -1)
+            // From the folder of the program: started with Windows, the working folder is System32.
+            if (SDL_GameControllerAddMappingsFromFile(System.IO.Path.Combine(PlaynitePaths.ProgramPath, "gamecontrollerdb.txt")) == -1)
             {
                 logger.Error("Failed to load game controller mappings:");
                 logger.Error(SDL_GetError());
