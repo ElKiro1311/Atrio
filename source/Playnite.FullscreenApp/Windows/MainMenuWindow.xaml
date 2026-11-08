@@ -60,6 +60,10 @@
                                      Command="{Binding CancelProgressCommand}"
                                      Visibility="{Binding MainModel.ProgressActive, Converter={StaticResource BooleanToVisibilityConverter}}"
                                      AutomationProperties.Name="{DynamicResource LOCMenuCancelLibraryUpdate}"/>
+                    <pctrls:ButtonEx x:Name="PART_ButtonBrowser"
+                                     ContentTemplate="{DynamicResource MainMenuBrowserButtonTemplate}"
+                                     Command="{Binding OpenBrowserCommand}"
+                                     AutomationProperties.Name="{DynamicResource LOCAtrioBrowser}"/>
                     <pctrls:ButtonEx x:Name="PART_ButtonSettings"
                                      ContentTemplate="{DynamicResource MainMenuSettingsButtonTemplate}"
                                      Command="{Binding OpenSettingsCommand}"

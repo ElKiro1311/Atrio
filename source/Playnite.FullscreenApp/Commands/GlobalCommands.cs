@@ -20,6 +20,13 @@ namespace Playnite.FullscreenApp
 
         public static void Navigate(object link)
         {
+            // The browser of the mode for the couch doesn't take the person out of it: nothing to ask.
+            if (FullscreenApplication.Current.AppSettings.LinkBrowser == Playnite.Atrio.LinkBrowsers.Internal && CefTools.IsInitialized)
+            {
+                GlobalCommands.NavigateUrl(link);
+                return;
+            }
+
             if (FullscreenApplication.Current.Dialogs.ShowMessage(
                 string.Format(ResourceProvider.GetString("LOCUrlNavigationMessage"), link.ToString()),
                 string.Empty,

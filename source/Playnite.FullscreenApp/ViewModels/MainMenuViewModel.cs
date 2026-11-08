@@ -95,6 +95,12 @@ namespace Playnite.FullscreenApp.ViewModels
             vm.OpenView();
         }
 
+        public RelayCommand OpenBrowserCommand => new RelayCommand(() =>
+        {
+            Close();
+            Windows.CouchBrowserWindow.Open(Playnite.Atrio.CouchBrowser.StartPage);
+        });
+
         public void OpenHelp()
         {
             Close();

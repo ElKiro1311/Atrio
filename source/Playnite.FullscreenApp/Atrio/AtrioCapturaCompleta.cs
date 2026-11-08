@@ -199,6 +199,76 @@ namespace Playnite.FullscreenApp.Atrio
                 case "instalar":
                     Later(() => model.InstallGame(model.SelectedGame.Game));
                     break;
+                case "desinstalarjuego":
+                    // The Uninstall of the menu of the game: its question is modal, so it goes later.
+                    var leaving = juegoDirecto ?? model.SelectedGame?.Game;
+                    Log($"desinstalar: {leaving?.Name} instalado={leaving?.IsInstalled}");
+                    Later(() => model.GamesEditor.UnInstallGame(leaving));
+                    break;
+                case "esperadesinstalado":
+                    var gone2 = juegoDirecto ?? model.SelectedGame?.Game;
+                    var leaveWatch = System.Diagnostics.Stopwatch.StartNew();
+                    while (gone2 != null && model.Database.Games.Get(gone2.Id)?.IsInstalled == true && leaveWatch.Elapsed.TotalSeconds < int.Parse(argument))
+                    {
+                        await Task.Delay(500);
+                    }
+
+                    var after = gone2 == null ? null : model.Database.Games.Get(gone2.Id);
+                    Log($"desinstalado: instalado={after?.IsInstalled} desinstalando={after?.IsUninstalling} carpeta={after?.InstallDirectory} tras {leaveWatch.Elapsed.TotalSeconds:0} s");
+                    break;
+                case "navegador":
+                    Later(() => Windows.CouchBrowserWindow.Open(argument));
+                    break;
+                case "esperanavegador":
+                    var waitingPage = System.Diagnostics.Stopwatch.StartNew();
+                    while ((Windows.CouchBrowserWindow.Current?.Browser == null || Windows.CouchBrowserWindow.Current.Browser.IsLoading ||
+                            !Windows.CouchBrowserWindow.Current.Browser.IsBrowserInitialized) && waitingPage.Elapsed.TotalSeconds < int.Parse(argument))
+                    {
+                        await Task.Delay(200);
+                    }
+
+                    await Task.Delay(600);
+                    Log($"pagina: '{Windows.CouchBrowserWindow.Current?.Browser?.Title}' {Windows.CouchBrowserWindow.Current?.Browser?.Address} tras {waitingPage.Elapsed.TotalSeconds:0.0} s");
+                    break;
+                case "puntero":
+                    var pointerMove = argument.Split('|');
+                    Windows.CouchBrowserWindow.Current?.MoveBy(new Vector(
+                        double.Parse(pointerMove[0], System.Globalization.CultureInfo.InvariantCulture),
+                        double.Parse(pointerMove[1], System.Globalization.CultureInfo.InvariantCulture)));
+                    Log($"puntero: {Windows.CouchBrowserWindow.Current?.PointerPosition}");
+                    break;
+                case "clicnavegador":
+                    Windows.CouchBrowserWindow.Current?.Press(true);
+                    await Task.Delay(80);
+                    Windows.CouchBrowserWindow.Current?.Press(false);
+                    break;
+                case "ruedanavegador":
+                    Windows.CouchBrowserWindow.Current?.ScrollBy(new Vector(0, double.Parse(argument, System.Globalization.CultureInfo.InvariantCulture)));
+                    break;
+                case "escribenavegador":
+                    Windows.CouchBrowserWindow.Current?.Type(argument);
+                    break;
+                case "intronavegador":
+                    Windows.CouchBrowserWindow.Current?.SendEnter();
+                    break;
+                case "irnavegador":
+                    Windows.CouchBrowserWindow.Current?.Go(argument);
+                    break;
+                case "atrasnavegador":
+                    Windows.CouchBrowserWindow.Current?.GoBackOrClose();
+                    break;
+                case "jsnavegador":
+                    var scripted = Windows.CouchBrowserWindow.Current?.Browser;
+                    if (scripted != null)
+                    {
+                        var response = await CefSharp.WebBrowserExtensions.EvaluateScriptAsync(scripted, argument);
+                        Log($"js: {response.Success} {response.Result ?? response.Message}");
+                    }
+
+                    break;
+                case "cerrarnavegador":
+                    Windows.CouchBrowserWindow.Current?.Close();
+                    break;
                 case "juegofalso":
                     // juegofalso <name>|<folder>: an installed game of the test data whose folder holds a fake program.
                     var fakeParts = argument.Split('|');

@@ -1604,4 +1604,13 @@ Abre un nuevo problema en la página de GitHub de Playnite con una solicitud par
     <sys:String x:Key="LOCAtrioReturnHintBoth">Mientras juegas, pulsa Guía o mantén Vista + Menú para volver aquí</sys:String>
     <sys:String x:Key="LOCAtrioCloseGame">Cerrar el juego</sys:String>
     <sys:String x:Key="LOCAtrioOpenFact">En ejecución</sys:String>
+    <sys:String x:Key="LOCAtrioBrowserClick">Pulsar</sys:String>
+    <sys:String x:Key="LOCAtrioBrowserWrite">Escribir</sys:String>
+    <sys:String x:Key="LOCAtrioBrowserGo">Buscar o ir a</sys:String>
+    <sys:String x:Key="LOCAtrioBrowserEnter">Intro</sys:String>
+    <sys:String x:Key="LOCAtrioBrowserScroll">Desplazar</sys:String>
+    <sys:String x:Key="LOCAtrioBrowserZoom">Zoom (LT/RT)</sys:String>
+    <sys:String x:Key="LOCAtrioBrowserWriteTitle">Escribe en el campo que elegiste en la página</sys:String>
+    <sys:String x:Key="LOCAtrioBrowserGoTitle">Escribe una dirección o lo que quieras buscar</sys:String>
+    <sys:String x:Key="LOCAtrioGuideWord">guía</sys:String>
 </ResourceDictionary>

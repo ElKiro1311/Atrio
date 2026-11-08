@@ -536,6 +536,9 @@ namespace Playnite.FullscreenApp.ViewModels
             ThemeManager.ApplyFullscreenButtonPrompts(PlayniteApplication.CurrentNative, AppSettings.Fullscreen.ButtonPrompts);
             InitializeCommands();
             UpdateCursorSettings();
+
+            // Links open inside the mode for the couch, where the controller can use them.
+            Playnite.Commands.GlobalCommands.InAppBrowser = Windows.CouchBrowserWindow.Open;
             EventManager.RegisterClassHandler(typeof(WindowBase), WindowBase.ClosedRoutedEvent, new RoutedEventHandler(WindowBaseCloseHandler));
             EventManager.RegisterClassHandler(typeof(WindowBase), WindowBase.LoadedRoutedEvent, new RoutedEventHandler(WindowBaseLoadedHandler));
             EventManager.RegisterClassHandler(typeof(CheckBox), CheckBox.CheckedEvent, new RoutedEventHandler(ElemestateChangedHander));

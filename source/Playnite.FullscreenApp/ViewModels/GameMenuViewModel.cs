@@ -69,6 +69,11 @@ namespace Playnite.FullscreenApp.ViewModels
         public RelayCommand<GameAction> ActivateActionCommand => new RelayCommand<GameAction>((a) => ActivateAction(a));
         public RelayCommand SetFieldsCommand => new RelayCommand(() => SetFields());
         public RelayCommand OpenExtensionCommand => new RelayCommand(() => OpenExtensions());
+        public RelayCommand<string> OpenLinkCommand => new RelayCommand<string>((url) =>
+        {
+            Close();
+            Playnite.Commands.GlobalCommands.NavigateUrl(url);
+        });
 
         public GameMenuViewModel(
             IWindowFactory window,
@@ -91,6 +96,13 @@ namespace Playnite.FullscreenApp.ViewModels
             }
 
             game.GameActions?.Where(a => !a.IsPlayAction).ForEach(a => items.Add(new GameActionItem(ActivateActionCommand, a, a.Name, "GameMenuCustomActionButtonTemplate")));
+
+            // A guide and the links of the game, in the browser of the mode for the couch.
+            items.Add(new GameActionItem(OpenLinkCommand,
+                Playnite.Atrio.CouchBrowser.GetGuideSearch(game.Name, ResourceProvider.GetString("LOCAtrioGuideWord")),
+                ResourceProvider.GetString("LOCAtrioAchievementGuide"), "GameMenuCustomActionButtonTemplate"));
+            game.Links?.Where(a => !a.Name.IsNullOrWhiteSpace() && Playnite.Atrio.LinkBrowsers.IsWebAddress(a.Url)).Take(6).
+                ForEach(a => items.Add(new GameActionItem(OpenLinkCommand, a.Url, a.Name, "GameMenuCustomActionButtonTemplate")));
 
             items.Add(new GameActionItem(ToggleFavoritesCommand, game.Favorite ? ResourceProvider.GetString(LOC.RemoveFavoriteGame) : ResourceProvider.GetString(LOC.FavoriteGame), "GameMenuFavoriesButtonTemplate"));
             items.Add(new GameActionItem(ToggleVisibilityCommand, game.Hidden ? ResourceProvider.GetString(LOC.UnHideGame) : ResourceProvider.GetString(LOC.HideGame), "GameMenuVisibilityButtonTemplate"));

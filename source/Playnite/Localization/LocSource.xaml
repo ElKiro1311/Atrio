@@ -1607,4 +1607,13 @@ Open new issue on Playnite's GitHub page with a request to fix corruption in you
     <sys:String x:Key="LOCAtrioReturnHintBoth">While you play, press Guide or hold View + Menu to come back here</sys:String>
     <sys:String x:Key="LOCAtrioCloseGame">Close the game</sys:String>
     <sys:String x:Key="LOCAtrioOpenFact">Running</sys:String>
+    <sys:String x:Key="LOCAtrioBrowserClick">Click</sys:String>
+    <sys:String x:Key="LOCAtrioBrowserWrite">Write</sys:String>
+    <sys:String x:Key="LOCAtrioBrowserGo">Search or go to</sys:String>
+    <sys:String x:Key="LOCAtrioBrowserEnter">Enter</sys:String>
+    <sys:String x:Key="LOCAtrioBrowserScroll">Scroll</sys:String>
+    <sys:String x:Key="LOCAtrioBrowserZoom">Zoom (LT/RT)</sys:String>
+    <sys:String x:Key="LOCAtrioBrowserWriteTitle">Type into the field you picked on the page</sys:String>
+    <sys:String x:Key="LOCAtrioBrowserGoTitle">Type an address or what you want to search for</sys:String>
+    <sys:String x:Key="LOCAtrioGuideWord">guide</sys:String>
 </ResourceDictionary>
