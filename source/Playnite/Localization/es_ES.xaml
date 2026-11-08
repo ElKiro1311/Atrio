@@ -1369,7 +1369,7 @@ Abre un nuevo problema en la página de GitHub de Playnite con una solicitud par
     <sys:String x:Key="LOCAtrioUnifyToggle">Mostrar cada juego una sola vez aunque lo tenga en varias tiendas</sys:String>
     <sys:String x:Key="LOCAtrioAskToggle">Preguntarme qué tienda usar cuando haya más de una opción</sys:String>
     <sys:String x:Key="LOCAtrioDirectInstallToggle">Instalar y desinstalar los juegos sin pasar por su tienda</sys:String>
-    <sys:String x:Key="LOCAtrioDirectInstallHint">Atrio da la orden y el juego se descarga en la carpeta predeterminada de su tienda. La tienda tiene que estar en este PC con tu cuenta iniciada, y Steam necesita además tu sesión en el navegador de Atrio. Los juegos de Steam se desinstalan igual, después de que Atrio te pregunte. Si algo falla, la tienda se abre como siempre.</sys:String>
+    <sys:String x:Key="LOCAtrioDirectInstallHint">Atrio da la orden y el juego se descarga en la carpeta predeterminada de su tienda. La tienda tiene que estar en este PC con tu cuenta iniciada, y Steam necesita además tu sesión en el navegador de Atrio. Los juegos de Steam, EA, Amazon, itch y Xbox se desinstalan igual, después de que Atrio te pregunte; Ubisoft y Epic siguen abriendo su ventana. Si algo falla, la tienda se abre como siempre.</sys:String>
     <sys:String x:Key="LOCAtrioUninstallTitle">Desinstalar</sys:String>
     <sys:String x:Key="LOCAtrioUninstallAsk">¿Desinstalar «{0}»? Se borrarán sus archivos ({1}) de {2}.</sys:String>
     <sys:String x:Key="LOCAtrioUninstallAskShort">¿Desinstalar «{0}»? Se borrarán sus archivos.</sys:String>

@@ -28,8 +28,45 @@ namespace Playnite.Atrio
                 return new SteamDirectUninstallController(game, controller);
             }
 
+            try
+            {
+                // Only the add-ons Atrio knows: another add-on with the same store could keep its games elsewhere.
+                if (game.PluginId == EaPluginId && addon == "EaLibrary")
+                {
+                    var entry = WindowsUninstallEntries.FindEa(WindowsUninstallEntries.Read(), game.InstallDirectory);
+                    return entry == null ? controller : new RegisteredUninstallController(game, controller, entry, "EA");
+                }
+
+                if (game.PluginId == AmazonPluginId && addon == "AmazonGamesLibrary")
+                {
+                    var entry = WindowsUninstallEntries.FindAmazon(WindowsUninstallEntries.Read(), game.GameId, game.InstallDirectory);
+                    return entry == null ? controller : new RegisteredUninstallController(game, controller, entry, "Amazon", answersDialogs: true);
+                }
+
+                if (game.PluginId == ItchPluginId && addon == "ItchioLibrary" && long.TryParse(game.GameId, out _) &&
+                    ButlerClient.Executable != null && ButlerClient.Database != null)
+                {
+                    return new ItchDirectUninstallController(game, controller);
+                }
+
+                if (game.PluginId == XboxPluginId && addon == "XboxLibrary" && game.GameId?.Contains("_") == true &&
+                    !game.GameId.StartsWith("CONSOLE_", StringComparison.OrdinalIgnoreCase))
+                {
+                    return new XboxDirectUninstallController(game, controller);
+                }
+            }
+            catch (Exception e) when (!PlayniteEnvironment.ThrowAllErrors)
+            {
+                LogManager.GetLogger().Warn(e, $"Failed to prepare the direct uninstall of {game.GameId}.");
+            }
+
             return controller;
         }
+
+        public static readonly Guid EaPluginId = Guid.Parse("85dd7072-2f20-4e76-a007-41035e390724");
+        public static readonly Guid AmazonPluginId = Guid.Parse("402674cd-4af6-4886-b6ec-0e695bfa0688");
+        public static readonly Guid ItchPluginId = Guid.Parse("00000001-ebb2-4eec-abcb-7c89937a42bb");
+        public static readonly Guid XboxPluginId = Guid.Parse("7e4fbb5e-2ae3-48d4-8ba0-6b30e7a4e287");
 
         /// <summary>"Uninstall X? Its files (12.3 GB) are deleted from D:\...", or without the size and the folder when they aren't known.</summary>
         public static string GetQuestion(string name, long size, string folder)

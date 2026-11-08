@@ -1374,7 +1374,7 @@ Open new issue on Playnite's GitHub page with a request to fix corruption in you
     <sys:String x:Key="LOCAtrioUnifyToggle">Show a game once, even if I own it in several stores</sys:String>
     <sys:String x:Key="LOCAtrioAskToggle">Ask me which store to use when there is more than one option</sys:String>
     <sys:String x:Key="LOCAtrioDirectInstallToggle">Install and uninstall games without going through their store</sys:String>
-    <sys:String x:Key="LOCAtrioDirectInstallHint">Atrio gives the order and the game downloads to the default folder of its store. The store needs to be on this computer with your account signed in, and Steam also needs your session in the Atrio browser. Games of Steam are uninstalled the same way, after Atrio asks you. If something fails, the store opens as usual.</sys:String>
+    <sys:String x:Key="LOCAtrioDirectInstallHint">Atrio gives the order and the game downloads to the default folder of its store. The store needs to be on this computer with your account signed in, and Steam also needs your session in the Atrio browser. Games of Steam, EA, Amazon, itch and Xbox are uninstalled the same way, after Atrio asks you; Ubisoft and Epic still open their window. If something fails, the store opens as usual.</sys:String>
     <sys:String x:Key="LOCAtrioUninstallTitle">Uninstall</sys:String>
     <sys:String x:Key="LOCAtrioUninstallAsk">Uninstall {0}? Its files ({1}) are deleted from {2}.</sys:String>
     <sys:String x:Key="LOCAtrioUninstallAskShort">Uninstall {0}? Its files are deleted.</sys:String>
