@@ -26,6 +26,9 @@ namespace Playnite.Atrio
         /// <summary>Installs the games without making the person go through the window of their store.</summary>
         public bool DirectInstall { get; set; } = true;
 
+        /// <summary>The mode for the couch opens on its start with rows, as it was left the last time.</summary>
+        public bool FullscreenStartsAtHome { get; set; } = true;
+
         /// <summary>
         /// Lets Atrio accept the terms of a game when a store asks for them. It's the person's decision and
         /// it's off unless they turn it on: without it the install stops there and the store shows the terms.

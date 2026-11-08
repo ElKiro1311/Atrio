@@ -2,7 +2,6 @@ using Playnite.Atrio;
 using Playnite.Commands;
 using Playnite.Common;
 using Playnite.Converters;
-using Playnite.DesktopApp.Atrio;
 using Playnite.SDK;
 using Playnite.SDK.Models;
 using System;
@@ -329,39 +328,7 @@ namespace Playnite.DesktopApp.ViewModels
         /// </summary>
         internal static HomeShelf CreateAlmostDoneShelf(List<GamesCollectionViewEntry> entries, IEnumerable<AchievementProgress.Entry> progress)
         {
-            var byCopy = new Dictionary<Guid, GamesCollectionViewEntry>();
-            var byId = new Dictionary<Guid, GamesCollectionViewEntry>();
-            foreach (var entry in entries)
-            {
-                byId[entry.Id] = entry;
-                byCopy[entry.Id] = entry;
-                foreach (var copy in entry.Copies ?? new List<GameCopyEntry>())
-                {
-                    if (copy?.Game != null && !byCopy.ContainsKey(copy.Game.Id))
-                    {
-                        byCopy[copy.Game.Id] = entry;
-                    }
-                }
-            }
-
-            var best = new Dictionary<Guid, AchievementProgress.Entry>();
-            foreach (var item in progress ?? Enumerable.Empty<AchievementProgress.Entry>())
-            {
-                if (byCopy.TryGetValue(item.GameId, out var entry) &&
-                    (!best.TryGetValue(entry.Id, out var other) || AlmostDoneShelf.GetPercent(item.Unlocked, item.Total) > AlmostDoneShelf.GetPercent(other.Unlocked, other.Total)))
-                {
-                    best[entry.Id] = item;
-                }
-            }
-
-            var games = best.
-                Where(a => AlmostDoneShelf.Qualifies(a.Value.Unlocked, a.Value.Total)).
-                Select(a => new { Entry = byId[a.Key], Progress = a.Value }).
-                OrderByDescending(a => AlmostDoneShelf.GetPercent(a.Progress.Unlocked, a.Progress.Total)).
-                ThenBy(a => a.Progress.Total - a.Progress.Unlocked).
-                ThenByDescending(a => a.Entry.LastActivity ?? DateTime.MinValue).
-                Take(ShelfSize).
-                ToList();
+            var games = AlmostDoneShelf.Choose(entries, progress, ShelfSize);
             if (games.Count == 0)
             {
                 return null;
@@ -371,17 +338,13 @@ namespace Playnite.DesktopApp.ViewModels
             {
                 Title = ResourceProvider.GetString("LOCAtrioHomeAlmostDone"),
                 Subtitle = ResourceProvider.GetString("LOCAtrioHomeAlmostDoneHint"),
-                Cards = games.Select((a, index) =>
+                Cards = games.Select((a, index) => new HomeCard
                 {
-                    var text = AlmostDoneShelf.GetText(a.Progress.Unlocked, a.Progress.Total);
-                    return new HomeCard
-                    {
-                        Game = a.Entry,
-                        GroupLabel = " ",
-                        IsWide = index == 0,
-                        Caption = index == 0 ? text : null,
-                        BadgeText = index == 0 ? null : text
-                    };
+                    Game = a.Entry,
+                    GroupLabel = " ",
+                    IsWide = index == 0,
+                    Caption = index == 0 ? a.Text : null,
+                    BadgeText = index == 0 ? null : a.Text
                 }).ToList()
             };
         }
@@ -389,7 +352,7 @@ namespace Playnite.DesktopApp.ViewModels
         /// <summary>The almost finished games come once the add-on of the achievements has its numbers ready.</summary>
         private async void AddAlmostDoneShelf(List<HomeShelf> list)
         {
-            var progress = await AchievementProgress.GetAsync(main);
+            var progress = await AchievementProgress.GetAsync(main.Extensions);
             var shelf = CreateAlmostDoneShelf(entries, progress);
             if (shelf == null || main.IsDisposing || Shelves != list)
             {

@@ -69,6 +69,41 @@ namespace Playnite.FullscreenApp.Controls.Views
         private FrameworkElement ElemExtraFilterActive;
         private FrameworkElement ElemSearchActive;
         private ListBox ListGameItems;
+        private HomeNavigation homeNavigation;
+
+        /// <summary>
+        /// The start shows games out of the active filter, and the hidden list would throw them out of the
+        /// selection: while the start is showing, the list doesn't follow the selected game.
+        /// </summary>
+        private void OnHomeChanged()
+        {
+            if (ListGameItems != null)
+            {
+                if (mainModel.HomeActive)
+                {
+                    BindingOperations.ClearBinding(ListGameItems, ListBox.SelectedItemProperty);
+                }
+                else
+                {
+                    if (mainModel.SelectedGame == null || mainModel.GamesView.CollectionView.IndexOf(mainModel.SelectedGame) < 0)
+                    {
+                        mainModel.SelectGameIndex(0);
+                    }
+
+                    BindingTools.SetBinding(ListGameItems,
+                        ListBox.SelectedItemProperty,
+                        mainModel,
+                        nameof(FullscreenAppViewModel.SelectedGame),
+                        BindingMode.TwoWay);
+                    Dispatcher.BeginInvoke(new Action(ShowSelectedGame), System.Windows.Threading.DispatcherPriority.Loaded);
+                }
+            }
+
+            if (mainModel.HomeActive)
+            {
+                homeNavigation?.FocusSoon();
+            }
+        }
         private ButtonEx ButtonInstall;
         private ButtonEx ButtonPlay;
         private ButtonEx ButtonSearch;
@@ -110,6 +145,20 @@ namespace Playnite.FullscreenApp.Controls.Views
 
         private void MainModel_PropertyChanged(object sender, PropertyChangedEventArgs e)
         {
+            if (e.PropertyName == nameof(FullscreenAppViewModel.HomeActive))
+            {
+                OnHomeChanged();
+            }
+
+            // Back from the page of a game, or anything that gives the focus back to the list, gives it to the start instead.
+            if (mainModel.HomeActive &&
+                ((e.PropertyName == nameof(FullscreenAppViewModel.GameListFocused) && mainModel.GameListFocused) ||
+                 (e.PropertyName == nameof(FullscreenAppViewModel.GameDetailsVisible) && !mainModel.GameDetailsVisible) ||
+                 e.PropertyName == nameof(FullscreenAppViewModel.HomeRows)))
+            {
+                homeNavigation?.FocusSoon();
+            }
+
             if (e.PropertyName == nameof(FullscreenAppViewModel.GameDetailsVisible))
             {
                 SetDetailsElemBindings();
@@ -452,6 +501,18 @@ namespace Playnite.FullscreenApp.Controls.Views
                         FocusBahaviors.FocusBindingProperty,
                         mainModel,
                         nameof(mainModel.GameListFocused));
+                }
+
+                var homeRows = Template.FindName("PART_ItemsHome", this) as ItemsControl;
+                if (homeRows != null)
+                {
+                    homeNavigation = new HomeNavigation(mainModel, homeRows);
+                }
+
+                mainModel.ThemeHasHome = homeRows != null;
+                if (mainModel.HomeActive)
+                {
+                    OnHomeChanged();
                 }
 
                 AssignButtonWithCommand(ref ButtonInstall, "PART_ButtonInstall", mainModel.ActivateSelectedCommand);

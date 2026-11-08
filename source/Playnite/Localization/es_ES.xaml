@@ -1343,6 +1343,7 @@ Abre un nuevo problema en la página de GitHub de Playnite con una solicitud par
     <sys:String x:Key="LOCAtrioHomeAlmostDoneHint">Te faltan pocos logros para completarlos</sys:String>
     <sys:String x:Key="LOCAtrioHomeAchievementsLeft">Faltan {0} · {1} %</sys:String>
     <sys:String x:Key="LOCAtrioHomeAchievementLeft">Falta 1 · {0} %</sys:String>
+    <sys:String x:Key="LOCAtrioCouchHome">Inicio</sys:String>
     <sys:String x:Key="LOCAtrioHomeReadyToPlay">Listo para jugar</sys:String>
     <sys:String x:Key="LOCAtrioHomeInYourLibrary">En tu biblioteca</sys:String>
     <sys:String x:Key="LOCAtrioHomeAllGames">Todos los juegos ({0})</sys:String>

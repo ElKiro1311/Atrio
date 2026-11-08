@@ -1,19 +1,18 @@
-using Playnite.Atrio;
-using Playnite.DesktopApp.ViewModels;
+using Playnite.Plugins;
 using Playnite.SDK;
 using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 
-namespace Playnite.DesktopApp.Atrio
+namespace Playnite.Atrio
 {
     /// <summary>
     /// How far each game is in its achievements, as the add-on of the achievements keeps it for themes.
     /// The add-on is not a reference of this project, so it is reached by reflection; without it, or if
     /// anything there changes, there is simply nothing.
     /// </summary>
-    internal static class AchievementProgress
+    public static class AchievementProgress
     {
         private static readonly ILogger logger = LogManager.GetLogger();
 
@@ -28,12 +27,12 @@ namespace Playnite.DesktopApp.Atrio
         /// The add-on puts together its summary of every game the first time a theme asks for it, on the
         /// thread of the window but in the background, so the page does not wait for it.
         /// </summary>
-        public static async Task<List<Entry>> GetAsync(DesktopAppViewModel main)
+        public static async Task<List<Entry>> GetAsync(ExtensionFactory extensions)
         {
             var result = new List<Entry>();
             try
             {
-                if (main?.Extensions?.Plugins == null || !main.Extensions.Plugins.TryGetValue(AtrioInfo.AchievementsPluginId, out var loaded))
+                if (extensions?.Plugins == null || !extensions.Plugins.TryGetValue(AtrioInfo.AchievementsPluginId, out var loaded))
                 {
                     return result;
                 }

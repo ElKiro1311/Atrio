@@ -241,26 +241,119 @@
                                                         Margin="28,0,0,0" VerticalAlignment="Center" />
                                     </StackPanel>
 
-                                    <ListBoxEx x:Name="PART_ListGameItems" Grid.Row="1"
-                                               Background="Transparent" BorderThickness="0"
-                                               ScrollViewer.HorizontalScrollBarVisibility="Hidden"
-                                               ScrollViewer.VerticalScrollBarVisibility="Hidden"
-                                               KeyboardNavigation.DirectionalNavigation="Once" />
+                                    <!-- The list of the active filter, out of the way while the start is showing -->
+                                    <Grid Grid.Row="1">
+                                        <Grid.Style>
+                                            <Style TargetType="Grid">
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding HomeActive}" Value="True">
+                                                        <Setter Property="Visibility" Value="Collapsed" />
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </Grid.Style>
+                                        <ListBoxEx x:Name="PART_ListGameItems"
+                                                   Background="Transparent" BorderThickness="0"
+                                                   ScrollViewer.HorizontalScrollBarVisibility="Hidden"
+                                                   ScrollViewer.VerticalScrollBarVisibility="Hidden"
+                                                   KeyboardNavigation.DirectionalNavigation="Once" />
 
-                                    <TextBlock Grid.Row="1" FontSize="34"
-                                               Text="{DynamicResource LOCNoGamesFound}"
-                                               TextAlignment="Center" HorizontalAlignment="Center" VerticalAlignment="Center">
-                                        <TextBlock.Style>
-                                            <Style TargetType="TextBlock" BasedOn="{StaticResource TextBlockBaseStyle}">
+                                        <TextBlock FontSize="34"
+                                                   Text="{DynamicResource LOCNoGamesFound}"
+                                                   TextAlignment="Center" HorizontalAlignment="Center" VerticalAlignment="Center">
+                                            <TextBlock.Style>
+                                                <Style TargetType="TextBlock" BasedOn="{StaticResource TextBlockBaseStyle}">
+                                                    <Setter Property="Visibility" Value="Collapsed" />
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding Items.Count, ElementName=PART_ListGameItems}" Value="0">
+                                                            <Setter Property="Visibility" Value="Visible" />
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </TextBlock.Style>
+                                        </TextBlock>
+                                    </Grid>
+
+                                    <!-- The start: rows of games. The arrows move between them, A opens the page of the game. -->
+                                    <ScrollViewer x:Name="PART_ScrollHome" Grid.Row="1" Focusable="False"
+                                                  HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Hidden">
+                                        <ScrollViewer.Style>
+                                            <Style TargetType="ScrollViewer">
                                                 <Setter Property="Visibility" Value="Collapsed" />
                                                 <Style.Triggers>
-                                                    <DataTrigger Binding="{Binding Items.Count, ElementName=PART_ListGameItems}" Value="0">
+                                                    <DataTrigger Binding="{Binding HomeActive}" Value="True">
                                                         <Setter Property="Visibility" Value="Visible" />
                                                     </DataTrigger>
                                                 </Style.Triggers>
                                             </Style>
-                                        </TextBlock.Style>
-                                    </TextBlock>
+                                        </ScrollViewer.Style>
+                                        <ItemsControl x:Name="PART_ItemsHome" ItemsSource="{Binding HomeRows}" Focusable="False" Margin="0,8,0,40">
+                                            <ItemsControl.ItemTemplate>
+                                                <DataTemplate>
+                                                    <StackPanel Margin="0,0,0,22">
+                                                        <TextBlock Text="{Binding Title}" Style="{DynamicResource TextBlockBaseStyle}" FontSize="26"
+                                                                   Margin="96,0,0,10" Opacity="0.9" />
+                                                        <ScrollViewer HorizontalScrollBarVisibility="Hidden" VerticalScrollBarVisibility="Disabled" Focusable="False">
+                                                            <ItemsControl ItemsSource="{Binding Tiles}" Focusable="False" Margin="96,8,96,12">
+                                                                <ItemsControl.ItemsPanel>
+                                                                    <ItemsPanelTemplate>
+                                                                        <StackPanel Orientation="Horizontal" />
+                                                                    </ItemsPanelTemplate>
+                                                                </ItemsControl.ItemsPanel>
+                                                                <ItemsControl.ItemTemplate>
+                                                                    <DataTemplate>
+                                                                        <ButtonEx x:Name="Tile" Margin="0,0,22,0" FocusVisualStyle="{x:Null}" Cursor="Hand"
+                                                                                  Command="{Binding DataContext.OpenHomeGameCommand, RelativeSource={RelativeSource AncestorType=ItemsControl, AncestorLevel=2}}"
+                                                                                  CommandParameter="{Binding Game}"
+                                                                                  AutomationProperties.Name="{Binding Game.DisplayName}">
+                                                                            <ButtonEx.Template>
+                                                                                <ControlTemplate TargetType="ButtonEx">
+                                                                                    <Grid x:Name="Root" Width="196" Height="294" RenderTransformOrigin="0.5,0.5">
+                                                                                        <Border Background="#1AFFFFFF" CornerRadius="8" />
+                                                                                        <TextBlock Text="{Binding Game.DisplayName}" Style="{DynamicResource TextBlockBaseStyle}" FontSize="20"
+                                                                                                   TextWrapping="Wrap" TextAlignment="Center" VerticalAlignment="Center" Margin="12" Opacity="0.7" />
+                                                                                        <Image Source="{Binding Game.CoverImageObjectCached, IsAsync=True}" Stretch="UniformToFill"
+                                                                                               RenderOptions.BitmapScalingMode="Fant" RoundedClip.Radius="8" />
+                                                                                        <Border VerticalAlignment="Bottom" HorizontalAlignment="Center" Padding="12,4,12,4"
+                                                                                                CornerRadius="8,8,0,0" Background="#D9101218">
+                                                                                            <Border.Style>
+                                                                                                <Style TargetType="Border">
+                                                                                                    <Style.Triggers>
+                                                                                                        <DataTrigger Binding="{Binding Note}" Value="{x:Null}">
+                                                                                                            <Setter Property="Visibility" Value="Collapsed" />
+                                                                                                        </DataTrigger>
+                                                                                                    </Style.Triggers>
+                                                                                                </Style>
+                                                                                            </Border.Style>
+                                                                                            <TextBlock Text="{Binding Note}" Style="{DynamicResource TextBlockBaseStyle}" FontSize="17" />
+                                                                                        </Border>
+                                                                                        <Border x:Name="Outline" CornerRadius="10" BorderThickness="4" Margin="-4" BorderBrush="Transparent" />
+                                                                                    </Grid>
+                                                                                    <ControlTemplate.Triggers>
+                                                                                        <Trigger Property="IsKeyboardFocused" Value="True">
+                                                                                            <Setter TargetName="Outline" Property="BorderBrush" Value="{DynamicResource FocusBrush}" />
+                                                                                            <Setter TargetName="Root" Property="RenderTransform">
+                                                                                                <Setter.Value>
+                                                                                                    <ScaleTransform ScaleX="1.05" ScaleY="1.05" />
+                                                                                                </Setter.Value>
+                                                                                            </Setter>
+                                                                                        </Trigger>
+                                                                                        <Trigger Property="IsMouseOver" Value="True">
+                                                                                            <Setter TargetName="Outline" Property="BorderBrush" Value="{DynamicResource FocusBrush}" />
+                                                                                        </Trigger>
+                                                                                    </ControlTemplate.Triggers>
+                                                                                </ControlTemplate>
+                                                                            </ButtonEx.Template>
+                                                                        </ButtonEx>
+                                                                    </DataTemplate>
+                                                                </ItemsControl.ItemTemplate>
+                                                            </ItemsControl>
+                                                        </ScrollViewer>
+                                                    </StackPanel>
+                                                </DataTemplate>
+                                            </ItemsControl.ItemTemplate>
+                                        </ItemsControl>
+                                    </ScrollViewer>
                                 </Grid>
                             </DockPanel>
 
@@ -348,6 +441,14 @@
                             <Setter Property="FontSize" Value="58" TargetName="GameTitle" />
                             <Setter Property="TextWrapping" Value="Wrap" TargetName="GameTitle" />
                             <Setter Property="MaxHeight" Value="190" TargetName="GameTitle" />
+                        </DataTrigger>
+                        <!-- The start needs room for more than one row: the game over the art gets smaller -->
+                        <DataTrigger Binding="{Binding HomeActive}" Value="True">
+                            <Setter Property="Height" Value="580" TargetName="RowGames" />
+                            <Setter Property="FontSize" Value="44" TargetName="GameTitle" />
+                            <Setter Property="MaxHeight" Value="110" TargetName="GameTitle" />
+                            <Setter Property="MaxHeight" Value="120" TargetName="GameLogo" />
+                            <Setter Property="Margin" Value="96,0,96,10" TargetName="GameInfo" />
                         </DataTrigger>
                         <DataTrigger Binding="{Binding SelectedGame}" Value="{x:Null}">
                             <Setter Property="Visibility" Value="Hidden" TargetName="GameInfo" />

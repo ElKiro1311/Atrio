@@ -248,8 +248,7 @@ namespace Playnite.FullscreenApp.ViewModels
         public bool ShowcaseActive =>
             ThemeHasShowcase &&
             AppSettings?.Fullscreen.ShowcaseView == true &&
-            ActiveFilterPreset != null &&
-            !DefaultFilterPresets.IsWholeLibrary(ActiveFilterPreset);
+            (HomeActive || (ActiveFilterPreset != null && !DefaultFilterPresets.IsWholeLibrary(ActiveFilterPreset)));
 
         private async void LoadGameArt(GamesCollectionViewEntry game)
         {
@@ -525,6 +524,12 @@ namespace Playnite.FullscreenApp.ViewModels
                 if (e.PropertyName == nameof(ActiveFilterPreset))
                 {
                     OnPropertyChanged(nameof(ShowcaseActive));
+
+                    // Choosing a filter, in whatever way, leaves the start.
+                    if (ActiveFilterPreset != null && !restoringFilter)
+                    {
+                        HomeActive = false;
+                    }
                 }
             };
 
@@ -1176,13 +1181,35 @@ namespace Playnite.FullscreenApp.ViewModels
 
             OnPropertyChanged(nameof(SortedFilterPresets));
             OnPropertyChanged(nameof(SortedFilterFullscreenPresets));
-            if (AppSettings.Fullscreen.SelectedFilterPreset != Guid.Empty)
+
+            // Bringing back the filter of the last time is no choice of the player: the start stays.
+            restoringFilter = true;
+            try
             {
-                ActiveFilterPreset = Database.FilterPresets.FirstOrDefault(a => a.Id == AppSettings.Fullscreen.SelectedFilterPreset);
+                if (AppSettings.Fullscreen.SelectedFilterPreset != Guid.Empty)
+                {
+                    ActiveFilterPreset = Database.FilterPresets.FirstOrDefault(a => a.Id == AppSettings.Fullscreen.SelectedFilterPreset);
+                }
+                else if (!AppSettings.Fullscreen.FilterSettings.IsActive)
+                {
+                    ActiveFilterPreset = SortedFilterFullscreenPresets.FirstOrDefault();
+                }
             }
-            else if (!AppSettings.Fullscreen.FilterSettings.IsActive)
+            finally
             {
-                ActiveFilterPreset = SortedFilterFullscreenPresets.FirstOrDefault();
+                restoringFilter = false;
+            }
+
+            // The start, if that's how it was left. The filter of before stays behind it, for the next tab.
+            // If the theme already opened it, its rows were made before the library was there.
+            WatchLibraryForHome();
+            if (HomeActive)
+            {
+                RefreshHome();
+            }
+            else if (GameUnifier.Current?.Settings.FullscreenStartsAtHome != false)
+            {
+                HomeActive = true;
             }
         }
 
