@@ -21,13 +21,27 @@ namespace Playnite.Tests
             /// <summary>Programs keep the start time they had when they opened.</summary>
             public Dictionary<int, string> Keys = new Dictionary<int, string>();
 
+            public List<Guid> RunByAtrio = new List<Guid>();
+            public bool ThrowOnAdd;
+            public int KeyQuestions;
+
             public bool IsTrackedByAtrio(Guid gameId) => Tracked.Contains(gameId);
+            public List<Guid> GetGamesRunByAtrio() => RunByAtrio.ToList();
             public Guid ChooseOne(List<Guid> gameIds) => gameIds.Max();
-            public string GetProcessKey(int processId) => Keys.TryGetValue(processId, out var key) ? key : processId + ":1";
+            public string GetProcessKey(int processId)
+            {
+                KeyQuestions++;
+                return Keys.TryGetValue(processId, out var key) ? key : processId + ":1";
+            }
             public void MarkPlayed(Guid gameId) => Played.Add(gameId);
 
             public void AddPlaytime(Guid gameId, ulong seconds)
             {
+                if (ThrowOnAdd)
+                {
+                    throw new InvalidOperationException("Disco lleno.");
+                }
+
                 Playtime.TryGetValue(gameId, out var current);
                 Playtime[gameId] = current + seconds;
             }
@@ -271,6 +285,121 @@ namespace Playnite.Tests
             tracker.Tick(Open(), 0, 3, start.AddHours(1));
             tracker.FinishAll(true);
             Assert.AreEqual(600, ledger.Playtime[game]);
+        }
+
+        [Test]
+        public void FinishedSittingLeavesTheFileAtOnceTest()
+        {
+            // Two hours in front, then the game closes: the file can't keep time that's already in the library.
+            var ledger = new FakeLedger();
+            var tracker = new OutsidePlayTracker(ledger, null, start);
+            var open = Open(game, 100);
+            var now = Play(tracker, open, 100, start, 2 * 3600);
+            Assert.Greater(ledger.Saved[0].PendingSeconds, 0);
+            tracker.Tick(Open(), 0, 3, now.AddSeconds(3));
+            Assert.AreEqual(7200, ledger.Playtime[game]);
+            Assert.IsEmpty(ledger.Saved, "Saved right when it finished, not only at the next five minutes.");
+
+            // Atrio dies now and opens again: nothing to add twice.
+            new OutsidePlayTracker(ledger, ledger.Saved, now.AddMinutes(1));
+            Assert.AreEqual(7200, ledger.Playtime[game]);
+        }
+
+        [Test]
+        public void FailingLibraryDoesntAddTwiceTest()
+        {
+            var ledger = new FakeLedger();
+            var tracker = new OutsidePlayTracker(ledger, null, start);
+            var open = Open(game, 100);
+            var now = Play(tracker, open, 100, start, 90);
+            ledger.ThrowOnAdd = true;
+            tracker.Tick(Open(), 0, 3, now.AddSeconds(3));
+            tracker.Tick(Open(), 0, 3, now.AddSeconds(6));
+            ledger.ThrowOnAdd = false;
+            tracker.Tick(Open(), 0, 3, now.AddSeconds(9));
+            Assert.IsFalse(ledger.Playtime.ContainsKey(game), "The time is lost once instead of added in every round.");
+            Assert.IsEmpty(ledger.Sessions);
+        }
+
+        [Test]
+        public void EmulatedGameOfAtrioStopsTheCountTest()
+        {
+            // Atrio plays a game the watch can't see (its emulator lives in the folder of another entry).
+            var ledger = new FakeLedger();
+            ledger.RunByAtrio.Add(other);
+            var tracker = new OutsidePlayTracker(ledger, null, start);
+            var open = Open(game, 100);
+            var now = Play(tracker, open, 100, start, 600);
+            tracker.Tick(Open(), 0, 3, now);
+            Assert.IsEmpty(ledger.Played);
+            Assert.IsEmpty(ledger.Playtime);
+        }
+
+        [Test]
+        public void LongPauseSplitsTheHistoryTest()
+        {
+            // An evening in front, the night with the game behind, ten minutes the next day.
+            var ledger = new FakeLedger();
+            var tracker = new OutsidePlayTracker(ledger, null, start);
+            var open = Open(game, 100);
+            var now = Play(tracker, open, 100, start, 1800);
+            now = Play(tracker, open, 555, now, 3 * 3600);
+            now = Play(tracker, open, 100, now, 600);
+            tracker.Tick(Open(), 0, 3, now.AddSeconds(3));
+            Assert.AreEqual(2, ledger.Sessions.Count);
+            Assert.AreEqual(1800, ledger.Sessions[0].Seconds, 0.01);
+            Assert.AreEqual(600, ledger.Sessions[1].Seconds, 0.01);
+            Assert.Less((ledger.Sessions[1].End - ledger.Sessions[1].Start).TotalMinutes, 11, "The second stretch starts after the pause.");
+            Assert.AreEqual(2400, ledger.Playtime[game]);
+            Assert.AreEqual(1, ledger.Played.Count, "Still one play.");
+        }
+
+        [Test]
+        public void LauncherGivesWayToTheGameTest()
+        {
+            // The first round sees only the launcher; then the game itself takes over in the same folder.
+            var ledger = new FakeLedger();
+            var tracker = new OutsidePlayTracker(ledger, null, start);
+            var now = Play(tracker, Open(game, 100), 100, start, 30);
+            now = Play(tracker, Open(game, 100, 200), 200, now, 30);
+            now = Play(tracker, Open(game, 200), 200, now, 60);
+            tracker.FinishAll(true);
+            CollectionAssert.Contains(ledger.Saved[0].Processes, "200:1");
+
+            // Atrio opens again with only the game running: the same play.
+            var again = new OutsidePlayTracker(ledger, ledger.Saved, now);
+            Play(again, Open(game, 200), 200, now, 90);
+            Assert.AreEqual(1, ledger.Played.Count);
+        }
+
+        [Test]
+        public void GameOfAtrioStillOpenAfterRestartTest()
+        {
+            var ledger = new FakeLedger();
+            ledger.Tracked.Add(game);
+            var tracker = new OutsidePlayTracker(ledger, null, start);
+            var open = Open(game, 100);
+            var now = Play(tracker, open, 100, start, 300);
+            tracker.FinishAll(true);
+            Assert.AreEqual(1, ledger.Saved.Count, "The game Atrio was counting is remembered.");
+            Assert.IsTrue(ledger.Saved[0].Counted);
+
+            // After the restart Atrio doesn't count it any more: the rest counts as outside time, without a new play.
+            ledger.Tracked.Clear();
+            var again = new OutsidePlayTracker(ledger, ledger.Saved, now);
+            now = Play(again, open, 100, now, 120);
+            again.Tick(Open(), 0, 3, now);
+            Assert.IsEmpty(ledger.Played);
+            Assert.AreEqual(120, ledger.Playtime[game]);
+        }
+
+        [Test]
+        public void EachProgramIsAskedOnceTest()
+        {
+            var ledger = new FakeLedger();
+            var tracker = new OutsidePlayTracker(ledger, null, start);
+            Play(tracker, Open(game, 100, 101), 100, start, 300);
+            Assert.AreEqual(2, ledger.KeyQuestions);
         }
 
         [Test]

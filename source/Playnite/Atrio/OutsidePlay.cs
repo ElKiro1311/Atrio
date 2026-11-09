@@ -14,6 +14,12 @@ namespace Playnite.Atrio
         /// <summary>Atrio started it and counts it itself.</summary>
         bool IsTrackedByAtrio(Guid gameId);
 
+        /// <summary>
+        /// Every game Atrio is counting right now, also the ones the watch can't see, like emulated games: their
+        /// emulator may live in the folder of another entry of the library.
+        /// </summary>
+        List<Guid> GetGamesRunByAtrio();
+
         /// <summary>Several games share the same programs, like two entries for one folder: only one gets the time.</summary>
         Guid ChooseOne(List<Guid> gameIds);
 
@@ -34,11 +40,19 @@ namespace Playnite.Atrio
     /// </summary>
     public class OutsidePlayTracker
     {
+        private static readonly ILogger logger = LogManager.GetLogger();
+
         /// <summary>Less time in front than this isn't a play: a launcher that flashes, a misclick.</summary>
         public const double MinimumSeconds = 60;
 
         /// <summary>The time not yet in the library is saved this often, in case the computer turns off.</summary>
         public static readonly TimeSpan SaveEvery = TimeSpan.FromMinutes(5);
+
+        /// <summary>
+        /// A longer pause in front of the game closes a stretch in the history: the same play, but the hours of the
+        /// night it stayed open don't spread the time over the wrong days.
+        /// </summary>
+        public static readonly TimeSpan PauseForNewStretch = TimeSpan.FromMinutes(15);
 
         private readonly IOutsidePlayLedger ledger;
         private readonly object sync = new object();
@@ -46,9 +60,16 @@ namespace Playnite.Atrio
 
         /// <summary>Programs of games that Atrio started: when Atrio stops counting them, they were already counted.</summary>
         private readonly HashSet<string> startedByAtrio = new HashSet<string>(StringComparer.Ordinal);
+
+        /// <summary>The programs of the games Atrio counts right now, to remember them if Atrio closes before the game.</summary>
+        private readonly Dictionary<Guid, List<string>> trackedNow = new Dictionary<Guid, List<string>>();
+
+        /// <summary>Each program is asked for its key once.</summary>
+        private Dictionary<int, string> keys = new Dictionary<int, string>();
         private List<OpenSitting> leftovers;
         private DateTime lastSave;
         private bool firstTick = true;
+        private bool changed;
 
         public OutsidePlayTracker(IOutsidePlayLedger ledger, IEnumerable<OpenSitting> previous, DateTime nowUtc)
         {
@@ -58,20 +79,15 @@ namespace Playnite.Atrio
 
             // Atrio closed without a goodbye (a crash, the power) with time not in the library: it goes in now,
             // and the file forgets it at once so another crash can't add it twice.
-            var committed = false;
             foreach (var old in leftovers)
             {
                 if (old.PendingSeconds > 0 && old.TotalSeconds >= MinimumSeconds)
                 {
                     Commit(old);
-                    committed = true;
                 }
             }
 
-            if (committed)
-            {
-                ledger.SaveOpen(leftovers.Select(Copy).ToList());
-            }
+            SaveIfChanged(nowUtc, leftovers);
         }
 
         public List<OpenSitting> GetSittings()
@@ -87,25 +103,45 @@ namespace Playnite.Atrio
             lock (sync)
             {
                 open = open ?? new Dictionary<Guid, List<int>>();
+                RefreshKeys(open);
 
                 // Games that Atrio started count by themselves, and so do the programs they share with other
                 // entries; the programs are remembered for when Atrio stops counting them.
-                var tracked = open.Keys.Where(ledger.IsTrackedByAtrio).ToList();
+                var runByAtrio = new HashSet<Guid>(ledger.GetGamesRunByAtrio() ?? new List<Guid>());
+                var tracked = open.Keys.Where(a => runByAtrio.Contains(a) || ledger.IsTrackedByAtrio(a)).ToList();
                 var trackedProcesses = new HashSet<int>(tracked.SelectMany(a => open[a]));
+                trackedNow.Clear();
                 foreach (var id in tracked)
                 {
-                    foreach (var key in GetKeys(open[id]))
+                    var programs = GetKeys(open[id]);
+                    trackedNow[id] = programs;
+                    foreach (var key in programs)
                     {
                         startedByAtrio.Add(key);
                     }
                 }
 
+                // A game Atrio counts that the watch can't see (an emulated one): its emulator could be the
+                // program of another entry, so nothing outside counts meanwhile.
+                var atrioPlaysElsewhere = runByAtrio.Any(a => !open.ContainsKey(a));
+
                 foreach (var sitting in sittings.Values.ToList())
                 {
                     if (!open.TryGetValue(sitting.GameId, out var processes) || processes.Any(trackedProcesses.Contains))
                     {
-                        Finish(sitting);
                         sittings.Remove(sitting.GameId);
+                        Finish(sitting);
+                    }
+                    else
+                    {
+                        // A launcher can give way to the game itself: its programs are added as they appear.
+                        foreach (var key in GetKeys(processes))
+                        {
+                            if (!sitting.Processes.Contains(key))
+                            {
+                                sitting.Processes.Add(key);
+                            }
+                        }
                     }
                 }
 
@@ -113,7 +149,7 @@ namespace Playnite.Atrio
                 {
                     if (!sittings.ContainsKey(id))
                     {
-                        sittings[id] = Begin(id, open[id]);
+                        sittings[id] = Begin(id, open[id], atrioPlaysElsewhere);
                     }
                 }
 
@@ -124,7 +160,7 @@ namespace Playnite.Atrio
                     leftovers = new List<OpenSitting>();
                 }
 
-                if (foregroundProcessId > 0 && elapsedSeconds > 0)
+                if (foregroundProcessId > 0 && elapsedSeconds > 0 && !atrioPlaysElsewhere)
                 {
                     var playing = sittings.Values.FirstOrDefault(a => open[a.GameId].Contains(foregroundProcessId));
                     if (playing != null)
@@ -135,15 +171,16 @@ namespace Playnite.Atrio
 
                 if (nowUtc - lastSave >= SaveEvery && sittings.Values.Any(a => a.PendingSeconds > 0))
                 {
-                    lastSave = nowUtc;
-                    ledger.SaveOpen(sittings.Values.Select(Copy).ToList());
+                    changed = true;
                 }
+
+                SaveIfChanged(nowUtc, sittings.Values);
             }
         }
 
         /// <summary>
         /// Atrio is closing: the time played goes to the library now, and the open games are remembered so the
-        /// same sitting isn't counted as a new play when Atrio opens again.
+        /// same sitting isn't counted as a new play when Atrio opens again. So are the games Atrio started itself.
         /// </summary>
         public void FinishAll(bool keepForLater)
         {
@@ -160,8 +197,39 @@ namespace Playnite.Atrio
                     kept.Add(Copy(sitting));
                 }
 
+                foreach (var game in trackedNow.Where(a => !sittings.ContainsKey(a.Key) && a.Value.Count > 0))
+                {
+                    kept.Add(new OpenSitting { GameId = game.Key, Processes = game.Value.ToList(), Counted = true, TotalSeconds = MinimumSeconds });
+                }
+
                 sittings.Clear();
-                ledger.SaveOpen(keepForLater ? kept : new List<OpenSitting>());
+                try
+                {
+                    ledger.SaveOpen(keepForLater ? kept : new List<OpenSitting>());
+                }
+                catch (Exception e)
+                {
+                    logger.Error(e, "Failed to save the games that are still open.");
+                }
+            }
+        }
+
+        private void SaveIfChanged(DateTime nowUtc, IEnumerable<OpenSitting> open)
+        {
+            if (!changed)
+            {
+                return;
+            }
+
+            changed = false;
+            lastSave = nowUtc;
+            try
+            {
+                ledger.SaveOpen(open.Select(Copy).ToList());
+            }
+            catch (Exception e)
+            {
+                logger.Error(e, "Failed to save the games that are still open.");
             }
         }
 
@@ -179,7 +247,6 @@ namespace Playnite.Atrio
                 }
 
                 var ids = group.Select(a => a.Key).ToList();
-
                 if (ids.Count == 1)
                 {
                     yield return ids[0];
@@ -191,18 +258,34 @@ namespace Playnite.Atrio
             }
         }
 
-        private List<string> GetKeys(IEnumerable<int> processIds)
+        /// <summary>The keys of the programs still open, asked once for each program.</summary>
+        private void RefreshKeys(IReadOnlyDictionary<Guid, List<int>> open)
         {
-            return processIds.Select(ledger.GetProcessKey).Where(a => a != null).ToList();
+            var known = new Dictionary<int, string>();
+            foreach (var id in open.Values.SelectMany(a => a).Distinct())
+            {
+                known[id] = keys.TryGetValue(id, out var key) ? key : ledger.GetProcessKey(id);
+            }
+
+            keys = known;
         }
 
-        private OpenSitting Begin(Guid gameId, List<int> processIds)
+        private List<string> GetKeys(IEnumerable<int> processIds)
         {
-            var keys = GetKeys(processIds);
-            var sitting = new OpenSitting { GameId = gameId, Processes = keys };
+            return processIds.
+                Select(a => keys.TryGetValue(a, out var key) ? key : ledger.GetProcessKey(a)).
+                Where(a => a != null).
+                Distinct().
+                ToList();
+        }
+
+        private OpenSitting Begin(Guid gameId, List<int> processIds, bool atrioPlaysElsewhere)
+        {
+            var programs = GetKeys(processIds);
+            var sitting = new OpenSitting { GameId = gameId, Processes = programs };
 
             // The same programs as before Atrio restarted: the same sitting, already counted as a play.
-            var before = leftovers.FirstOrDefault(a => a.GameId == gameId && a.Processes != null && a.Processes.Intersect(keys).Any());
+            var before = leftovers.FirstOrDefault(a => a.GameId == gameId && a.Processes != null && a.Processes.Intersect(programs).Any());
             if (before != null)
             {
                 leftovers.Remove(before);
@@ -217,7 +300,7 @@ namespace Playnite.Atrio
                 }
             }
 
-            if (keys.Any(startedByAtrio.Contains))
+            if (atrioPlaysElsewhere || programs.Any(startedByAtrio.Contains))
             {
                 sitting.Counted = true;
             }
@@ -227,6 +310,13 @@ namespace Playnite.Atrio
 
         private void Play(OpenSitting sitting, double seconds, DateTime nowUtc)
         {
+            // After a long pause the stretch before goes in by itself: the same play, its own hours.
+            if (sitting.PendingSeconds > 0 && sitting.TotalSeconds >= MinimumSeconds &&
+                sitting.LastPlayed != default(DateTime) && nowUtc - sitting.LastPlayed > PauseForNewStretch)
+            {
+                Commit(sitting);
+            }
+
             if (sitting.PendingSeconds <= 0)
             {
                 sitting.Start = nowUtc.AddSeconds(-seconds);
@@ -238,7 +328,14 @@ namespace Playnite.Atrio
             if (!sitting.Counted && sitting.TotalSeconds >= MinimumSeconds)
             {
                 sitting.Counted = true;
-                ledger.MarkPlayed(sitting.GameId);
+                try
+                {
+                    ledger.MarkPlayed(sitting.GameId);
+                }
+                catch (Exception e)
+                {
+                    logger.Error(e, $"Failed to mark {sitting.GameId} as played.");
+                }
             }
         }
 
@@ -250,6 +347,10 @@ namespace Playnite.Atrio
             }
         }
 
+        /// <summary>
+        /// The pending time goes to the library and the history. It's taken off the sitting first: if the library
+        /// fails, that time is lost once rather than added again in every round.
+        /// </summary>
         private void Commit(OpenSitting sitting)
         {
             var seconds = sitting.PendingSeconds;
@@ -260,10 +361,18 @@ namespace Playnite.Atrio
 
             var end = sitting.LastPlayed == default(DateTime) ? sitting.Start : sitting.LastPlayed;
             var start = sitting.Start == default(DateTime) ? end.AddSeconds(-seconds) : sitting.Start;
-            ledger.AddPlaytime(sitting.GameId, (ulong)Math.Round(seconds));
-            ledger.Record(sitting.GameId, start, end, seconds);
             sitting.PendingSeconds = 0;
             sitting.Start = default(DateTime);
+            changed = true;
+            try
+            {
+                ledger.AddPlaytime(sitting.GameId, (ulong)Math.Round(seconds));
+                ledger.Record(sitting.GameId, start, end, seconds);
+            }
+            catch (Exception e)
+            {
+                logger.Error(e, $"Failed to add the time played outside Atrio to {sitting.GameId}.");
+            }
         }
 
         private static OpenSitting Copy(OpenSitting a)
@@ -285,16 +394,31 @@ namespace Playnite.Atrio
     public class LibraryOutsidePlayLedger : IOutsidePlayLedger
     {
         private readonly IGameDatabaseMain database;
+        private readonly Func<IEnumerable<Guid>> runByAtrio;
 
-        public LibraryOutsidePlayLedger(IGameDatabaseMain database)
+        public LibraryOutsidePlayLedger(IGameDatabaseMain database, Func<IEnumerable<Guid>> runByAtrio = null)
         {
             this.database = database;
+            this.runByAtrio = runByAtrio;
         }
 
         public bool IsTrackedByAtrio(Guid gameId)
         {
             var game = database.Games.Get(gameId);
             return game != null && (game.IsRunning || game.IsLaunching);
+        }
+
+        public List<Guid> GetGamesRunByAtrio()
+        {
+            try
+            {
+                return runByAtrio?.Invoke()?.ToList() ?? new List<Guid>();
+            }
+            catch (InvalidOperationException)
+            {
+                // The list changed while it was read: the next round reads it again.
+                return new List<Guid>();
+            }
         }
 
         public Guid ChooseOne(List<Guid> gameIds)
@@ -365,7 +489,7 @@ namespace Playnite.Atrio
         private static OutsidePlayTracker tracker;
         private static Func<bool> isEnabled;
 
-        public static void Attach(IGameDatabaseMain database, Func<bool> enabled)
+        public static void Attach(IGameDatabaseMain database, Func<bool> enabled, Func<IEnumerable<Guid>> runByAtrio = null)
         {
             if (tracker != null || database == null)
             {
@@ -373,7 +497,7 @@ namespace Playnite.Atrio
             }
 
             isEnabled = enabled;
-            tracker = new OutsidePlayTracker(new LibraryOutsidePlayLedger(database), PlayHistory.GetOpenSittings(), DateTime.UtcNow);
+            tracker = new OutsidePlayTracker(new LibraryOutsidePlayLedger(database, runByAtrio), PlayHistory.GetOpenSittings(), DateTime.UtcNow);
             OpenGames.Ticked += OpenGames_Ticked;
         }
 

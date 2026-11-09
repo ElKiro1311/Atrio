@@ -241,8 +241,30 @@ namespace Playnite.DesktopApp.ViewModels
             RefreshSoon();
         }
 
+        /// <summary>The day the page was made: past midnight "today" and the week move on, even with nothing played.</summary>
+        private DateTime refreshedDay = DateTime.Today;
+        private DispatcherTimer dayTimer;
+
+        private void WatchTheDay()
+        {
+            if (dayTimer == null)
+            {
+                dayTimer = new DispatcherTimer { Interval = TimeSpan.FromMinutes(1) };
+                dayTimer.Tick += (_, __) =>
+                {
+                    if (DateTime.Today != refreshedDay && !main.IsDisposing)
+                    {
+                        RefreshSoon();
+                    }
+                };
+            }
+
+            dayTimer.Start();
+        }
+
         public void StartWatching()
         {
+            WatchTheDay();
             if (main.Database?.Games != null)
             {
                 main.Database.Games.ItemCollectionChanged -= Games_ItemCollectionChanged;
@@ -258,6 +280,7 @@ namespace Playnite.DesktopApp.ViewModels
         public void StopWatching()
         {
             refreshTimer.Stop();
+            dayTimer?.Stop();
             newsToken?.Cancel();
             if (main.Database?.Games != null)
             {
@@ -541,11 +564,15 @@ namespace Playnite.DesktopApp.ViewModels
                 var culture = Localization.ApplicationLanguageCultureInfo;
                 var now = DateTime.Now;
                 var start = WeekSummary.GetWeekStart(now, culture.DateTimeFormat.FirstDayOfWeek);
-                var sessions = PlayHistory.GetSessions(start.AddDays(-7).ToUniversalTime(), DateTime.UtcNow);
                 var unifier = GameUnifier.Current;
                 Guid groupOf(Guid id) => unifier?.GetGroup(id)?.Primary?.Id ?? id;
-                var summary = WeekSummary.Build(sessions, now, culture.DateTimeFormat.FirstDayOfWeek, PlayHistory.Since, groupOf);
                 var byId = entries.ToDictionary(a => a.Id);
+
+                // Only the games the page shows: a hidden one doesn't add hours that the list doesn't explain.
+                var sessions = PlayHistory.GetSessions(start.AddDays(-7).ToUniversalTime(), DateTime.UtcNow).
+                    Where(a => byId.ContainsKey(groupOf(a.GameId))).
+                    ToList();
+                var summary = WeekSummary.Build(sessions, now, culture.DateTimeFormat.FirstDayOfWeek, PlayHistory.Since, groupOf);
                 var card = CreateWeekCard(summary, a => byId.TryGetValue(a, out var entry) ? entry : null, culture);
                 if (card != null)
                 {
@@ -709,6 +736,7 @@ namespace Playnite.DesktopApp.ViewModels
             add(CreatePlayNextShelf());
             add(CreateAddedShelf());
             Shelves = list;
+            refreshedDay = DateTime.Today;
             Week = CreateWeek();
             AddWeekAchievements(Week);
             AddAlmostDoneShelf(list);

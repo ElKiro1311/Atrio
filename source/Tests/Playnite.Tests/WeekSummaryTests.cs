@@ -84,6 +84,25 @@ namespace Playnite.Tests
         }
 
         [Test]
+        public void ClockGoingBackTest()
+        {
+            // Thirty real minutes that, in local time, end before they start when the clock goes back an hour.
+            var zone = TimeZoneInfo.Local;
+            var changed = Enumerable.Range(0, 24 * 366).
+                Select(a => new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc).AddHours(a)).
+                FirstOrDefault(a => zone.GetUtcOffset(a.AddHours(1)) < zone.GetUtcOffset(a));
+            if (changed == default(DateTime))
+            {
+                Assert.Ignore("This time zone doesn't change the clock.");
+            }
+
+            var change = changed.AddHours(1);
+            var session = new PlaySession { GameId = game, Start = change.AddMinutes(-20), End = change.AddMinutes(10), Seconds = 1800 };
+            var day = change.ToLocalTime().Date;
+            Assert.AreEqual(1800, WeekSummary.GetSecondsBetween(session, day.AddDays(-1), day.AddDays(2)), 0.1);
+        }
+
+        [Test]
         public void SessionBeforeTheWeekIsCutTest()
         {
             // Sunday 23:00 of last week to Monday 01:00.

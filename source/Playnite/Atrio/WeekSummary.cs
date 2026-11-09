@@ -48,8 +48,12 @@ namespace Playnite.Atrio
         /// </summary>
         public static double GetSecondsBetween(PlaySession session, DateTime fromLocal, DateTime toLocal)
         {
-            var start = session.Start.ToLocalTime();
-            var end = session.End.ToLocalTime();
+            // The days start at local midnight, but the time is counted in universal time: the night the clock
+            // goes back an hour, a sitting doesn't end before it started.
+            var start = PlayHistory.ToUtc(session.Start);
+            var end = PlayHistory.ToUtc(session.End);
+            var from = fromLocal.Kind == DateTimeKind.Utc ? fromLocal : fromLocal.ToUniversalTime();
+            var to = toLocal.Kind == DateTimeKind.Utc ? toLocal : toLocal.ToUniversalTime();
             if (end < start)
             {
                 return 0;
@@ -58,11 +62,11 @@ namespace Playnite.Atrio
             var wall = (end - start).TotalSeconds;
             if (wall <= 0)
             {
-                return start >= fromLocal && start < toLocal ? session.Seconds : 0;
+                return start >= from && start < to ? session.Seconds : 0;
             }
 
-            var overlapStart = start > fromLocal ? start : fromLocal;
-            var overlapEnd = end < toLocal ? end : toLocal;
+            var overlapStart = start > from ? start : from;
+            var overlapEnd = end < to ? end : to;
             if (overlapEnd <= overlapStart)
             {
                 return 0;

@@ -62,7 +62,10 @@ namespace Playnite
             {
                 var games = Database.Games;
                 var unifier = Unifier;
-                OutsidePlay.Attach(Database, () => unifier.Settings.CountOutsidePlaytime);
+                OutsidePlay.Attach(
+                    Database,
+                    () => unifier.Settings.CountOutsidePlaytime,
+                    () => PlayniteApplication.Current?.GamesEditor?.RunningGames.Keys.ToList() ?? new List<Guid>());
                 LightWhilePlaying.Attach(
                     PlayniteApplication.CurrentNative?.Dispatcher,
                     () => unifier.Settings.LightWhilePlaying,
