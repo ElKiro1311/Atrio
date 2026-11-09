@@ -700,7 +700,10 @@ namespace Playnite.DesktopApp.ViewModels
         /// <summary>The card of the saves shows while the copies are turned on.</summary>
         public bool ShowSavesCard => SaveBackups.IsEnabled && DesktopAppViewModel.UsesLibraryPanes;
 
-        public bool SavesBusy => SaveBackups.Busy != Guid.Empty && game?.Copies.Any(a => a.Game.Id == SaveBackups.Busy) == true;
+        /// <summary>The buttons of the card wait: a copy of this game is being made, or a restore is under way.</summary>
+        public bool SavesBusy => SavesCopying || game?.Copies.Any(a => SaveBackups.IsRestoring(a.Game.Id)) == true;
+
+        private bool SavesCopying => SaveBackups.Busy != Guid.Empty && game?.Copies.Any(a => a.Game.Id == SaveBackups.Busy) == true;
 
         /// <summary>The copy whose saves are copied: the installed one, or the one Atrio would start.</summary>
         private Game SavesGame => game?.Copies.Select(a => a.Game).FirstOrDefault(a => a.IsInstalled) ?? game?.Game;
@@ -709,7 +712,7 @@ namespace Playnite.DesktopApp.ViewModels
         {
             get
             {
-                if (SavesBusy)
+                if (SavesCopying)
                 {
                     return resources.GetString("LOCAtrioSavesBusy");
                 }
@@ -774,27 +777,63 @@ namespace Playnite.DesktopApp.ViewModels
                 return;
             }
 
-            var latest = await SaveBackups.GetLatestAsync(target, System.Threading.CancellationToken.None);
-            if (latest == null)
-            {
-                dialogs.ShowMessage(string.Format(resources.GetString("LOCAtrioSavesNoBackup"), game.DisplayName), resources.GetString("LOCAtrioSavesTitle"));
-                return;
-            }
-
-            var when = latest.When.ToString("f", Localization.ApplicationLanguageCultureInfo);
-            if (dialogs.ShowMessage(
-                    string.Format(resources.GetString("LOCAtrioSavesRestoreAsk"), game.DisplayName, when),
-                    resources.GetString("LOCAtrioSavesTitle"),
-                    MessageBoxButton.YesNo,
-                    MessageBoxImage.Question) != MessageBoxResult.Yes)
+            // One restore at a time: the buttons wait from the question until the end.
+            if (!SaveBackups.TryStartRestore(target.Id))
             {
                 return;
             }
 
-            var restored = await SaveBackups.RestoreLatestAsync(target, System.Threading.CancellationToken.None);
-            dialogs.ShowMessage(
-                string.Format(resources.GetString(restored ? "LOCAtrioSavesRestoreDone" : "LOCAtrioSavesRestoreFailed"), game.DisplayName, when),
-                resources.GetString("LOCAtrioSavesTitle"));
+            var name = game.DisplayName;
+            var title = resources.GetString("LOCAtrioSavesTitle");
+            try
+            {
+                var latest = await SaveBackups.GetLatestAsync(target, System.Threading.CancellationToken.None);
+                if (latest == null)
+                {
+                    dialogs.ShowMessage(string.Format(resources.GetString("LOCAtrioSavesNoBackup"), name), title);
+                    return;
+                }
+
+                var when = latest.When.ToString("f", Localization.ApplicationLanguageCultureInfo);
+                if (dialogs.ShowMessage(
+                        string.Format(resources.GetString("LOCAtrioSavesRestoreAsk"), name, when),
+                        title,
+                        MessageBoxButton.YesNo,
+                        MessageBoxImage.Question) != MessageBoxResult.Yes)
+                {
+                    return;
+                }
+
+                // Exactly the copy of the question, even if another came while it was open.
+                var result = await SaveBackups.RestoreAsync(target, latest, System.Threading.CancellationToken.None);
+                string text;
+                switch (result)
+                {
+                    case SaveRestoreResult.Done:
+                        text = string.Format(resources.GetString("LOCAtrioSavesRestoreDone"), name, when);
+                        break;
+                    case SaveRestoreResult.NoSafetyCopy:
+                        text = string.Format(resources.GetString("LOCAtrioSavesRestoreNoSafety"), name);
+                        break;
+                    case SaveRestoreResult.Nothing:
+                        text = string.Format(resources.GetString("LOCAtrioSavesRestoreNothing"), name);
+                        break;
+                    default:
+                        text = string.Format(resources.GetString("LOCAtrioSavesRestoreFailed"), name, when);
+                        break;
+                }
+
+                dialogs.ShowMessage(text, title);
+            }
+            catch (Exception e) when (!PlayniteEnvironment.ThrowAllErrors)
+            {
+                logger.Error(e, $"Failed to restore the saves of {name}.");
+                dialogs.ShowMessage(string.Format(resources.GetString("LOCAtrioSavesRestoreNothing"), name), title);
+            }
+            finally
+            {
+                SaveBackups.EndRestore(target.Id);
+            }
         }
 
         private void SaveBackups_Changed(object sender, Guid e)
@@ -805,6 +844,7 @@ namespace Playnite.DesktopApp.ViewModels
                 {
                     OnPropertyChanged(nameof(SavesText));
                     OnPropertyChanged(nameof(SavesBusy));
+                    System.Windows.Input.CommandManager.InvalidateRequerySuggested();
                 }));
             }
         }

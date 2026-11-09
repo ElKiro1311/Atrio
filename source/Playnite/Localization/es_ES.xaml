@@ -1669,6 +1669,8 @@ Abre un nuevo problema en la página de GitHub de Playnite con una solicitud par
     <sys:String x:Key="LOCAtrioSavesRestoreAsk">¿Restaurar las partidas de {0} del {1}? Antes Atrio hace una copia de las que tienes ahora, por si quieres volver.</sys:String>
     <sys:String x:Key="LOCAtrioSavesRestoreDone">Las partidas de {0} han vuelto a como estaban el {1}.</sys:String>
     <sys:String x:Key="LOCAtrioSavesRestoreFailed">No se pudieron restaurar del todo las partidas de {0}. La copia hecha antes de restaurar sigue en «Copias de partidas».</sys:String>
+    <sys:String x:Key="LOCAtrioSavesRestoreNoSafety">No se ha restaurado nada: Atrio no pudo copiar antes todas tus partidas actuales de {0}, y sin esa copia no las sustituye. Puede que algún archivo esté en uso; vuelve a intentarlo más tarde.</sys:String>
+    <sys:String x:Key="LOCAtrioSavesRestoreNothing">No se ha restaurado nada: tus partidas de {0} siguen como estaban.</sys:String>
     <sys:String x:Key="LOCAtrioSavesCloseFirst">Cierra {0} antes de restaurar sus partidas.</sys:String>
     <sys:String x:Key="LOCAtrioSavesNoBackup">Aún no hay ninguna copia de {0} que restaurar.</sys:String>
     <sys:String x:Key="LOCAtrioSavesDownloadFailed">No se pudo descargar Ludusavi. Revisa la conexión y vuelve a intentarlo.</sys:String>

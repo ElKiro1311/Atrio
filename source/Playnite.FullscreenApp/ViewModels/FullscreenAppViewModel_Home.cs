@@ -99,14 +99,24 @@ namespace Playnite.FullscreenApp.ViewModels
             }
         }));
 
-        /// <summary>The list shows every game of the collection, with the filter of the whole library under it.</summary>
+        /// <summary>
+        /// The list shows every game of the collection, with the filter of the whole library under it: from the tabs,
+        /// or the one hidden from them. Without any, the filters are emptied, so none hides games of the collection.
+        /// </summary>
         private void OpenCollectionGames(GameCollection collection)
         {
-            var presets = SortedFilterFullscreenPresets;
-            var whole = presets?.FirstOrDefault(DefaultFilterPresets.IsWholeLibrary);
-            if (whole != null && ActiveFilterPreset != whole)
+            var whole = SortedFilterFullscreenPresets?.FirstOrDefault(DefaultFilterPresets.IsWholeLibrary) ??
+                Database?.FilterPresets?.FirstOrDefault(DefaultFilterPresets.IsWholeLibrary);
+            if (whole != null)
             {
-                ActiveFilterPreset = whole;
+                if (ActiveFilterPreset != whole)
+                {
+                    ActiveFilterPreset = whole;
+                }
+            }
+            else
+            {
+                AppSettings.Fullscreen.FilterSettings.ClearFilters();
             }
 
             HomeActive = false;

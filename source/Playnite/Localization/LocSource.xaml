@@ -1672,6 +1672,8 @@ Open new issue on Playnite's GitHub page with a request to fix corruption in you
     <sys:String x:Key="LOCAtrioSavesRestoreAsk">Restore the saves of {0} from {1}? First Atrio makes a copy of the ones you have now, in case you want to go back.</sys:String>
     <sys:String x:Key="LOCAtrioSavesRestoreDone">The saves of {0} are back as they were on {1}.</sys:String>
     <sys:String x:Key="LOCAtrioSavesRestoreFailed">The saves of {0} couldn't be fully restored. The copy made before restoring is still in «Copias de partidas».</sys:String>
+    <sys:String x:Key="LOCAtrioSavesRestoreNoSafety">Nothing was restored: Atrio couldn't first copy every current save of {0}, and it doesn't replace them without that copy. A file may be in use; try again later.</sys:String>
+    <sys:String x:Key="LOCAtrioSavesRestoreNothing">Nothing was restored: your saves of {0} are as they were.</sys:String>
     <sys:String x:Key="LOCAtrioSavesCloseFirst">Close {0} before restoring its saves.</sys:String>
     <sys:String x:Key="LOCAtrioSavesNoBackup">There's no copy of {0} to restore yet.</sys:String>
     <sys:String x:Key="LOCAtrioSavesDownloadFailed">Ludusavi couldn't be downloaded. Check the connection and try again.</sys:String>

@@ -1308,8 +1308,10 @@ namespace Playnite
 
             updateCheckTimer?.Dispose();
 
-            // The time of the games opened outside Atrio goes to the library before it closes.
+            // The time of the games opened outside Atrio goes to the library before it closes, and the copies of
+            // the saves still waiting for their seconds start now.
             Atrio.OutsidePlay.Shutdown();
+            Atrio.SaveBackups.Shutdown();
             MainModelBase?.RunShutdowScript();
             Extensions?.NotifiyOnApplicationStopped();
             Dialogs.ActivateGlobalProgress(_ =>

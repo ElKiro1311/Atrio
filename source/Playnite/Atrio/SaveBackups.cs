@@ -35,6 +35,25 @@ namespace Playnite.Atrio
 
         /// <summary>Ludusavi knows the game but found no saves of it on this computer.</summary>
         public bool NoSaves { get; set; }
+
+        /// <summary>Ludusavi couldn't copy every file this time: one in use, without permission, or only online.</summary>
+        public bool Failed { get; set; }
+    }
+
+    /// <summary>How a restore went.</summary>
+    public enum SaveRestoreResult
+    {
+        /// <summary>The saves are as they were in the copy.</summary>
+        Done,
+
+        /// <summary>Ludusavi didn't finish well: some files may have changed. The copy made first is kept.</summary>
+        Partly,
+
+        /// <summary>The current saves couldn't all be copied first, so nothing was touched.</summary>
+        NoSafetyCopy,
+
+        /// <summary>Nothing was touched: the copy isn't there anymore, or Ludusavi couldn't tell.</summary>
+        Nothing
     }
 
     /// <summary>
@@ -122,8 +141,10 @@ namespace Playnite.Atrio
                 logger.Info($"Ludusavi {Version} downloaded to {Folder}.");
                 return true;
             }
-            catch (Exception e) when (!(e is OperationCanceledException))
+            catch (Exception e) when (!(e is OperationCanceledException) || !token.IsCancellationRequested)
             {
+                // The download that stops for good (the network goes, the computer sleeps) ends the same way:
+                // HttpClient says it with a cancel of its own after its five minutes.
                 logger.Error(e, "Failed to download Ludusavi.");
                 return false;
             }
@@ -133,15 +154,56 @@ namespace Playnite.Atrio
             }
         }
 
-        /// <summary>Runs Ludusavi without a window, with the names of the games on its input. Null if it gave no answer.</summary>
+        /// <summary>
+        /// One argument as Windows splits them (CommandLineToArgvW): in quotes, with its quotes escaped and the
+        /// backslashes before them doubled.
+        /// </summary>
+        public static string Quote(string value)
+        {
+            var text = new StringBuilder("\"");
+            var slashes = 0;
+            foreach (var c in value ?? string.Empty)
+            {
+                if (c == '\\')
+                {
+                    slashes++;
+                    continue;
+                }
+
+                text.Append('\\', c == '"' ? slashes * 2 + 1 : slashes);
+                text.Append(c);
+                slashes = 0;
+            }
+
+            text.Append('\\', slashes * 2);
+            text.Append('"');
+            return text.ToString();
+        }
+
+        /// <summary>
+        /// The names of the games, at the end and after "--", so none can be read as an option. They don't go
+        /// through the input: Windows can put a mark of UTF-8 (BOM) before the first one, and then Ludusavi doesn't
+        /// know that game.
+        /// </summary>
+        public static string NamesArguments(IEnumerable<string> names)
+        {
+            var list = names?.Where(a => !string.IsNullOrEmpty(a)).ToList() ?? new List<string>();
+            return list.Count == 0 ? string.Empty : " -- " + string.Join(" ", list.Select(Quote));
+        }
+
+        /// <summary>
+        /// Runs Ludusavi without a window, with the names of the games at the end. Null if it gave no answer. Names
+        /// null for a command without them; a command for names never runs without one, because Ludusavi would
+        /// take every game it knows.
+        /// </summary>
         public static async Task<JObject> RunAsync(string arguments, IEnumerable<string> names, TimeSpan timeout, CancellationToken token)
         {
-            if (!IsInstalled)
+            if (!IsInstalled || (names != null && !names.Any(a => !string.IsNullOrEmpty(a))))
             {
                 return null;
             }
 
-            var info = new ProcessStartInfo(Executable, $"--config \"{ConfigFolder}\" --try-manifest-update {arguments}")
+            var info = new ProcessStartInfo(Executable, $"--config {Quote(ConfigFolder)} --try-manifest-update {arguments}{NamesArguments(names)}")
             {
                 UseShellExecute = false,
                 CreateNoWindow = true,
@@ -155,15 +217,27 @@ namespace Playnite.Atrio
 
             using (var process = new Process { StartInfo = info })
             {
-                process.Start();
+                try
+                {
+                    process.Start();
+                }
+                catch (Exception e)
+                {
+                    // An antivirus, Smart App Control or a rule of the system can keep it from starting.
+                    logger.Error(e, "Ludusavi couldn't start.");
+                    return null;
+                }
+
                 var output = process.StandardOutput.ReadToEndAsync();
                 var errors = process.StandardError.ReadToEndAsync();
-                using (var input = new StreamWriter(process.StandardInput.BaseStream, new UTF8Encoding(false)))
+                try
                 {
-                    foreach (var name in names ?? Enumerable.Empty<string>())
-                    {
-                        await input.WriteLineAsync(name);
-                    }
+                    // Its input closes empty: without names it would wait for them there.
+                    process.StandardInput.Close();
+                }
+                catch (IOException e)
+                {
+                    logger.Debug($"Ludusavi closed before its input: {e.Message}");
                 }
 
                 var finished = await Task.Run(() => process.WaitForExit((int)timeout.TotalMilliseconds), token);
@@ -173,7 +247,7 @@ namespace Playnite.Atrio
                     {
                         process.Kill();
                     }
-                    catch (InvalidOperationException)
+                    catch (Exception e) when (e is InvalidOperationException || e is System.ComponentModel.Win32Exception)
                     {
                     }
 
@@ -205,34 +279,122 @@ namespace Playnite.Atrio
             }
         }
 
-        /// <summary>The title Ludusavi uses for the game: by its number of Steam or GOG, by the exact name, or by an approximation.</summary>
+        /// <summary>
+        /// The title Ludusavi uses for the game: by its number of Steam or GOG, by the exact name, or by an approximation
+        /// that only differs in capitals, accents and signs. An approximation that leaves out a year or an edition
+        /// ("Tomb Raider" for "Tomb Raider (2013)") could be another game, so it isn't taken.
+        /// </summary>
         public static async Task<string> FindTitleAsync(Game game, CancellationToken token)
         {
             var timeout = TimeSpan.FromMinutes(3);
-            var tries = new List<Tuple<string, string[]>>();
+            var tries = new List<Tuple<string, string[], bool>>();
             if (game.PluginId == SteamContent.SteamPluginId && int.TryParse(game.GameId, out var steamId))
             {
-                tries.Add(Tuple.Create($"find --api --steam-id {steamId}", new string[0]));
+                tries.Add(Tuple.Create($"find --api --steam-id {steamId}", (string[])null, false));
             }
 
             if (game.PluginId == GogPluginId && long.TryParse(game.GameId, out var gogId))
             {
-                tries.Add(Tuple.Create($"find --api --gog-id {gogId}", new string[0]));
+                tries.Add(Tuple.Create($"find --api --gog-id {gogId}", (string[])null, false));
             }
 
-            tries.Add(Tuple.Create("find --api", new[] { game.Name }));
-            tries.Add(Tuple.Create("find --api --normalized", new[] { game.Name }));
+            if (!string.IsNullOrWhiteSpace(game.Name))
+            {
+                tries.Add(Tuple.Create("find --api", new[] { game.Name }, false));
+                tries.Add(Tuple.Create("find --api --normalized", new[] { game.Name }, true));
+            }
             foreach (var attempt in tries)
             {
                 var answer = await RunAsync(attempt.Item1, attempt.Item2, timeout, token);
-                var title = (answer?["games"] as JObject)?.Properties().FirstOrDefault()?.Name;
-                if (!string.IsNullOrEmpty(title))
+                var titles = (answer?["games"] as JObject)?.Properties().Select(a => a.Name).Where(a => !string.IsNullOrEmpty(a)).ToList() ?? new List<string>();
+                if (attempt.Item3)
                 {
-                    return title;
+                    titles = titles.Where(a => SameTitle(a, game.Name)).ToList();
+                    if (titles.Count != 1)
+                    {
+                        if (titles.Count > 1)
+                        {
+                            logger.Info($"Ludusavi has several games like {game.Name}: none is taken.");
+                        }
+
+                        continue;
+                    }
+                }
+
+                if (titles.Count > 0)
+                {
+                    return titles[0];
                 }
             }
 
             return null;
+        }
+
+        /// <summary>The same title but for capitals, accents, spaces and signs like ™, ® or ':'.</summary>
+        public static bool SameTitle(string a, string b)
+        {
+            string key(string name) => GameCaptures.Normalize((name ?? string.Empty).Replace("&", " and ")).Replace(" ", string.Empty);
+            var first = key(a);
+            return first.Length > 0 && first == key(b);
+        }
+
+        /// <summary>How every copy is made: zip files in Atrio's folder, two full copies and four of changes after each.</summary>
+        public static string BackupArguments => $"backup --force --path {Quote(BackupFolder)} --format zip --full-limit 2 --differential-limit 4";
+
+        /// <summary>
+        /// Starts a copy of those games and leaves it alone: it goes on after Atrio closes. Never without names,
+        /// which would copy every game Ludusavi knows. False if it couldn't start.
+        /// </summary>
+        public static bool StartBackupAlone(IEnumerable<string> titles)
+        {
+            var names = titles?.Where(a => !string.IsNullOrWhiteSpace(a)).Distinct().ToList() ?? new List<string>();
+            if (!IsInstalled || names.Count == 0)
+            {
+                return false;
+            }
+
+            // Nothing of it goes through Atrio: what it says stays in a console of its own, without a window.
+            var info = new ProcessStartInfo(Executable, $"--config {Quote(ConfigFolder)} {BackupArguments}{NamesArguments(names)}")
+            {
+                UseShellExecute = false,
+                CreateNoWindow = true,
+                WorkingDirectory = Folder
+            };
+
+            try
+            {
+                using (Process.Start(info))
+                {
+                }
+
+                logger.Info($"Ludusavi goes on alone with the copy of {string.Join(", ", names)}.");
+                return true;
+            }
+            catch (Exception e)
+            {
+                logger.Error(e, "Ludusavi couldn't start the copy that goes on alone.");
+                return false;
+            }
+        }
+
+        /// <summary>Another Ludusavi is working, like the one left alone when Atrio closed a moment ago.</summary>
+        public static bool OtherIsRunning()
+        {
+            try
+            {
+                var others = Process.GetProcessesByName("ludusavi");
+                foreach (var other in others)
+                {
+                    other.Dispose();
+                }
+
+                return others.Length > 0;
+            }
+            catch (Exception e)
+            {
+                logger.Warn(e, "Failed to look for Ludusavi running.");
+                return false;
+            }
         }
 
         public static readonly Guid GogPluginId = Guid.Parse("aebe8b7c-6dc3-4a66-af31-e7375c6b5e9e");
@@ -240,11 +402,7 @@ namespace Playnite.Atrio
         /// <summary>A copy now. The size is what the copy holds; 0 with NoSaves when there was nothing to copy.</summary>
         public static async Task<SaveBackupInfo> BackupAsync(string title, CancellationToken token)
         {
-            var answer = await RunAsync(
-                $"backup --api --force --path \"{BackupFolder}\" --format zip --full-limit 2 --differential-limit 4",
-                new[] { title },
-                TimeSpan.FromMinutes(15),
-                token);
+            var answer = await RunAsync($"{BackupArguments} --api", new[] { title }, TimeSpan.FromMinutes(15), token);
             if (answer == null)
             {
                 return null;
@@ -263,13 +421,14 @@ namespace Playnite.Atrio
                 Title = title,
                 LastBackup = game == null ? (DateTime?)null : DateTime.Now,
                 Bytes = bytes,
-                NoSaves = game == null || bytes == 0
+                NoSaves = game == null || bytes == 0,
+                Failed = failed
             };
         }
 
         public static async Task<List<SaveBackup>> GetBackupsAsync(string title, CancellationToken token)
         {
-            var answer = await RunAsync($"backups --api --path \"{BackupFolder}\"", new[] { title }, TimeSpan.FromMinutes(2), token);
+            var answer = await RunAsync($"backups --api --path {Quote(BackupFolder)}", new[] { title }, TimeSpan.FromMinutes(2), token);
             var list = answer?["games"]?[title]?["backups"] as JArray;
             if (list == null)
             {
@@ -287,7 +446,7 @@ namespace Playnite.Atrio
         public static async Task<bool> RestoreAsync(string title, string backupName, CancellationToken token)
         {
             var answer = await RunAsync(
-                $"restore --api --force --path \"{BackupFolder}\" --backup \"{backupName}\"",
+                $"restore --api --force --path {Quote(BackupFolder)} --backup {Quote(backupName)}",
                 new[] { title },
                 TimeSpan.FromMinutes(15),
                 token);
@@ -308,19 +467,32 @@ namespace Playnite.Atrio
     public static class SaveBackups
     {
         public const string FileName = "atrio-copias.json";
+        public const string PendingFileName = "atrio-copias-pendientes.json";
         private static readonly ILogger logger = LogManager.GetLogger();
         private static readonly TimeSpan settle = TimeSpan.FromSeconds(20);
         private static readonly object sync = new object();
         private static readonly SemaphoreSlim working = new SemaphoreSlim(1, 1);
-        private static readonly ConcurrentDictionary<Guid, DateTime> waiting = new ConcurrentDictionary<Guid, DateTime>();
+        private static readonly ConcurrentDictionary<Guid, WaitingCopy> waiting = new ConcurrentDictionary<Guid, WaitingCopy>();
+        private static readonly ConcurrentDictionary<Guid, byte> restoring = new ConcurrentDictionary<Guid, byte>();
         private static Dictionary<Guid, SaveBackupInfo> infos;
+        private static HashSet<Guid> pending;
         private static IGameDatabaseMain database;
         private static Func<bool> isEnabled;
+
+        /// <summary>A copy waiting for the game to finish writing. Each sitting has its own, so only the last one copies.</summary>
+        private class WaitingCopy
+        {
+            /// <summary>The sitting was of a game opened outside Atrio, which may still be open when Atrio closes.</summary>
+            public bool Outside;
+        }
 
         /// <summary>Raised when the copies of a game change, on any thread.</summary>
         public static event EventHandler<Guid> Changed;
 
         public static string FilePath => Path.Combine(Ludusavi.Root ?? PlaynitePaths.ConfigRootPath, FileName);
+
+        /// <summary>The games owed a copy because Atrio closed before making it: the next start makes it.</summary>
+        public static string PendingPath => Path.Combine(Ludusavi.Root ?? PlaynitePaths.ConfigRootPath, PendingFileName);
 
         public static bool IsEnabled => isEnabled?.Invoke() == true;
 
@@ -337,6 +509,7 @@ namespace Playnite.Atrio
             database = db;
             isEnabled = enabled;
             PlayHistory.Recorded += PlayHistory_Recorded;
+            _ = Task.Run(() => MakeOwedCopiesAsync(TimeSpan.FromSeconds(30)));
         }
 
         private static void PlayHistory_Recorded(object sender, PlaySession e)
@@ -347,20 +520,225 @@ namespace Playnite.Atrio
             }
 
             // Several sittings in a row (a pause, Atrio closing) make one copy, after the last one.
-            waiting[e.GameId] = DateTime.Now;
+            var mark = new WaitingCopy { Outside = e.Outside };
+            waiting[e.GameId] = mark;
             _ = Task.Run(async () =>
             {
-                await Task.Delay(settle);
-                if (waiting.TryGetValue(e.GameId, out var at) && DateTime.Now - at >= settle - TimeSpan.FromSeconds(1))
+                try
                 {
-                    waiting.TryRemove(e.GameId, out _);
+                    await Task.Delay(settle);
+
+                    // Only if no later sitting took its place, and Atrio isn't closing with it.
+                    if (!((ICollection<KeyValuePair<Guid, WaitingCopy>>)waiting).Remove(new KeyValuePair<Guid, WaitingCopy>(e.GameId, mark)))
+                    {
+                        return;
+                    }
+
                     var game = database?.Games.Get(e.GameId);
-                    if (game != null && !OpenGames.IsOpen(game.Id) && !game.IsRunning)
+                    if (game != null && IsEnabled && !OpenGames.IsOpen(game.Id) && !game.IsRunning && !IsRestoring(game.Id))
                     {
                         await BackupAsync(game, CancellationToken.None);
                     }
                 }
+                catch (Exception ex)
+                {
+                    logger.Error(ex, "Failed to copy the saves after playing.");
+                }
             });
+        }
+
+        /// <summary>
+        /// Atrio closes, and the copies waiting for their seconds can't wait. The games already closed get theirs now,
+        /// from a Ludusavi that goes on alone; all of them are owed to the next start, which checks them and says how
+        /// it went. A game opened outside Atrio that is still open waits for that start.
+        /// </summary>
+        public static void Shutdown()
+        {
+            if (database == null || !IsEnabled)
+            {
+                return;
+            }
+
+            try
+            {
+                var owed = new List<Guid>();
+                var titles = new List<string>();
+                foreach (var item in waiting.ToArray())
+                {
+                    if (!((ICollection<KeyValuePair<Guid, WaitingCopy>>)waiting).Remove(item))
+                    {
+                        continue;
+                    }
+
+                    owed.Add(item.Key);
+                    var game = database.Games.Get(item.Key);
+                    var title = GetInfo(item.Key)?.Title;
+                    if (game != null && !string.IsNullOrEmpty(title) && !game.IsRunning && !(item.Value.Outside && OpenGames.IsOpen(item.Key)))
+                    {
+                        titles.Add(title);
+                    }
+                }
+
+                // The copy being made right now won't be able to say how it went.
+                var busy = Busy;
+                if (busy != Guid.Empty)
+                {
+                    owed.Add(busy);
+                }
+
+                if (owed.Count == 0)
+                {
+                    return;
+                }
+
+                AddOwed(owed);
+                if (busy == Guid.Empty)
+                {
+                    Ludusavi.StartBackupAlone(titles);
+                }
+            }
+            catch (Exception e)
+            {
+                logger.Error(e, "Failed to leave the copies of the saves for later.");
+            }
+        }
+
+        /// <summary>The copies owed from the last time, a little after the start, once the Ludusavi left alone has finished.</summary>
+        private static async Task MakeOwedCopiesAsync(TimeSpan wait)
+        {
+            try
+            {
+                if (GetOwed().Count == 0)
+                {
+                    return;
+                }
+
+                await Task.Delay(wait);
+                for (var i = 0; i < 60 && Ludusavi.OtherIsRunning(); i++)
+                {
+                    await Task.Delay(TimeSpan.FromSeconds(5));
+                }
+
+                foreach (var id in GetOwed())
+                {
+                    var game = database?.Games.Get(id);
+                    if (game == null || !IsEnabled)
+                    {
+                        RemoveOwed(id);
+                    }
+                    else if (!game.IsRunning && !game.IsLaunching && !OpenGames.IsOpen(id))
+                    {
+                        await BackupAsync(game, CancellationToken.None);
+                    }
+
+                    // A game that is open again keeps its debt: the copy after this sitting pays it.
+                }
+            }
+            catch (Exception e)
+            {
+                logger.Error(e, "Failed to make the copies owed from the last time.");
+            }
+        }
+
+        public static List<Guid> GetOwed()
+        {
+            lock (sync)
+            {
+                return LoadOwed().ToList();
+            }
+        }
+
+        private static void AddOwed(IEnumerable<Guid> ids)
+        {
+            lock (sync)
+            {
+                var set = LoadOwed();
+                var added = false;
+                foreach (var id in ids)
+                {
+                    added |= set.Add(id);
+                }
+
+                if (added)
+                {
+                    SaveOwed();
+                }
+            }
+        }
+
+        private static void RemoveOwed(Guid id)
+        {
+            lock (sync)
+            {
+                if (LoadOwed().Remove(id))
+                {
+                    SaveOwed();
+                }
+            }
+        }
+
+        private static HashSet<Guid> LoadOwed()
+        {
+            if (pending != null)
+            {
+                return pending;
+            }
+
+            try
+            {
+                if (File.Exists(PendingPath))
+                {
+                    pending = new HashSet<Guid>(Playnite.Common.Serialization.FromJsonFile<List<Guid>>(PendingPath) ?? new List<Guid>());
+                }
+            }
+            catch (Exception e)
+            {
+                logger.Error(e, "Failed to read the copies of the saves owed from the last time.");
+            }
+
+            return pending = pending ?? new HashSet<Guid>();
+        }
+
+        private static void SaveOwed()
+        {
+            try
+            {
+                if (pending.Count > 0)
+                {
+                    FileSystem.WriteStringToFile(PendingPath, Playnite.Common.Serialization.ToJson(pending.ToList(), true));
+                }
+                else if (File.Exists(PendingPath))
+                {
+                    File.Delete(PendingPath);
+                }
+            }
+            catch (Exception e)
+            {
+                logger.Error(e, "Failed to save the copies of the saves owed.");
+            }
+        }
+
+        /// <summary>A restore of the game is under way, from its question until the end.</summary>
+        public static bool IsRestoring(Guid gameId) => restoring.ContainsKey(gameId);
+
+        /// <summary>Marks the start of a restore; false if the game already has one under way.</summary>
+        public static bool TryStartRestore(Guid gameId)
+        {
+            if (!restoring.TryAdd(gameId, 0))
+            {
+                return false;
+            }
+
+            Changed?.Invoke(null, gameId);
+            return true;
+        }
+
+        public static void EndRestore(Guid gameId)
+        {
+            if (restoring.TryRemove(gameId, out _))
+            {
+                Changed?.Invoke(null, gameId);
+            }
         }
 
         public static SaveBackupInfo GetInfo(Guid gameId)
@@ -441,6 +819,7 @@ namespace Playnite.Atrio
                 {
                     var unknown = new SaveBackupInfo { NoSaves = true };
                     SetInfo(game.Id, unknown);
+                    RemoveOwed(game.Id);
                     logger.Info($"Ludusavi doesn't know {game.Name}: no copy of its saves.");
                     return unknown;
                 }
@@ -461,7 +840,8 @@ namespace Playnite.Atrio
                 }
 
                 SetInfo(game.Id, result);
-                logger.Info($"Copy of the saves of {game.Name} ({title}): {(result.NoSaves ? "nothing found" : result.Bytes + " bytes")}.");
+                RemoveOwed(game.Id);
+                logger.Info($"Copy of the saves of {game.Name} ({title}): {(result.NoSaves ? "nothing found" : result.Bytes + " bytes")}{(result.Failed ? ", not every file" : string.Empty)}.");
                 return result;
             }
             catch (OperationCanceledException)
@@ -482,36 +862,70 @@ namespace Playnite.Atrio
         }
 
         /// <summary>
-        /// Puts back the newest copy made before now. First the current saves get a copy of their own, so going back
-        /// is always possible. False if anything failed; then nothing was restored.
+        /// Puts back the copy the person chose, and no other: a newer one may have come in the meantime. First the
+        /// current saves get a copy of their own, so going back is always possible; if that copy couldn't take every
+        /// file, nothing is touched.
         /// </summary>
-        public static async Task<bool> RestoreLatestAsync(Game game, CancellationToken token)
+        public static async Task<SaveRestoreResult> RestoreAsync(Game game, SaveBackup chosen, CancellationToken token)
         {
-            var title = await GetTitleAsync(game, token);
-            if (string.IsNullOrEmpty(title))
+            if (game == null || string.IsNullOrEmpty(chosen?.Name))
             {
-                return false;
+                return SaveRestoreResult.Nothing;
             }
 
-            var backups = await Ludusavi.GetBackupsAsync(title, token);
-            var latest = backups.FirstOrDefault();
-            if (latest == null)
+            string title;
+            try
             {
-                return false;
-            }
+                title = await GetTitleAsync(game, token);
+                if (string.IsNullOrEmpty(title))
+                {
+                    return SaveRestoreResult.Nothing;
+                }
 
-            if (await BackupAsync(game, token) == null)
+                var safety = await BackupAsync(game, token);
+                if (safety == null || safety.Failed || string.IsNullOrEmpty(safety.Title))
+                {
+                    logger.Warn($"No restore of the saves of {game.Name}: the copy of the current ones didn't take every file.");
+                    return SaveRestoreResult.NoSafetyCopy;
+                }
+            }
+            catch (Exception e) when (!(e is OperationCanceledException))
             {
-                return false;
+                logger.Error(e, $"Failed to prepare the restore of the saves of {game.Name}.");
+                return SaveRestoreResult.Nothing;
             }
 
             await working.WaitAsync(token);
             Busy = game.Id;
+            Changed?.Invoke(null, game.Id);
             try
             {
-                var restored = await Ludusavi.RestoreAsync(title, latest.Name, token);
-                logger.Info($"Restore of the saves of {game.Name} from {latest.When}: {(restored ? "done" : "failed")}.");
-                return restored;
+                // The copy that made room for the new one may have been the chosen one, if it was the oldest.
+                List<SaveBackup> backups;
+                try
+                {
+                    backups = await Ludusavi.GetBackupsAsync(title, token);
+                }
+                catch (Exception e) when (!(e is OperationCanceledException))
+                {
+                    logger.Error(e, $"Failed to list the copies of the saves of {game.Name}.");
+                    return SaveRestoreResult.Nothing;
+                }
+
+                if (!backups.Any(a => a.Name == chosen.Name))
+                {
+                    logger.Warn($"No restore of the saves of {game.Name}: the copy of {chosen.When} isn't there anymore.");
+                    return SaveRestoreResult.Nothing;
+                }
+
+                var restored = await Ludusavi.RestoreAsync(title, chosen.Name, token);
+                logger.Info($"Restore of the saves of {game.Name} from {chosen.When}: {(restored ? "done" : "failed")}.");
+                return restored ? SaveRestoreResult.Done : SaveRestoreResult.Partly;
+            }
+            catch (Exception e) when (!(e is OperationCanceledException))
+            {
+                logger.Error(e, $"Failed to restore the saves of {game.Name}.");
+                return SaveRestoreResult.Partly;
             }
             finally
             {

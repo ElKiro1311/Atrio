@@ -156,7 +156,23 @@ namespace Playnite.FullscreenApp.Controls.SettingsSections
             {
                 unifier.Settings.BackupSaves = ToggleBackupSaves.IsChecked == true;
                 unifier.Settings.Save();
-                if (unifier.Settings.BackupSaves && !await Playnite.Atrio.Ludusavi.InstallAsync(System.Threading.CancellationToken.None))
+                if (!unifier.Settings.BackupSaves)
+                {
+                    return;
+                }
+
+                bool installed;
+                try
+                {
+                    installed = await Playnite.Atrio.Ludusavi.InstallAsync(System.Threading.CancellationToken.None);
+                }
+                catch (Exception e)
+                {
+                    Playnite.SDK.LogManager.GetLogger().Error(e, "Failed to get Ludusavi.");
+                    installed = false;
+                }
+
+                if (!installed)
                 {
                     unifier.Settings.BackupSaves = false;
                     unifier.Settings.Save();

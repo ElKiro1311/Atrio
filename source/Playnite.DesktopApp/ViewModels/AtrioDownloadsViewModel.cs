@@ -501,6 +501,7 @@ namespace Playnite.DesktopApp.ViewModels
             }
 
             measuring = true;
+            var measuredAny = false;
             try
             {
                 foreach (var row in missing)
@@ -523,12 +524,27 @@ namespace Playnite.DesktopApp.ViewModels
                         }
                     });
 
+                    // The size goes to the row before it stops saying "Measuring…": the change of the library comes a bit later.
+                    var measured = main.Database.Games.Get(row.Game.Id)?.InstallSize ?? 0;
+                    if (measured > 0)
+                    {
+                        row.Size = (long)Math.Min(measured, long.MaxValue);
+                    }
+
                     row.Measured = true;
+                    measuredAny = true;
                 }
             }
             finally
             {
                 measuring = false;
+            }
+
+            // The new sizes move the bar of the disk, what's left for the rest and the order of the list: the page is
+            // made once more, without measuring again what's already measured.
+            if (measuredAny && isOpen && !main.IsDisposing)
+            {
+                RefreshSoon(true);
             }
         }
 

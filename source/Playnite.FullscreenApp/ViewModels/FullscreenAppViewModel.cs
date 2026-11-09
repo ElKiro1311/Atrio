@@ -525,10 +525,11 @@ namespace Playnite.FullscreenApp.ViewModels
                 {
                     OnPropertyChanged(nameof(ShowcaseActive));
 
-                    // Choosing a filter, in whatever way, leaves the start.
+                    // Choosing a filter, in whatever way, leaves the start and the collection that was open.
                     if (ActiveFilterPreset != null && !restoringFilter)
                     {
                         HomeActive = false;
+                        OpenCollection = null;
                     }
                 }
             };
@@ -1375,7 +1376,8 @@ namespace Playnite.FullscreenApp.ViewModels
                 Database.FilterPresets.Select(a => new SelectableNamedObject<FilterPreset>(a, DefaultFilterPresets.GetName(a))).OrderBy(a => a.Name).ToList(),
                 out var selectedPreset))
             {
-                ActiveFilterPreset = selectedPreset;
+                // Like its tab: even the filter that was already chosen leaves the start or the open collection.
+                SelectFilterTabCommand.Execute(selectedPreset);
             }
         }
 

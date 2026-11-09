@@ -211,9 +211,16 @@ namespace Playnite.DesktopApp.ViewModels
         /// <summary>Ludusavi comes as soon as the copies are turned on, so the first one doesn't wait for it.</summary>
         private async void GetLudusavi()
         {
-            if (await Ludusavi.InstallAsync(System.Threading.CancellationToken.None))
+            try
             {
-                return;
+                if (await Ludusavi.InstallAsync(System.Threading.CancellationToken.None))
+                {
+                    return;
+                }
+            }
+            catch (Exception e) when (!PlayniteEnvironment.ThrowAllErrors)
+            {
+                LogManager.GetLogger().Error(e, "Failed to get Ludusavi.");
             }
 
             main.Dialogs.ShowErrorMessage(ResourceProvider.GetString("LOCAtrioSavesDownloadFailed"), ResourceProvider.GetString("LOCAtrioSavesTitle"));
