@@ -22,16 +22,16 @@ jobs:
     runs-on: windows-2022
     timeout-minutes: 45
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           ref: main
           fetch-depth: 0
 
-      - uses: actions/setup-dotnet@v4
+      - uses: actions/setup-dotnet@v6
         with:
           dotnet-version: '9.0.x'
 
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v7
         with:
           python-version: '3.12'
 
@@ -50,7 +50,7 @@ jobs:
           & .\atrio\herramientas\compilar.ps1 -Banco -Salida salida\Banco
           Compress-Archive -Path salida\Banco\* -DestinationPath salida\Banco.zip
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: banco
           path: salida/Banco.zip

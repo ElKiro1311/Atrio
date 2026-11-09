@@ -57,6 +57,61 @@ namespace Playnite.Tests
             Assert.IsNull(pending[0].Scheduled);
         }
 
+        [Test]
+        public void UpdateWaitingWhileOpenTest()
+        {
+            var steam = new Game { PluginId = SteamContent.SteamPluginId, GameId = "3419430" };
+            var other = new Game { PluginId = Guid.NewGuid(), GameId = "3419430" };
+            var reads = 0;
+            IEnumerable<string> pending()
+            {
+                reads++;
+                return new[] { "3419430", null, "" };
+            }
+
+            var raised = 0;
+            EventHandler counter = (s, e) => raised++;
+            SteamUpdates.WaitingChanged += counter;
+            try
+            {
+                // Nothing open: the files of Steam aren't even read.
+                SteamUpdates.Refresh(false, pending);
+                Assert.AreEqual(0, reads);
+                Assert.IsFalse(SteamUpdates.IsWaiting(new[] { steam }));
+
+                Assert.IsTrue(SteamUpdates.Refresh(true, pending));
+                Assert.AreEqual(1, raised);
+                Assert.IsTrue(SteamUpdates.IsWaiting(new[] { other, steam }));
+
+                // Only the copy of Steam counts, whatever the id of the others.
+                Assert.IsFalse(SteamUpdates.IsWaiting(new[] { other }));
+
+                // The same again doesn't tell anyone.
+                Assert.IsFalse(SteamUpdates.Refresh(true, pending));
+                Assert.AreEqual(1, raised);
+
+                // Once the game is closed Steam installs it, and the mark goes away.
+                Assert.IsTrue(SteamUpdates.Refresh(false, pending));
+                Assert.AreEqual(2, raised);
+                Assert.IsFalse(SteamUpdates.IsWaiting(new[] { steam }));
+            }
+            finally
+            {
+                SteamUpdates.WaitingChanged -= counter;
+                SteamUpdates.Refresh(false, null);
+            }
+        }
+
+        [Test]
+        public void RenderThreadFailureTest()
+        {
+            var render = new System.Runtime.InteropServices.COMException("UCEERR_RENDERTHREADFAILURE", unchecked((int)0x88980406));
+            Assert.IsTrue(PlayniteApplication.IsRenderThreadFailure(render));
+            Assert.IsTrue(PlayniteApplication.IsRenderThreadFailure(new InvalidOperationException("x", render)));
+            Assert.IsFalse(PlayniteApplication.IsRenderThreadFailure(new System.Runtime.InteropServices.COMException("other", unchecked((int)0x80004005))));
+            Assert.IsFalse(PlayniteApplication.IsRenderThreadFailure(null));
+        }
+
         private static string NewFolder()
         {
             var folder = Path.Combine(Path.GetTempPath(), "atrio-pruebas-" + Guid.NewGuid().ToString("N"));

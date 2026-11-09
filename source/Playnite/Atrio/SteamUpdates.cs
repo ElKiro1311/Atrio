@@ -104,20 +104,32 @@ namespace Playnite.Atrio
             {
                 try
                 {
-                    var now = anyOpen() ?
-                        new HashSet<string>(GetPending().Select(a => a.AppId)) :
-                        new HashSet<string>();
-                    if (!now.SetEquals(waiting))
-                    {
-                        waiting = now;
-                        WaitingChanged?.Invoke(null, EventArgs.Empty);
-                    }
+                    Refresh(anyOpen(), () => GetPending().Select(a => a.AppId));
                 }
                 catch (Exception e) when (!PlayniteEnvironment.ThrowAllErrors)
                 {
                     logger.Debug(e, "Failed to look at the updates of Steam.");
                 }
             }, null, TimeSpan.FromSeconds(15), TimeSpan.FromSeconds(20));
+        }
+
+        /// <summary>
+        /// One look of the watch: the pending updates are read only while a game is open, and with nothing open
+        /// there is nothing waiting. Says whether it changed, and then the event is raised.
+        /// </summary>
+        public static bool Refresh(bool anyOpen, Func<IEnumerable<string>> pendingAppIds)
+        {
+            var now = anyOpen ?
+                new HashSet<string>((pendingAppIds?.Invoke() ?? Enumerable.Empty<string>()).Where(a => !a.IsNullOrEmpty())) :
+                new HashSet<string>();
+            if (now.SetEquals(waiting))
+            {
+                return false;
+            }
+
+            waiting = now;
+            WaitingChanged?.Invoke(null, EventArgs.Empty);
+            return true;
         }
 
         public static string GetValidateUrl(string appId) => $"steam://validate/{appId}";

@@ -32,6 +32,11 @@ namespace Playnite.Metadata
                 {
                     downloader = plugin.GetMetadataDownloader();
                 }
+                catch (System.IO.FileNotFoundException e) when (!PlayniteEnvironment.ThrowAllErrors)
+                {
+                    // The app of the store isn't installed (itch.io needs its own program for this): nothing is broken.
+                    logger.Warn($"No metadata from {plugin.Name} library plugin: {e.Message}");
+                }
                 catch (Exception e) when (!PlayniteEnvironment.ThrowAllErrors)
                 {
                     logger.Error(e, $"Failed to get metadata downloader from {plugin.Name} library plugin.");

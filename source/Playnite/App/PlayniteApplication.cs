@@ -504,11 +504,21 @@ namespace Playnite
                 return;
             }
 
+            var exception = (Exception)e.ExceptionObject;
+
+            // While the crash window is open its messages keep coming, and a broken window keeps failing: every new
+            // failure used to open the crash handling again, one on top of the other. The first one is enough.
+            if (Interlocked.Exchange(ref handlingCrash, 1) == 1)
+            {
+                logger.Error(exception, "Another unhandled exception while handling the first one.");
+                Process.GetCurrentProcess().Kill();
+                return;
+            }
+
             var customThemeInUse = Mode == ApplicationMode.Desktop ?
                 AppSettings.Theme != ThemeManager.DefaultDesktopThemeId :
                 AppSettings.Fullscreen.Theme != ThemeManager.DefaultFullscreenThemeId;
 
-            var exception = (Exception)e.ExceptionObject;
             var crashInfo = Exceptions.GetExceptionInfo(exception, Extensions, customThemeInUse);
             logger.Error(exception, $"Unhandled exception occured.");
             logger.Error($"HResult: 0x{exception.HResult:X8}");
@@ -519,6 +529,14 @@ namespace Playnite
             // Delete safe startup flag if we are able to handle the crash,
             // safe startup option should show for crashes we are not handling.
             FileSystem.DeleteFile(PlaynitePaths.SafeStartupFlagFile);
+
+            // The drawing of the windows broke, which is what happens when the driver of the graphics card resets
+            // (a game that hung the card, a new driver): nothing can be shown anymore, so Atrio opens again by itself.
+            if (IsRenderThreadFailure(exception) && TryRestartAfterRenderFailure())
+            {
+                Process.GetCurrentProcess().Kill();
+                return;
+            }
             if (crashInfo.IsLiteDbCorruptionCrash)
             {
                 Dialogs.ShowErrorMessage(LOC.DBCorruptionCrashMessage.GetLocalized());
@@ -617,6 +635,67 @@ namespace Playnite
 
             crashModel.OpenView();
             Process.GetCurrentProcess().Kill();
+        }
+
+        private static int handlingCrash;
+
+        /// <summary>UCEERR_RENDERTHREADFAILURE: the thread of WPF that draws every window failed.</summary>
+        public static bool IsRenderThreadFailure(Exception exception)
+        {
+            for (var current = exception; current != null; current = current.InnerException)
+            {
+                if (current.HResult == unchecked((int)0x88980406))
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        /// <summary>
+        /// Opens Atrio again a moment after this one is gone, in the same mode and with the same data. Not when it
+        /// had just started: then it would break again, and over and over, so the usual crash window shows instead.
+        /// </summary>
+        private bool TryRestartAfterRenderFailure()
+        {
+            try
+            {
+                var process = Process.GetCurrentProcess();
+                if (DateTime.Now - process.StartTime < TimeSpan.FromMinutes(1))
+                {
+                    logger.Error("The drawing failed right after starting: not opening Atrio again.");
+                    return false;
+                }
+
+                try
+                {
+                    AppSettings?.SaveSettings();
+                }
+                catch (Exception exc)
+                {
+                    logger.Error(exc, "Failed to save the settings before opening Atrio again.");
+                }
+
+                var options = new CmdLineOptions { UserDataDir = CmdLine.UserDataDir, SkipLibUpdate = true };
+                var exe = Mode == ApplicationMode.Desktop ? PlaynitePaths.DesktopExecutablePath : PlaynitePaths.FullscreenExecutablePath;
+
+                // A few seconds later, once this process is gone, or the new one would just hand over to this one.
+                var info = new ProcessStartInfo("cmd.exe", $"/d /c ping -n 4 127.0.0.1 >nul & start \"\" \"{exe}\" {options}")
+                {
+                    UseShellExecute = false,
+                    CreateNoWindow = true,
+                    WindowStyle = ProcessWindowStyle.Hidden
+                };
+                Process.Start(info)?.Dispose();
+                logger.Info("The drawing of the windows failed: opening Atrio again.");
+                return true;
+            }
+            catch (Exception exc)
+            {
+                logger.Error(exc, "Failed to open Atrio again after the drawing failed.");
+                return false;
+            }
         }
 
         private void Application_Startup(object sender, StartupEventArgs e)
