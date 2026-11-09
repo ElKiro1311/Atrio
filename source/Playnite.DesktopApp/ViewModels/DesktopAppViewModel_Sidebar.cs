@@ -233,9 +233,51 @@ namespace Playnite.DesktopApp.ViewModels
 
         private SidebarWrapperItem storesSidebarItem;
         private SidebarWrapperItem downloadsSidebarItem;
+        private SidebarWrapperItem wishlistSidebarItem;
 
         /// <summary>The page of the installs in progress and the room of the disks.</summary>
         public DownloadsViewModel DownloadsModel { get; private set; }
+
+        /// <summary>The page of the list of wishes.</summary>
+        public WishlistViewModel WishlistModel { get; private set; }
+
+        public void SwitchToWishlistView()
+        {
+            wishlistSidebarItem?.Command.Execute(null);
+        }
+
+        /// <summary>What the list of wishes and the install queue have to tell, as notices of Atrio.</summary>
+        private void AttachAtrioNotices()
+        {
+            Playnite.Atrio.Wishlist.Notify = changes => App.SyncContext.Post(_ =>
+            {
+                foreach (var change in changes)
+                {
+                    // A newer notice of the same game takes the place of the old one, if that one is still there.
+                    var id = "AtrioWish" + change.Item.Key;
+                    App.Notifications.Remove(id);
+                    App.Notifications.Add(new NotificationMessage(
+                        id,
+                        WishlistViewModel.GetNotice(change),
+                        NotificationType.Info,
+                        () => SwitchToWishlistView()));
+                }
+            }, null);
+
+            Playnite.Atrio.InstallQueue.Finished = (installed, failed) => App.SyncContext.Post(_ =>
+            {
+                var text = installed.Count > 0 ?
+                    string.Format(Resources.GetString("LOCAtrioQueueFinished"), string.Join(", ", installed)) :
+                    Resources.GetString("LOCAtrioQueueFinishedNone");
+                if (failed.Count > 0)
+                {
+                    text += " " + string.Format(Resources.GetString("LOCAtrioQueueFailed"), string.Join(", ", failed));
+                }
+
+                App.Notifications.Remove("AtrioQueueFinished");
+                App.Notifications.Add(new NotificationMessage("AtrioQueueFinished", text, NotificationType.Info, () => SwitchToDownloadsView()));
+            }, null);
+        }
 
         public void SwitchToStoresView()
         {
@@ -404,6 +446,15 @@ namespace Playnite.DesktopApp.ViewModels
                 Title = Resources.GetString("LOCAtrioDownloads"),
                 Closed = DownloadsModel.OnHidden
             }, this);
+            WishlistModel = new WishlistViewModel(this);
+            wishlistSidebarItem = new SidebarWrapperItem(new AtrioSidebarItem(new Controls.Views.WishlistView(WishlistModel), WishlistModel.OnShown)
+            {
+                Icon = "SidebarWishlistIcon",
+                Title = Resources.GetString("LOCAtrioWishlist"),
+                Closed = WishlistModel.OnHidden
+            }, this);
+            AttachAtrioNotices();
+            sideItems.Insert(0, wishlistSidebarItem);
             sideItems.Insert(0, downloadsSidebarItem);
             sideItems.Insert(0, storesSidebarItem);
             sideItems.Insert(0, new SidebarWrapperItem(libraryItem, this));

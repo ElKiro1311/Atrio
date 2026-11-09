@@ -18,11 +18,15 @@ namespace Playnite.FullscreenApp.Controls
     /// <summary>A tab of a filter is checked when its filter is the active one and the start isn't showing.</summary>
     public class PresetTabConverter : IMultiValueConverter
     {
-        /// <summary>Values: the active filter, whether the rows show, and (optional) the collection whose games show.</summary>
+        /// <summary>
+        /// Values: the active filter, whether the rows show, and (optional) the collection whose games show and
+        /// whether the tab of the games with a controller is the one showing.
+        /// </summary>
         public object Convert(object[] values, Type targetType, object parameter, System.Globalization.CultureInfo culture)
         {
             return values?.Length > 1 && values[0] != null && Equals(values[0], parameter) && values[1] as bool? != true &&
-                (values.Length < 3 || values[2] == null || values[2] == System.Windows.DependencyProperty.UnsetValue);
+                (values.Length < 3 || values[2] == null || values[2] == System.Windows.DependencyProperty.UnsetValue) &&
+                (values.Length < 4 || values[3] as bool? != true);
         }
 
         public object[] ConvertBack(object value, Type[] targetTypes, object parameter, System.Globalization.CultureInfo culture)
@@ -38,6 +42,7 @@ namespace Playnite.FullscreenApp.Controls
         private ItemsControl ItemsFilterPresets;
         private CheckBoxEx homeItem;
         private CheckBoxEx collectionsItem;
+        private CheckBoxEx controllerItem;
         private Playnite.SDK.Models.FilterPreset collectionsTabPreset;
 
         static FilterPresetSelector()
@@ -119,6 +124,29 @@ namespace Playnite.FullscreenApp.Controls
                 collectionsItem = collections;
                 ItemsFilterPresets.Items.Add(collections);
 
+                // Then the games played with a controller, over the whole library.
+                var controllerName = ResourceProvider.GetString("LOCAtrioCouchController");
+                var controller = new CheckBoxEx
+                {
+                    Style = ResourceProvider.GetResource<Style>("ItemFilterQuickPreset"),
+                    Command = mainModel.ShowControllerCommand,
+                    DataContext = new Playnite.SDK.Models.FilterPreset { Name = controllerName }
+                };
+
+                AutomationProperties.SetName(controller, controllerName);
+                BindingTools.SetBinding(controller,
+                    CheckBox.IsCheckedProperty,
+                    mainModel,
+                    nameof(mainModel.ControllerTabActive),
+                    mode: BindingMode.OneWay);
+                BindingTools.SetBinding(controller,
+                    UIElement.VisibilityProperty,
+                    mainModel,
+                    nameof(mainModel.ThemeHasHome),
+                    converter: new Converters.BooleanToVisibilityConverter());
+                controllerItem = controller;
+                ItemsFilterPresets.Items.Add(controller);
+
                 foreach (var preset in mainModel.SortedFilterFullscreenPresets)
                 {
                     var item = new CheckBoxEx
@@ -139,6 +167,7 @@ namespace Playnite.FullscreenApp.Controls
                     isChecked.Bindings.Add(new Binding(nameof(mainModel.ActiveFilterPreset)) { Source = mainModel });
                     isChecked.Bindings.Add(new Binding(nameof(mainModel.HomeActive)) { Source = mainModel });
                     isChecked.Bindings.Add(new Binding(nameof(mainModel.OpenCollection)) { Source = mainModel });
+                    isChecked.Bindings.Add(new Binding(nameof(mainModel.ControllerOnly)) { Source = mainModel });
                     item.SetBinding(CheckBox.IsCheckedProperty, isChecked);
                     ItemsFilterPresets.Items.Add(item);
                 }
@@ -147,6 +176,11 @@ namespace Playnite.FullscreenApp.Controls
             if (e.PropertyName == nameof(FullscreenAppViewModel.HomeActive) && mainModel.HomeActive && homeItem != null)
             {
                 ItemsFilterPresets.ScrollIntoView(mainModel.CollectionsTabActive && collectionsItem != null ? collectionsItem : homeItem);
+            }
+
+            if (e.PropertyName == nameof(FullscreenAppViewModel.ControllerTabActive) && mainModel.ControllerTabActive && controllerItem != null)
+            {
+                ItemsFilterPresets.ScrollIntoView(controllerItem);
             }
 
             // The tab shows its name through a converter of the whole object: a new object makes it read it again.

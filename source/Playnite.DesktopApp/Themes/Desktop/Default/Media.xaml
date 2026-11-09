@@ -37,6 +37,7 @@
     <TextBlock x:Key="SidebarHomeIcon" Text="&#xE80F;" FontFamily="Segoe MDL2 Assets" />
     <TextBlock x:Key="SidebarStoresIcon" Text="&#xE719;" FontFamily="Segoe MDL2 Assets" />
     <TextBlock x:Key="SidebarDownloadsIcon" Text="&#xE896;" FontFamily="Segoe MDL2 Assets" />
+    <TextBlock x:Key="SidebarWishlistIcon" Text="&#xEB51;" FontFamily="Segoe MDL2 Assets" />
     <TextBlock x:Key="SidebarBrowserIcon" Text="&#xE774;" FontFamily="Segoe MDL2 Assets" />
     <TextBlock x:Key="SidebarThemesIcon" Text="&#xE790;" FontFamily="Segoe MDL2 Assets" />
     <TextBlock x:Key="SidebarCollectionsIcon" Text="&#xE8F1;" FontFamily="Segoe MDL2 Assets" />

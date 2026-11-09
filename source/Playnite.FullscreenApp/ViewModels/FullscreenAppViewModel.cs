@@ -530,6 +530,7 @@ namespace Playnite.FullscreenApp.ViewModels
                     {
                         HomeActive = false;
                         OpenCollection = null;
+                        ControllerOnly = false;
                     }
                 }
             };

@@ -18,6 +18,9 @@ namespace Playnite.Atrio
 
         /// <summary>The game was opened outside Atrio: Atrio only saw it running.</summary>
         public bool Outside { get; set; }
+
+        /// <summary>Played on another computer, which the synchronization brought: null when it was played here.</summary>
+        public string Machine { get; set; }
     }
 
     /// <summary>A game opened outside Atrio that is still open, kept in case Atrio closes before the game.</summary>
@@ -128,9 +131,137 @@ namespace Playnite.Atrio
                 return Load().Sessions.
                     Where(a => a.End > fromUtc && a.Start < toUtc).
                     OrderBy(a => a.Start).
-                    Select(a => new PlaySession { GameId = a.GameId, Start = a.Start, End = a.End, Seconds = a.Seconds, Outside = a.Outside }).
+                    Select(a => new PlaySession { GameId = a.GameId, Start = a.Start, End = a.End, Seconds = a.Seconds, Outside = a.Outside, Machine = a.Machine }).
                     ToList();
             }
+        }
+
+        /// <summary>
+        /// Sittings of other computers, which the synchronization brought, all in one save. Only the summaries change:
+        /// what happens after playing, like the copies of the saves, is for the computer where it was played.
+        /// Returns the ones that are in the history as sittings of that computer: the new ones, and the ones a round
+        /// cut in half had already put there. A sitting of the same game that starts at the same moment and is of
+        /// this computer, or of another one, is the same sitting: it's left out.
+        /// </summary>
+        public static List<PlaySession> AddRemoteMany(IEnumerable<PlaySession> sessions)
+        {
+            var recorded = new List<PlaySession>();
+            var added = false;
+            lock (sync)
+            {
+                var current = Load();
+                var known = new Dictionary<string, string>();
+                foreach (var session in current.Sessions)
+                {
+                    known[session.GameId + "|" + ToUtc(session.Start).Ticks] = session.Machine ?? string.Empty;
+                }
+
+                var limit = DateTime.UtcNow - KeepFor;
+                foreach (var session in sessions ?? Enumerable.Empty<PlaySession>())
+                {
+                    if (session == null || session.GameId == Guid.Empty || session.Seconds <= 0 || session.Machine == null)
+                    {
+                        continue;
+                    }
+
+                    var start = ToUtc(session.Start);
+                    var end = ToUtc(session.End);
+                    var key = session.GameId + "|" + start.Ticks;
+                    var copy = new PlaySession
+                    {
+                        GameId = session.GameId,
+                        Start = start,
+                        End = end,
+                        Seconds = session.Seconds,
+                        Outside = session.Outside,
+                        Machine = session.Machine
+                    };
+
+                    if (known.TryGetValue(key, out var machine))
+                    {
+                        if (machine == session.Machine)
+                        {
+                            recorded.Add(copy);
+                        }
+
+                        continue;
+                    }
+
+                    if (end < limit)
+                    {
+                        continue;
+                    }
+
+                    known[key] = session.Machine;
+                    current.Sessions.Add(copy);
+                    recorded.Add(copy);
+                    added = true;
+                }
+
+                if (added)
+                {
+                    Prune(current, DateTime.UtcNow);
+                    Save(current);
+                }
+            }
+
+            if (added)
+            {
+                Changed?.Invoke(null, EventArgs.Empty);
+            }
+
+            return recorded;
+        }
+
+        /// <summary>
+        /// Takes sittings of other computers out of the history, so that they can come in again: the library came back
+        /// from a backup older than them.
+        /// </summary>
+        public static void RemoveRemote(IEnumerable<PlaySession> sessions)
+        {
+            var keys = new HashSet<string>((sessions ?? Enumerable.Empty<PlaySession>()).
+                Where(a => a?.Machine != null).
+                Select(a => a.Machine + "|" + a.GameId + "|" + ToUtc(a.Start).Ticks));
+            if (keys.Count == 0)
+            {
+                return;
+            }
+
+            lock (sync)
+            {
+                var current = Load();
+                if (current.Sessions.RemoveAll(a => a.Machine != null && keys.Contains(a.Machine + "|" + a.GameId + "|" + ToUtc(a.Start).Ticks)) > 0)
+                {
+                    Save(current);
+                }
+            }
+
+            Changed?.Invoke(null, EventArgs.Empty);
+        }
+
+        /// <summary>
+        /// The folder of Atrio was copied to another computer: what was played before belongs to the first one,
+        /// which keeps telling it. Returns the sittings that changed hands.
+        /// </summary>
+        public static List<PlaySession> GiveLocalTo(string machine)
+        {
+            var given = new List<PlaySession>();
+            lock (sync)
+            {
+                var current = Load();
+                foreach (var session in current.Sessions.Where(a => a.Machine == null))
+                {
+                    session.Machine = machine;
+                    given.Add(new PlaySession { GameId = session.GameId, Start = session.Start, End = session.End, Seconds = session.Seconds, Outside = session.Outside, Machine = machine });
+                }
+
+                if (given.Count > 0)
+                {
+                    Save(current);
+                }
+            }
+
+            return given;
         }
 
         public static List<OpenSitting> GetOpenSittings()

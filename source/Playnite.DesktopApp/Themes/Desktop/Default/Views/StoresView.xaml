@@ -253,6 +253,10 @@
                                                   ToolTip="{DynamicResource LOCAtrioLightHint}" />
                                         <CheckBox Content="{DynamicResource LOCAtrioSavesToggle}" IsChecked="{Binding BackupSaves}" Margin="0,10,0,0"
                                                   ToolTip="{DynamicResource LOCAtrioSavesHint}" />
+                                        <CheckBox Content="{DynamicResource LOCAtrioFreeGamesToggle}" IsChecked="{Binding ShowFreeGames}" Margin="0,10,0,0"
+                                                  ToolTip="{DynamicResource LOCAtrioFreeGamesHint}" />
+                                        <CheckBox Content="{DynamicResource LOCAtrioWishAlertsToggle}" IsChecked="{Binding WishlistAlerts}" Margin="0,10,0,0"
+                                                  ToolTip="{DynamicResource LOCAtrioWishAlertsHint}" />
                                     </StackPanel>
                                 </Border>
 
@@ -283,6 +287,32 @@
                                     </StackPanel>
                                 </Border>
                             </Grid>
+
+                            <!-- The library on several computers, through a folder that something else keeps in sync -->
+                            <Border Style="{DynamicResource AtrioCard}" Padding="20,18,20,18" Margin="0,16,14,0">
+                                <StackPanel>
+                                    <DockPanel>
+                                        <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Top">
+                                            <Button Style="{DynamicResource AtrioGhostButton}" Content="{DynamicResource LOCAtrioSyncNow}" Margin="0,0,8,0"
+                                                    Command="{Binding SyncNowCommand}"
+                                                    Visibility="{Binding IsSyncing, Converter={StaticResource BooleanToVisibilityConverter}}" />
+                                            <Button Style="{DynamicResource AtrioGhostButton}" Content="{DynamicResource LOCAtrioSyncChoose}"
+                                                    Command="{Binding ChooseSyncFolderCommand}" />
+                                            <Button Style="{DynamicResource AtrioGhostButton}" Content="{DynamicResource LOCAtrioSyncStop}" Margin="8,0,0,0"
+                                                    Command="{Binding StopSyncCommand}"
+                                                    Visibility="{Binding IsSyncing, Converter={StaticResource BooleanToVisibilityConverter}}" />
+                                        </StackPanel>
+                                        <TextBlock Text="{DynamicResource LOCAtrioSyncTitle}" Style="{DynamicResource AtrioSectionTitle}" />
+                                    </DockPanel>
+                                    <TextBlock Text="{DynamicResource LOCAtrioSyncHint}" Style="{DynamicResource AtrioCaption}" FontSize="13" TextWrapping="Wrap" Margin="0,-6,0,10" />
+                                    <TextBlock Text="{Binding SyncFolder}" Style="{DynamicResource BaseTextBlockStyle}" FontSize="14" TextTrimming="CharacterEllipsis"
+                                               Visibility="{Binding IsSyncing, Converter={StaticResource BooleanToVisibilityConverter}}" />
+                                    <TextBlock Text="{Binding SyncStatus}" Style="{DynamicResource AtrioCaption}" TextWrapping="Wrap" Margin="0,2,0,0" />
+                                    <CheckBox Content="{DynamicResource LOCAtrioSyncSavesToggle}" IsChecked="{Binding SyncSaves}" Margin="0,12,0,0"
+                                              ToolTip="{DynamicResource LOCAtrioSyncSavesHint}"
+                                              Visibility="{Binding IsSyncing, Converter={StaticResource BooleanToVisibilityConverter}}" />
+                                </StackPanel>
+                            </Border>
                         </StackPanel>
                     </ScrollViewer>
                 </ControlTemplate>

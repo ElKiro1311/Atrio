@@ -53,6 +53,18 @@ namespace Playnite.Atrio
         /// </summary>
         public bool AcceptStoreTerms { get; set; }
 
+        /// <summary>The start shows the games the store of Epic gives away this week.</summary>
+        public bool ShowFreeGames { get; set; } = true;
+
+        /// <summary>Atrio tells when a game of the list of wishes gets cheaper, becomes free or comes out.</summary>
+        public bool WishlistAlerts { get; set; } = true;
+
+        /// <summary>The folder shared with the other computers of the person, null while it doesn't synchronize.</summary>
+        public string SyncFolder { get; set; }
+
+        /// <summary>The copies of the saves go to the shared folder too, so the other computers can restore them.</summary>
+        public bool SyncSaves { get; set; }
+
         /// <summary>Plugin IDs from most to least preferred. Unknown stores go last.</summary>
         public List<Guid> StorePriority { get; set; } = GetDefaultStorePriority();
 

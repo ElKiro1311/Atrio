@@ -110,6 +110,7 @@
                 <ResourceDictionary Source="Themes/Desktop/Default/Views/CollectionsView.xaml" />
                 <ResourceDictionary Source="Themes/Desktop/Default/Views/StoresView.xaml" />
                 <ResourceDictionary Source="Themes/Desktop/Default/Views/DownloadsView.xaml" />
+                <ResourceDictionary Source="Themes/Desktop/Default/Views/WishlistView.xaml" />
                 <ResourceDictionary Source="Themes/Desktop/Default/Views/BrowserView.xaml" />
                 <ResourceDictionary Source="Themes/Desktop/Default/Views/ThemesView.xaml" />
                 <ResourceDictionary Source="Themes/Desktop/Default/Views/StoreFilterBar.xaml" />

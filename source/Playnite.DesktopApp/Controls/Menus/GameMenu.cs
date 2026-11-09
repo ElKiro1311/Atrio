@@ -145,6 +145,7 @@ namespace Playnite.DesktopApp.Controls
                 }
             }
 
+            AddQueueAndCheckItems(game);
             AddStoreItems(game);
 
             // Custom Actions
@@ -405,12 +406,54 @@ namespace Playnite.DesktopApp.Controls
             Items.Add(new Separator());
         }
 
+        /// <summary>Atrio: the install queue, and the check of the files that Steam does by itself.</summary>
+        private void AddQueueAndCheckItems(Game game)
+        {
+            var added = false;
+            if (InstallQueue.Contains(game.Id))
+            {
+                var removeItem = new MenuItem { Header = ResourceProvider.GetString("LOCAtrioQueueMenuRemove") };
+                removeItem.Click += (_, __) => InstallQueue.Remove(game.Id);
+                Items.Add(removeItem);
+                added = true;
+            }
+            else if (InstallQueue.CanQueue(game))
+            {
+                var queueItem = new MenuItem { Header = ResourceProvider.GetString("LOCAtrioQueueMenuAdd") };
+                queueItem.Click += (_, __) => InstallQueue.Add(new[] { game });
+                Items.Add(queueItem);
+                added = true;
+            }
+
+            if (game.IsInstalled && game.PluginId == SteamContent.SteamPluginId && int.TryParse(game.GameId, out _))
+            {
+                var checkItem = new MenuItem { Header = ResourceProvider.GetString("LOCAtrioCheckFiles"), ToolTip = ResourceProvider.GetString("LOCAtrioCheckFilesHint") };
+                checkItem.Click += (_, __) => SteamUpdates.Validate(game.GameId);
+                Items.Add(checkItem);
+                added = true;
+            }
+
+            if (added)
+            {
+                Items.Add(new Separator());
+            }
+        }
+
         private void InitializeItems(List<Game> games)
         {
             // Atrio: lets the user join games the automatic matching didn't catch.
             var mergeItem = new MenuItem { Header = ResourceProvider.GetString("LOCAtrioMenuMerge") };
             mergeItem.Click += (_, __) => GameUnifier.Current.MergeGames(games);
             Items.Add(mergeItem);
+
+            var queueable = games.Where(a => InstallQueue.CanQueue(a) && !InstallQueue.Contains(a.Id)).ToList();
+            if (queueable.Count > 0)
+            {
+                var queueItem = new MenuItem { Header = string.Format(ResourceProvider.GetString("LOCAtrioQueueMenuAddMany"), queueable.Count) };
+                queueItem.Click += (_, __) => InstallQueue.Add(queueable);
+                Items.Add(queueItem);
+            }
+
             Items.Add(new Separator());
 
             // Create Desktop Shortcut

@@ -103,7 +103,7 @@ namespace Playnite.DesktopApp.ViewModels
         public bool HasCollection => Collection != null;
     }
 
-    public class HomeViewModel : ObservableObject
+    public partial class HomeViewModel : ObservableObject
     {
         private const int ShelfSize = 24;
         private const int AllGamesPreview = 42;
@@ -742,6 +742,8 @@ namespace Playnite.DesktopApp.ViewModels
             AddAlmostDoneShelf(list);
             UpdateAllGames();
             LoadNews(played);
+            LoadFreeGames();
+            LoadRareAchievements();
             main.UpdateAmbient();
         }
     }

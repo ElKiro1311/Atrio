@@ -321,6 +321,118 @@
 
                                 <ItemsControl ItemsSource="{Binding Shelves}" ItemTemplate="{DynamicResource AtrioShelfTemplate}" Focusable="False" />
 
+                                <!-- What the store of Epic gives away this week: Atrio opens its page, taking it is the person's thing -->
+                                <StackPanel Margin="0,0,0,24" Visibility="{Binding FreeGames, Converter={StaticResource ICollectionNullOrEmptyToVisibilityConverter}}">
+                                    <DockPanel Margin="0,0,28,6">
+                                        <StackPanel Orientation="Horizontal" DockPanel.Dock="Right" VerticalAlignment="Center">
+                                            <Button Style="{DynamicResource AtrioShelfArrow}" Content="&#xE76B;"
+                                                    Command="ScrollBar.PageLeftCommand" CommandTarget="{Binding ElementName=FreeScroller}" />
+                                            <Button Style="{DynamicResource AtrioShelfArrow}" Content="&#xE76C;"
+                                                    Command="ScrollBar.PageRightCommand" CommandTarget="{Binding ElementName=FreeScroller}" />
+                                        </StackPanel>
+                                        <StackPanel VerticalAlignment="Center">
+                                            <TextBlock Text="{DynamicResource LOCAtrioFreeTitle}" Style="{DynamicResource AtrioSectionTitle}" Margin="0" />
+                                            <TextBlock Text="{DynamicResource LOCAtrioFreeHint}" Style="{DynamicResource AtrioCaption}" />
+                                        </StackPanel>
+                                    </DockPanel>
+                                    <ScrollViewer x:Name="FreeScroller" HorizontalScrollBarVisibility="Hidden" VerticalScrollBarVisibility="Disabled"
+                                                  PageWheel.PassToParent="True" Focusable="False">
+                                        <ItemsControl ItemsSource="{Binding FreeGames}" Focusable="False">
+                                            <ItemsControl.ItemsPanel>
+                                                <ItemsPanelTemplate>
+                                                    <StackPanel Orientation="Horizontal" />
+                                                </ItemsPanelTemplate>
+                                            </ItemsControl.ItemsPanel>
+                                            <ItemsControl.ItemTemplate>
+                                                <DataTemplate>
+                                                    <Button Width="300" Margin="0,0,14,0" Cursor="Hand" Focusable="False" CommandParameter="{Binding}" ToolTip="{Binding Url}"
+                                                            Command="{Binding DataContext.OpenFreeGameCommand, RelativeSource={RelativeSource AncestorType={x:Type HomeView}}}">
+                                                        <Button.Template>
+                                                            <ControlTemplate TargetType="Button">
+                                                                <ContentPresenter />
+                                                            </ControlTemplate>
+                                                        </Button.Template>
+                                                        <StackPanel>
+                                                            <Grid Height="169">
+                                                                <Border CornerRadius="{DynamicResource AtrioCardRadius}" ClipToBounds="True" Background="{DynamicResource AtrioCardBrush}">
+                                                                    <Image Source="{Binding ImageUrl, Converter={StaticResource RemoteImageConverter}, ConverterParameter=600}"
+                                                                           Stretch="UniformToFill" RoundedClip.Radius="{DynamicResource AtrioCoverRadius}" />
+                                                                </Border>
+                                                                <Border x:Name="Owned" CornerRadius="4" Padding="7,2,7,3" Margin="8" Background="#C0000000"
+                                                                        HorizontalAlignment="Left" VerticalAlignment="Top" Visibility="Collapsed">
+                                                                    <TextBlock Text="{DynamicResource LOCAtrioFreeOwned}" FontSize="11" Foreground="White" />
+                                                                </Border>
+                                                            </Grid>
+                                                            <TextBlock Text="{Binding Title}" Style="{DynamicResource BaseTextBlockStyle}" FontSize="13" FontWeight="SemiBold"
+                                                                       TextTrimming="CharacterEllipsis" Margin="2,6,2,0" />
+                                                            <TextBlock x:Name="When" Text="{Binding WhenText}" Style="{DynamicResource AtrioCaption}" TextTrimming="CharacterEllipsis" Margin="2,1,2,0" />
+                                                        </StackPanel>
+                                                    </Button>
+                                                    <DataTemplate.Triggers>
+                                                        <DataTrigger Binding="{Binding InLibrary}" Value="True">
+                                                            <Setter TargetName="Owned" Property="Visibility" Value="Visible" />
+                                                        </DataTrigger>
+                                                        <DataTrigger Binding="{Binding IsNow}" Value="True">
+                                                            <Setter TargetName="When" Property="Foreground" Value="{DynamicResource GlyphBrush}" />
+                                                        </DataTrigger>
+                                                    </DataTemplate.Triggers>
+                                                </DataTemplate>
+                                            </ItemsControl.ItemTemplate>
+                                        </ItemsControl>
+                                    </ScrollViewer>
+                                </StackPanel>
+
+                                <!-- The rarest achievements the person got, from the data of the add-on of the achievements -->
+                                <StackPanel Margin="0,0,0,24" Visibility="{Binding Rare, Converter={StaticResource ICollectionNullOrEmptyToVisibilityConverter}}">
+                                    <DockPanel Margin="0,0,28,6">
+                                        <StackPanel Orientation="Horizontal" DockPanel.Dock="Right" VerticalAlignment="Center">
+                                            <Button Style="{DynamicResource AtrioShelfArrow}" Content="&#xE76B;"
+                                                    Command="ScrollBar.PageLeftCommand" CommandTarget="{Binding ElementName=RareScroller}" />
+                                            <Button Style="{DynamicResource AtrioShelfArrow}" Content="&#xE76C;"
+                                                    Command="ScrollBar.PageRightCommand" CommandTarget="{Binding ElementName=RareScroller}" />
+                                        </StackPanel>
+                                        <TextBlock Text="{DynamicResource LOCAtrioRareTitle}" Style="{DynamicResource AtrioSectionTitle}" Margin="0" VerticalAlignment="Center" />
+                                    </DockPanel>
+                                    <ScrollViewer x:Name="RareScroller" HorizontalScrollBarVisibility="Hidden" VerticalScrollBarVisibility="Disabled"
+                                                  PageWheel.PassToParent="True" Focusable="False">
+                                        <ItemsControl ItemsSource="{Binding Rare}" Focusable="False">
+                                            <ItemsControl.ItemsPanel>
+                                                <ItemsPanelTemplate>
+                                                    <StackPanel Orientation="Horizontal" />
+                                                </ItemsPanelTemplate>
+                                            </ItemsControl.ItemsPanel>
+                                            <ItemsControl.ItemTemplate>
+                                                <DataTemplate>
+                                                    <Button Width="250" Margin="0,0,14,0" Cursor="Hand" Focusable="False" CommandParameter="{Binding}"
+                                                            ToolTip="{Binding Description}"
+                                                            Command="{Binding DataContext.OpenRareCommand, RelativeSource={RelativeSource AncestorType={x:Type HomeView}}}">
+                                                        <Button.Template>
+                                                            <ControlTemplate TargetType="Button">
+                                                                <ContentPresenter />
+                                                            </ControlTemplate>
+                                                        </Button.Template>
+                                                        <Border Style="{DynamicResource AtrioCard}" Padding="12">
+                                                            <DockPanel>
+                                                                <Border Width="56" Height="56" CornerRadius="8" ClipToBounds="True" Background="{DynamicResource AtrioCardHoverBrush}"
+                                                                        DockPanel.Dock="Left" Margin="0,0,12,0" VerticalAlignment="Top">
+                                                                    <Image Source="{Binding Icon, Converter={StaticResource AchievementIconConverter}}" Stretch="UniformToFill" />
+                                                                </Border>
+                                                                <StackPanel VerticalAlignment="Center">
+                                                                    <TextBlock Text="{Binding Name}" Style="{DynamicResource BaseTextBlockStyle}" FontSize="13" FontWeight="SemiBold"
+                                                                               TextTrimming="CharacterEllipsis" />
+                                                                    <TextBlock Text="{Binding GameName}" Style="{DynamicResource AtrioCaption}" TextTrimming="CharacterEllipsis" />
+                                                                    <TextBlock Text="{Binding PercentText}" Style="{DynamicResource AtrioCaption}" Foreground="{DynamicResource GlyphBrush}"
+                                                                               TextTrimming="CharacterEllipsis" />
+                                                                </StackPanel>
+                                                            </DockPanel>
+                                                        </Border>
+                                                    </Button>
+                                                </DataTemplate>
+                                            </ItemsControl.ItemTemplate>
+                                        </ItemsControl>
+                                    </ScrollViewer>
+                                </StackPanel>
+
                                 <!-- The start of the whole library. Everything else is one click away -->
                                 <DockPanel Margin="0,0,28,10">
                                     <StackPanel Orientation="Horizontal" DockPanel.Dock="Right" VerticalAlignment="Center">

@@ -38,6 +38,11 @@ namespace Playnite.Atrio
         public string InstallDir { get; set; }
         public long BytesToDownload { get; set; }
         public long BytesDownloaded { get; set; }
+        public string AppId { get; set; }
+        public string Name { get; set; }
+
+        /// <summary>When the client plans to update it by itself, in its own clock (seconds since 1970). Zero when it doesn't say.</summary>
+        public long ScheduledAutoUpdate { get; set; }
 
         /// <summary>Folder of the library that holds the game.</summary>
         public string Library { get; set; }
@@ -45,6 +50,14 @@ namespace Playnite.Atrio
         public bool IsInstalled =>
             (StateFlags & FullyInstalled) != 0 &&
             (StateFlags & (UpdateRequired | UpdateRunning | UpdatePaused | UpdateStarted)) == 0;
+
+        /// <summary>Installed, with an update of the client waiting for it, or under way.</summary>
+        public bool NeedsUpdate =>
+            (StateFlags & FullyInstalled) != 0 &&
+            (StateFlags & (UpdateRequired | UpdateRunning | UpdatePaused | UpdateStarted)) != 0;
+
+        /// <summary>The update is downloading right now.</summary>
+        public bool IsUpdating => (StateFlags & (UpdateRunning | UpdateStarted)) != 0;
 
         public int Percent => BytesToDownload <= 0 ? 0 : (int)Math.Min(100, BytesDownloaded * 100 / BytesToDownload);
 
@@ -87,6 +100,19 @@ namespace Playnite.Atrio
                 {
                     long.TryParse(value, out var bytes);
                     manifest.SizeOnDisk = bytes;
+                }
+                else if (key.Equals("appid", StringComparison.OrdinalIgnoreCase))
+                {
+                    manifest.AppId = value;
+                }
+                else if (key.Equals("name", StringComparison.OrdinalIgnoreCase))
+                {
+                    manifest.Name = value;
+                }
+                else if (key.Equals("ScheduledAutoUpdate", StringComparison.OrdinalIgnoreCase))
+                {
+                    long.TryParse(value, out var seconds);
+                    manifest.ScheduledAutoUpdate = seconds;
                 }
             }
 
@@ -148,6 +174,45 @@ namespace Playnite.Atrio
             }
 
             return null;
+        }
+
+        /// <summary>Every game the client has a file for, in every library. A file that can't be read now is left out.</summary>
+        public static List<SteamAppManifest> ReadAllManifests()
+        {
+            var result = new List<SteamAppManifest>();
+            foreach (var library in GetLibraries())
+            {
+                var folder = Path.Combine(library, "steamapps");
+                string[] files;
+                try
+                {
+                    files = Directory.Exists(folder) ? Directory.GetFiles(folder, "appmanifest_*.acf") : new string[0];
+                }
+                catch (Exception e) when (e is IOException || e is UnauthorizedAccessException)
+                {
+                    continue;
+                }
+
+                foreach (var file in files)
+                {
+                    try
+                    {
+                        var manifest = SteamAppManifest.Parse(ReadShared(file));
+                        manifest.Library = library;
+                        if (manifest.AppId.IsNullOrEmpty())
+                        {
+                            manifest.AppId = Path.GetFileNameWithoutExtension(file).Substring("appmanifest_".Length);
+                        }
+
+                        result.Add(manifest);
+                    }
+                    catch (Exception e) when (e is IOException || e is UnauthorizedAccessException)
+                    {
+                    }
+                }
+            }
+
+            return result;
         }
 
         // The client keeps writing to these files.

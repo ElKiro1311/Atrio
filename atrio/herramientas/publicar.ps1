@@ -3,8 +3,12 @@
 # Antes hay que escribir lo que cambia en atrio\novedades\<version>.md y subirlo a main.
 #
 #   powershell -ExecutionPolicy Bypass -File atrio\herramientas\publicar.ps1 -Version 1.2.0
+#
+#   -Borrador  La deja como borrador: nadie la ve hasta que se publica (gh release edit v1.2.0 --draft=false).
+#              Es lo que hace la compilación de GitHub (.github\workflows\publicar.yml), para comprobarla antes.
 param(
-    [Parameter(Mandatory = $true)][string]$Version
+    [Parameter(Mandatory = $true)][string]$Version,
+    [switch]$Borrador
 )
 $ErrorActionPreference = 'Stop'
 
@@ -38,7 +42,9 @@ try {
         if (-not (Test-Path $archivo)) { throw "No se ha creado $archivo" }
     }
 
-    gh release create "v$Version" $paquete $descarga --repo $repositorio --target (git rev-parse HEAD) --title "Atrio $Version" --notes-file $novedades
+    $opciones = @("v$Version", $paquete, $descarga, '--repo', $repositorio, '--target', (git rev-parse HEAD), '--title', "Atrio $Version", '--notes-file', $novedades)
+    if ($Borrador) { $opciones += '--draft' }
+    gh release create @opciones
     if ($LASTEXITCODE -ne 0) { throw 'No se pudo crear la versión en GitHub.' }
 }
 finally {

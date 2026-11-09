@@ -101,7 +101,7 @@ namespace Playnite.DesktopApp.ViewModels
     /// The page of the downloads: what is installing now, from any store, and the room of each disk with the
     /// installed games by size, to free space without opening any store.
     /// </summary>
-    public class DownloadsViewModel : ObservableObject
+    public partial class DownloadsViewModel : ObservableObject
     {
         /// <summary>The question lists this many games; the rest are counted, and they're all ticked on the page.</summary>
         public const int QuestionListed = 15;
@@ -229,7 +229,10 @@ namespace Playnite.DesktopApp.ViewModels
 
             DirectInstallProgress.Changed -= DirectInstallProgress_Changed;
             DirectInstallProgress.Changed += DirectInstallProgress_Changed;
+            InstallQueue.Changed -= InstallQueue_Changed;
+            InstallQueue.Changed += InstallQueue_Changed;
             Refresh();
+            FindLeftovers();
         }
 
         public void OnHidden()
@@ -242,6 +245,8 @@ namespace Playnite.DesktopApp.ViewModels
             }
 
             DirectInstallProgress.Changed -= DirectInstallProgress_Changed;
+            InstallQueue.Changed -= InstallQueue_Changed;
+            leftoverMeasure?.Cancel();
         }
 
         private void RefreshSoon(bool everything)
@@ -258,14 +263,17 @@ namespace Playnite.DesktopApp.ViewModels
 
         private void Games_ItemUpdated(object sender, ItemUpdatedEventArgs<Game> e)
         {
-            // Installed or not changes the disks; the rest only the list of what's in progress or one size.
+            // Installed or not changes the disks; the rest only the list of what's in progress or one size. Either can
+            // make a folder that stayed behind belong to a game again, or the other way round.
             if (e.UpdatedItems.Any(a => a.OldData.IsInstalled != a.NewData.IsInstalled || a.OldData.IsUninstalling != a.NewData.IsUninstalling))
             {
+                leftoversDirty = true;
                 RefreshSoon(true);
             }
             else if (e.UpdatedItems.Any(a => a.OldData.IsInstalling != a.NewData.IsInstalling))
             {
-                RefreshSoon(false);
+                leftoversDirty = true;
+                RefreshSoon(true);
             }
 
             var sizes = e.UpdatedItems.Where(a => a.OldData.InstallSize != a.NewData.InstallSize).Select(a => a.NewData).ToList();
@@ -408,9 +416,12 @@ namespace Playnite.DesktopApp.ViewModels
             }
 
             RefreshActive();
+            RefreshQueue();
+            RefreshUpdates();
             var findEntry = GetEntryFinder();
             var games = main.Database.Games.ToList();
             var selected = new HashSet<Guid>(Disks.SelectMany(a => a.Rows ?? new List<StorageRow>()).Where(a => a.IsSelected).Select(a => a.Game.Id));
+            var forgottenSince = DateTime.Now - ForgottenAfter;
             var installed = games.Where(a => a.IsInstalled && !a.IsUninstalling && !a.InstallDirectory.IsNullOrWhiteSpace() && !a.Roms.HasItems()).ToList();
             var folders = new Dictionary<Guid, string>();
             foreach (var game in installed)
@@ -460,7 +471,8 @@ namespace Playnite.DesktopApp.ViewModels
                         DirectUninstall.FormatSize(disk.GamesSize),
                         DirectUninstall.FormatSize(disk.OtherSize),
                         DirectUninstall.FormatSize(disk.Free)),
-                    Rows = disk.Games.Select(a =>
+                    // The whole disk counts in its bar; with the filter, the list only has what isn't played anymore.
+                    Rows = disk.Games.Where(a => !OnlyForgotten || IsForgotten(byId[a.GameId], forgottenSince)).Select(a =>
                     {
                         var game = byId[a.GameId];
                         var row = new StorageRow
@@ -484,6 +496,11 @@ namespace Playnite.DesktopApp.ViewModels
             Disks = cards;
             UpdateSelection();
             MeasureMissing();
+            if (leftoversDirty && isOpen)
+            {
+                leftoversDirty = false;
+                FindLeftovers();
+            }
         }
 
         /// <summary>Games without a size yet are measured once, in the background, one after the other.</summary>

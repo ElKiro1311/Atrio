@@ -251,6 +251,120 @@ namespace Playnite.DesktopApp.ViewModels
             }
         }
 
+        public bool ShowFreeGames
+        {
+            get => GameUnifier.Current?.Settings.ShowFreeGames == true;
+            set
+            {
+                var unifier = GameUnifier.Current;
+                unifier.Settings.ShowFreeGames = value;
+                unifier.Settings.Save();
+                OnPropertyChanged();
+                main.HomeModel?.Refresh();
+            }
+        }
+
+        public bool WishlistAlerts
+        {
+            get => GameUnifier.Current?.Settings.WishlistAlerts == true;
+            set
+            {
+                var unifier = GameUnifier.Current;
+                unifier.Settings.WishlistAlerts = value;
+                unifier.Settings.Save();
+                OnPropertyChanged();
+            }
+        }
+
+        public string SyncFolder => GameUnifier.Current?.Settings.SyncFolder;
+
+        public bool IsSyncing => !SyncFolder.IsNullOrWhiteSpace();
+
+        public bool SyncSaves
+        {
+            get => GameUnifier.Current?.Settings.SyncSaves == true;
+            set
+            {
+                var unifier = GameUnifier.Current;
+                unifier.Settings.SyncSaves = value;
+                unifier.Settings.Save();
+                OnPropertyChanged();
+            }
+        }
+
+        /// <summary>"Synchronized 3 min ago with 1 other computer", or what went wrong.</summary>
+        public string SyncStatus
+        {
+            get
+            {
+                if (!IsSyncing)
+                {
+                    return ResourceProvider.GetString("LOCAtrioSyncOff");
+                }
+
+                if (!PcSync.LastError.IsNullOrEmpty())
+                {
+                    return PcSync.LastError;
+                }
+
+                if (PcSync.LastSync == null)
+                {
+                    return ResourceProvider.GetString("LOCAtrioSyncSoon");
+                }
+
+                var minutes = (int)Math.Max(0, (DateTime.UtcNow - PcSync.LastSync.Value).TotalMinutes);
+                var when = minutes < 1 ? ResourceProvider.GetString("LOCAtrioSyncJustNow") : string.Format(ResourceProvider.GetString("LOCAtrioSyncMinutesAgo"), minutes);
+                return string.Format(
+                    ResourceProvider.GetString(PcSync.OtherComputers == 1 ? "LOCAtrioSyncStatusOne" : "LOCAtrioSyncStatus"),
+                    when,
+                    PcSync.OtherComputers);
+            }
+        }
+
+        public RelayCommand<object> ChooseSyncFolderCommand => new RelayCommand<object>(_ =>
+        {
+            var path = main.Dialogs.SelectFolder();
+            if (path.IsNullOrWhiteSpace())
+            {
+                return;
+            }
+
+            // Inside the folder of Atrio it would only synchronize with itself.
+            if (Leftovers.Overlaps(path, PlaynitePaths.ConfigRootPath))
+            {
+                main.Dialogs.ShowMessage(ResourceProvider.GetString("LOCAtrioSyncInsideAtrio"), ResourceProvider.GetString("LOCAtrioSyncTitle"));
+                return;
+            }
+
+            var unifier = GameUnifier.Current;
+            unifier.Settings.SyncFolder = path;
+            unifier.Settings.Save();
+            NotifySync();
+            PcSync.RunSoon();
+        });
+
+        public RelayCommand<object> StopSyncCommand => new RelayCommand<object>(_ =>
+        {
+            var unifier = GameUnifier.Current;
+            unifier.Settings.SyncFolder = null;
+            unifier.Settings.Save();
+            NotifySync();
+        });
+
+        public RelayCommand<object> SyncNowCommand => new RelayCommand<object>(_ => PcSync.RunSoon(), _ => IsSyncing);
+
+        private void NotifySync()
+        {
+            OnPropertyChanged(nameof(SyncFolder));
+            OnPropertyChanged(nameof(IsSyncing));
+            OnPropertyChanged(nameof(SyncStatus));
+        }
+
+        private void PcSync_Changed(object sender, EventArgs e)
+        {
+            System.Windows.Application.Current?.Dispatcher?.BeginInvoke(new Action(NotifySync));
+        }
+
         public RelayCommand<StoreCard> OpenClientCommand { get; }
         public RelayCommand<StoreCard> ConfigureCommand { get; }
         public RelayCommand<StoreCard> UpdateLibraryCommand { get; }
@@ -268,6 +382,7 @@ namespace Playnite.DesktopApp.ViewModels
         public StoresViewModel(DesktopAppViewModel main)
         {
             this.main = main;
+            PcSync.Changed += PcSync_Changed;
             OpenClientCommand = new RelayCommand<StoreCard>(a => a?.Plugin?.Client?.Open());
             ConfigureCommand = new RelayCommand<StoreCard>(a =>
             {

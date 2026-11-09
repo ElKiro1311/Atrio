@@ -47,6 +47,62 @@ namespace Playnite.FullscreenApp.ViewModels
             }
         }
 
+        private bool controllerOnly;
+
+        /// <summary>The tab of the games played with a controller: the whole library, only with those.</summary>
+        public bool ControllerOnly
+        {
+            get => controllerOnly;
+            private set
+            {
+                if (controllerOnly == value)
+                {
+                    return;
+                }
+
+                controllerOnly = value;
+                if (GamesView != null)
+                {
+                    GamesView.ControllerOnly = value;
+                }
+
+                OnPropertyChanged();
+                OnPropertyChanged(nameof(ControllerTabActive));
+            }
+        }
+
+        public bool ControllerTabActive => !HomeActive && controllerOnly;
+
+        private RelayCommand<object> showControllerCommand;
+
+        /// <summary>The tab right after the collections: every game that Steam or PCGamingWiki say is played with a controller.</summary>
+        public RelayCommand<object> ShowControllerCommand => showControllerCommand ?? (showControllerCommand = new RelayCommand<object>(_ => ShowControllerGames()));
+
+        private void ShowControllerGames()
+        {
+            // The filter of the whole library goes under it, like for a collection; choosing it leaves this tab, so it goes first.
+            var whole = SortedFilterFullscreenPresets?.FirstOrDefault(DefaultFilterPresets.IsWholeLibrary) ??
+                Database?.FilterPresets?.FirstOrDefault(DefaultFilterPresets.IsWholeLibrary);
+            if (whole != null)
+            {
+                if (ActiveFilterPreset != whole)
+                {
+                    ActiveFilterPreset = whole;
+                }
+            }
+            else
+            {
+                AppSettings.Fullscreen.FilterSettings.ClearFilters();
+            }
+
+            HomeActive = false;
+            OpenCollection = null;
+            ControllerOnly = true;
+
+            // Pressed again while it already shows, the tab unticks itself: it's told again that it's the one.
+            OnPropertyChanged(nameof(ControllerTabActive));
+        }
+
         /// <summary>The tab of the start is checked: the rows of the start are showing.</summary>
         public bool StartTabActive => HomeActive && !collectionsKind;
 
@@ -73,6 +129,7 @@ namespace Playnite.FullscreenApp.ViewModels
         private void ShowCollections()
         {
             OpenCollection = null;
+            ControllerOnly = false;
             SetCollectionsKind(true);
             if (HomeActive)
             {
@@ -120,6 +177,7 @@ namespace Playnite.FullscreenApp.ViewModels
             }
 
             HomeActive = false;
+            ControllerOnly = false;
             OpenCollection = collection;
         }
 
@@ -163,9 +221,11 @@ namespace Playnite.FullscreenApp.ViewModels
                 OnPropertyChanged(nameof(ShowcaseActive));
                 OnPropertyChanged(nameof(StartTabActive));
                 OnPropertyChanged(nameof(CollectionsTabActive));
+                OnPropertyChanged(nameof(ControllerTabActive));
                 if (value)
                 {
                     OpenCollection = null;
+                    ControllerOnly = false;
                     RefreshHome();
                 }
                 else
@@ -222,6 +282,7 @@ namespace Playnite.FullscreenApp.ViewModels
         private void ShowStart()
         {
             OpenCollection = null;
+            ControllerOnly = false;
             var wasCollections = collectionsKind;
             SetCollectionsKind(false);
             if (HomeActive)
@@ -244,6 +305,7 @@ namespace Playnite.FullscreenApp.ViewModels
         {
             HomeActive = false;
             OpenCollection = null;
+            ControllerOnly = false;
             ApplyFilterPresetCommand.Execute(a);
         }));
 
@@ -266,7 +328,7 @@ namespace Playnite.FullscreenApp.ViewModels
 
         /// <summary>
         /// The button of the next tab: from the start to the collections, from the collections (or the games of
-        /// one) to the first filter.
+        /// one) to the games with a controller, and from there to the first filter.
         /// </summary>
         private bool LeaveHomeForFirstFilter(List<FilterPreset> presets)
         {
@@ -276,13 +338,20 @@ namespace Playnite.FullscreenApp.ViewModels
                 return true;
             }
 
-            if (!HomeActive && OpenCollection == null)
+            if (ThemeHasHome && ((HomeActive && collectionsKind) || OpenCollection != null))
+            {
+                ShowControllerGames();
+                return true;
+            }
+
+            if (!HomeActive && OpenCollection == null && !ControllerOnly)
             {
                 return false;
             }
 
             HomeActive = false;
             OpenCollection = null;
+            ControllerOnly = false;
             if (ActiveFilterPreset != presets[0])
             {
                 ActiveFilterPreset = presets[0];
@@ -296,8 +365,8 @@ namespace Playnite.FullscreenApp.ViewModels
         }
 
         /// <summary>
-        /// The button of the tab before: from the first filter to the collections, from the games of a collection
-        /// back to the collections, and from the collections to the start.
+        /// The button of the tab before: from the first filter to the games with a controller, from there or from the
+        /// games of a collection back to the collections, and from the collections to the start.
         /// </summary>
         private bool ReturnToHome(List<FilterPreset> presets)
         {
@@ -311,11 +380,25 @@ namespace Playnite.FullscreenApp.ViewModels
                 return true;
             }
 
-            if (OpenCollection != null || ActiveFilterPreset == null || presets.IndexOf(ActiveFilterPreset) <= 0)
+            if (ControllerOnly || OpenCollection != null)
             {
                 if (ThemeHasHome)
                 {
                     ShowCollections();
+                }
+                else
+                {
+                    HomeActive = true;
+                }
+
+                return true;
+            }
+
+            if (ActiveFilterPreset == null || presets.IndexOf(ActiveFilterPreset) <= 0)
+            {
+                if (ThemeHasHome)
+                {
+                    ShowControllerGames();
                 }
                 else
                 {

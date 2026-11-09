@@ -150,7 +150,7 @@ namespace Playnite.FullscreenApp.Atrio
                     Log(string.Join(", ", Application.Current.Windows.OfType<Window>().Select(a => $"{a.GetType().Name} {a.IsVisible} {a.ActualWidth}x{a.ActualHeight}")));
                     break;
                 case "estado":
-                    Log($"juego: {model.SelectedGame?.Name}, instalado: {model.SelectedGame?.IsInstalled}, instalando: {model.SelectedGame?.IsInstalling}, accion: {model.SelectedGameDetails?.ContextActionDescription}, carpeta: {model.SelectedGame?.Game.InstallDirectory}, filtro: {model.ActiveFilterPreset?.Name}, juegos: {model.GamesView.CollectionView.Count}, foco: {DescribeFocus()}");
+                    Log($"juego: {model.SelectedGame?.Name}, instalado: {model.SelectedGame?.IsInstalled}, instalando: {model.SelectedGame?.IsInstalling}, accion: {model.SelectedGameDetails?.ContextActionDescription}, carpeta: {model.SelectedGame?.Game.InstallDirectory}, filtro: {model.ActiveFilterPreset?.Name}, juegos: {model.GamesView.CollectionView.Count}, inicio: {model.HomeActive}, colecciones: {model.CollectionsTabActive}, mando: {model.ControllerTabActive}, foco: {DescribeFocus()}");
                     break;
                 case "fuentes":
                     Log(string.Join(" | ", Application.Current.Resources.MergedDictionaries.Select(a => a.Source?.OriginalString).Take(14)));

@@ -386,6 +386,12 @@
                                                                 <StackPanel VerticalAlignment="Center">
                                                                     <DockPanel>
                                                                         <TextBlock Text="{Binding DateText}" DockPanel.Dock="Right" Style="{DynamicResource AtrioCaption}" Margin="10,0,0,0" />
+                                                                        <!-- Published after the last time it was played -->
+                                                                        <Border DockPanel.Dock="Left" CornerRadius="4" Padding="6,0,6,1" Margin="0,0,8,0" VerticalAlignment="Center"
+                                                                                Background="{DynamicResource AtrioPlayBrush}"
+                                                                                Visibility="{Binding IsNew, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                                                            <TextBlock Text="{DynamicResource LOCAtrioActivityNew}" FontSize="11" FontWeight="SemiBold" Foreground="{DynamicResource AtrioPlayTextBrush}" />
+                                                                        </Border>
                                                                         <TextBlock Text="{Binding Label}" Style="{DynamicResource AtrioCaption}" />
                                                                     </DockPanel>
                                                                     <TextBlock Text="{Binding Title}" Style="{DynamicResource BaseTextBlockStyle}" FontSize="15" FontWeight="SemiBold"
@@ -471,6 +477,34 @@
                                             <Button Style="{DynamicResource AtrioLinkButton}" Content="{DynamicResource LOCAtrioFriendsSeeAll}" FontSize="12"
                                                     HorizontalAlignment="Left" Command="{Binding OpenPageCommand}" CommandParameter="{Binding AllFriendsUrl}"
                                                     Visibility="{Binding HasFriendGroups, Converter={StaticResource BooleanToVisibilityConverter}}" />
+                                        </StackPanel>
+                                    </Border>
+
+                                    <!-- Wide screens, HDR, frame rates and the controller: PCGamingWiki (CC BY-NC-SA, always named) and the store of Steam -->
+                                    <Border Style="{DynamicResource AtrioCard}" Margin="0,0,0,14"
+                                            Visibility="{Binding HasCompat, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                        <StackPanel>
+                                            <TextBlock Text="{DynamicResource LOCAtrioCompatTitle}" Style="{DynamicResource AtrioSectionTitle}" />
+                                            <ItemsControl ItemsSource="{Binding CompatRows}" Focusable="False">
+                                                <ItemsControl.ItemTemplate>
+                                                    <DataTemplate>
+                                                        <DockPanel Margin="0,0,0,6">
+                                                            <TextBlock x:Name="Value" DockPanel.Dock="Right" Text="{Binding Value}" Style="{DynamicResource BaseTextBlockStyle}"
+                                                                       FontSize="13" FontWeight="SemiBold" Margin="12,0,0,0" />
+                                                            <TextBlock Text="{Binding Label}" Style="{DynamicResource AtrioCaption}" FontSize="13" TextTrimming="CharacterEllipsis" />
+                                                        </DockPanel>
+                                                        <DataTemplate.Triggers>
+                                                            <DataTrigger Binding="{Binding IsGood}" Value="True">
+                                                                <Setter TargetName="Value" Property="Foreground" Value="{DynamicResource GlyphBrush}" />
+                                                            </DataTrigger>
+                                                        </DataTemplate.Triggers>
+                                                    </DataTemplate>
+                                                </ItemsControl.ItemTemplate>
+                                            </ItemsControl>
+                                            <Button Style="{DynamicResource AtrioLinkButton}" Content="{DynamicResource LOCAtrioCompatSource}" FontSize="11" Margin="0,4,0,0"
+                                                    HorizontalAlignment="Left" Command="{Binding OpenPageCommand}" CommandParameter="{Binding CompatUrl}"
+                                                    ToolTip="{DynamicResource LOCAtrioCompatSourceHint}"
+                                                    Visibility="{Binding HasCompatSource, Converter={StaticResource BooleanToVisibilityConverter}}" />
                                         </StackPanel>
                                     </Border>
 

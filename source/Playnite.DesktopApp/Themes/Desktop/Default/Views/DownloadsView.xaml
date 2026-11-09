@@ -76,6 +76,76 @@
                                 </DockPanel>
                             </Border>
 
+                            <!-- Games waiting to install, one after the other -->
+                            <StackPanel Margin="0,0,14,18" Visibility="{Binding HasQueue, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                <DockPanel Margin="0,0,0,10">
+                                    <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
+                                        <CheckBox Content="{DynamicResource LOCAtrioQueueStartAt}" IsChecked="{Binding StartLater}" VerticalAlignment="Center"
+                                                  ToolTip="{DynamicResource LOCAtrioQueueStartAtHint}" />
+                                        <ComboBox ItemsSource="{Binding Hours}" SelectedIndex="{Binding StartHour}" MinWidth="80" Margin="8,0,12,0" VerticalAlignment="Center" />
+                                        <Button Style="{DynamicResource AtrioGhostButton}" Content="{DynamicResource LOCAtrioQueueClear}" Command="{Binding QueueClearCommand}" />
+                                    </StackPanel>
+                                    <StackPanel>
+                                        <TextBlock Text="{DynamicResource LOCAtrioQueueTitle}" Style="{DynamicResource AtrioSectionTitle}" Margin="0" />
+                                        <TextBlock Text="{Binding QueueText}" Style="{DynamicResource AtrioCaption}" Margin="0,2,0,0" />
+                                    </StackPanel>
+                                </DockPanel>
+                                <ItemsControl ItemsSource="{Binding Queue}" Focusable="False">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <Border Style="{DynamicResource AtrioCard}" Padding="14,10,12,10" Margin="0,0,0,6">
+                                                <DockPanel>
+                                                    <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
+                                                        <Button Style="{DynamicResource AtrioShelfArrow}" Width="28" Height="28" Content="&#xE70E;" Margin="0,0,4,0"
+                                                                ToolTip="{DynamicResource LOCAtrioQueueUp}" CommandParameter="{Binding}"
+                                                                Command="{Binding DataContext.QueueUpCommand, RelativeSource={RelativeSource AncestorType={x:Type DownloadsView}}}" />
+                                                        <Button Style="{DynamicResource AtrioShelfArrow}" Width="28" Height="28" Content="&#xE70D;" Margin="0,0,10,0"
+                                                                ToolTip="{DynamicResource LOCAtrioQueueDown}" CommandParameter="{Binding}"
+                                                                Command="{Binding DataContext.QueueDownCommand, RelativeSource={RelativeSource AncestorType={x:Type DownloadsView}}}" />
+                                                        <Button Style="{DynamicResource AtrioGhostButton}" Content="{DynamicResource LOCAtrioQueueRemove}" CommandParameter="{Binding}"
+                                                                Command="{Binding DataContext.QueueRemoveCommand, RelativeSource={RelativeSource AncestorType={x:Type DownloadsView}}}" />
+                                                    </StackPanel>
+                                                    <ContentPresenter Content="{Binding Entry}" ContentTemplate="{StaticResource AtrioDownloadsIcon}" VerticalAlignment="Center" DockPanel.Dock="Left" />
+                                                    <StackPanel Margin="14,0,12,0" VerticalAlignment="Center">
+                                                        <TextBlock Text="{Binding Name}" Style="{DynamicResource BaseTextBlockStyle}" FontSize="14" TextTrimming="CharacterEllipsis" />
+                                                        <TextBlock Style="{DynamicResource AtrioCaption}" TextTrimming="CharacterEllipsis">
+                                                            <Run Text="{Binding StoreName, Mode=OneWay}" /><Run Text=" · " /><Run Text="{Binding StateText, Mode=OneWay}" />
+                                                        </TextBlock>
+                                                    </StackPanel>
+                                                </DockPanel>
+                                            </Border>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </StackPanel>
+
+                            <!-- Games of Steam with an update waiting, before sitting down to play -->
+                            <StackPanel Margin="0,0,14,18" Visibility="{Binding HasUpdates, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                <DockPanel Margin="0,0,0,10">
+                                    <Button DockPanel.Dock="Right" Style="{DynamicResource AtrioGhostButton}" Content="{DynamicResource LOCAtrioUpdatesOpenSteam}"
+                                            VerticalAlignment="Center" Command="{Binding OpenSteamDownloadsCommand}" />
+                                    <StackPanel>
+                                        <TextBlock Text="{DynamicResource LOCAtrioUpdatesTitle}" Style="{DynamicResource AtrioSectionTitle}" Margin="0" />
+                                        <TextBlock Text="{DynamicResource LOCAtrioUpdatesHint}" Style="{DynamicResource AtrioCaption}" TextWrapping="Wrap" Margin="0,2,0,0" />
+                                    </StackPanel>
+                                </DockPanel>
+                                <ItemsControl ItemsSource="{Binding Updates}" Focusable="False">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <Border Style="{DynamicResource AtrioCard}" Padding="14,10,12,10" Margin="0,0,0,6">
+                                                <DockPanel>
+                                                    <ContentPresenter Content="{Binding Entry}" ContentTemplate="{StaticResource AtrioDownloadsIcon}" VerticalAlignment="Center" DockPanel.Dock="Left" />
+                                                    <StackPanel Margin="14,0,12,0" VerticalAlignment="Center">
+                                                        <TextBlock Text="{Binding Name}" Style="{DynamicResource BaseTextBlockStyle}" FontSize="14" TextTrimming="CharacterEllipsis" />
+                                                        <TextBlock Text="{Binding StateText}" Style="{DynamicResource AtrioCaption}" TextTrimming="CharacterEllipsis" />
+                                                    </StackPanel>
+                                                </DockPanel>
+                                            </Border>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </StackPanel>
+
                             <!-- The room of each disk, with its games by size -->
                             <DockPanel Margin="0,4,14,10">
                                 <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center"
@@ -89,6 +159,8 @@
                                 <StackPanel>
                                     <TextBlock Text="{DynamicResource LOCAtrioStorageTitle}" Style="{DynamicResource AtrioSectionTitle}" Margin="0" />
                                     <TextBlock Text="{DynamicResource LOCAtrioStorageHint}" Style="{DynamicResource AtrioCaption}" TextWrapping="Wrap" Margin="0,2,0,0" />
+                                    <CheckBox Content="{DynamicResource LOCAtrioStorageForgotten}" IsChecked="{Binding OnlyForgotten}" Margin="0,8,0,0"
+                                              ToolTip="{DynamicResource LOCAtrioStorageForgottenHint}" />
                                 </StackPanel>
                             </DockPanel>
 
@@ -171,6 +243,56 @@
                                     </DataTemplate>
                                 </ItemsControl.ItemTemplate>
                             </ItemsControl>
+
+                            <!-- What stayed behind after a game went away: folders, shaders, the Workshop, downloads halfway -->
+                            <StackPanel Margin="0,10,14,0" Visibility="{Binding HasLeftovers, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                <DockPanel Margin="0,0,0,10">
+                                    <Button DockPanel.Dock="Right" Style="{DynamicResource AtrioPlayButton}" Padding="18,0,18,0" VerticalAlignment="Center"
+                                            Content="{DynamicResource LOCAtrioLeftoverRecycle}" Command="{Binding RecycleLeftoversCommand}" />
+                                    <StackPanel>
+                                        <TextBlock Text="{DynamicResource LOCAtrioLeftoverTitle}" Style="{DynamicResource AtrioSectionTitle}" Margin="0" />
+                                        <TextBlock Text="{DynamicResource LOCAtrioLeftoverHint}" Style="{DynamicResource AtrioCaption}" TextWrapping="Wrap" Margin="0,2,12,0" />
+                                        <TextBlock Text="{Binding LeftoverText}" Style="{DynamicResource AtrioCaption}" FontSize="13" Margin="0,4,0,0" />
+                                    </StackPanel>
+                                </DockPanel>
+                                <Border Style="{DynamicResource AtrioCard}" Padding="12,8,12,8">
+                                    <ItemsControl ItemsSource="{Binding Leftovers}" Focusable="False">
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate>
+                                                <Border x:Name="Row" CornerRadius="6" Padding="6,5,6,5" Background="Transparent">
+                                                    <Grid>
+                                                        <Grid.ColumnDefinitions>
+                                                            <ColumnDefinition Width="Auto" />
+                                                            <ColumnDefinition Width="*" />
+                                                            <ColumnDefinition Width="170" />
+                                                            <ColumnDefinition Width="90" />
+                                                            <ColumnDefinition Width="Auto" />
+                                                        </Grid.ColumnDefinitions>
+                                                        <CheckBox IsChecked="{Binding IsSelected}" VerticalAlignment="Center" Margin="0,0,10,0"
+                                                                  AutomationProperties.Name="{Binding Name}" />
+                                                        <StackPanel Grid.Column="1" Margin="0,0,12,0" VerticalAlignment="Center">
+                                                            <TextBlock Text="{Binding Name}" Style="{DynamicResource BaseTextBlockStyle}" FontSize="14"
+                                                                       TextTrimming="CharacterEllipsis" ToolTip="{Binding Path}" />
+                                                            <TextBlock Text="{Binding KindText}" Style="{DynamicResource AtrioCaption}" TextTrimming="CharacterEllipsis" ToolTip="{Binding Path}" />
+                                                        </StackPanel>
+                                                        <TextBlock Grid.Column="2" Text="{Binding LastUsedText}" Style="{DynamicResource AtrioCaption}" VerticalAlignment="Center" />
+                                                        <TextBlock Grid.Column="3" Text="{Binding SizeText}" Style="{DynamicResource BaseTextBlockStyle}" FontSize="14"
+                                                                   HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,14,0" />
+                                                        <Button Grid.Column="4" Style="{DynamicResource AtrioGhostButton}" Content="{DynamicResource LOCAtrioStorageOpenFolder}"
+                                                                VerticalAlignment="Center" CommandParameter="{Binding}"
+                                                                Command="{Binding DataContext.OpenLeftoverCommand, RelativeSource={RelativeSource AncestorType={x:Type DownloadsView}}}" />
+                                                    </Grid>
+                                                </Border>
+                                                <DataTemplate.Triggers>
+                                                    <Trigger SourceName="Row" Property="IsMouseOver" Value="True">
+                                                        <Setter TargetName="Row" Property="Background" Value="{DynamicResource AtrioCardHoverBrush}" />
+                                                    </Trigger>
+                                                </DataTemplate.Triggers>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                </Border>
+                            </StackPanel>
                         </StackPanel>
                     </ScrollViewer>
                 </ControlTemplate>

@@ -265,6 +265,23 @@ namespace Playnite.DesktopApp.Controls.Views
         }
     }
 
+    public class WishlistView : AtrioPage
+    {
+        static WishlistView()
+        {
+            DefaultStyleKeyProperty.OverrideMetadata(typeof(WishlistView), new FrameworkPropertyMetadata(typeof(WishlistView)));
+        }
+
+        public WishlistView()
+        {
+        }
+
+        public WishlistView(WishlistViewModel model)
+        {
+            DataContext = model;
+        }
+    }
+
     public class ThemesView : AtrioPage
     {
         private readonly ThemesViewModel model;

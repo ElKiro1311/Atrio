@@ -58,6 +58,8 @@ namespace Playnite
             Database.Games.ItemCollectionChanged += Games_ItemCollectionChanged;
             Database.Games.ItemUpdated += Games_ItemUpdated;
             OpenGames.Changed += OpenGames_Changed;
+            SteamControllerSupport.Changed += ControllerSupport_Changed;
+            PcGamingWiki.Changed += ControllerSupport_Changed;
             if (PlayniteApplication.Current != null)
             {
                 var games = Database.Games;
@@ -72,6 +74,35 @@ namespace Playnite
                     () => unifier.Settings.LightWhilePlaying,
                     () => OpenGames.GetOpenGames().Count > 0 || PlayniteApplication.Current?.GamesEditor?.RunningGames.Count > 0);
                 OpenGames.Attach(() => games, PlayniteApplication.Current.SyncContext, Unifier.Settings.DetectOpenGames);
+
+                var dispatcher = PlayniteApplication.CurrentNative?.Dispatcher;
+                void onWindow(Action action)
+                {
+                    if (dispatcher == null || dispatcher.CheckAccess())
+                    {
+                        action();
+                    }
+                    else
+                    {
+                        dispatcher.Invoke(action);
+                    }
+                }
+
+                var library = Database;
+                SteamControllerSupport.Attach(() => games.ToList());
+                Wishlist.Attach(() => unifier.Settings.WishlistAlerts);
+                Ludusavi.SharedFolder = () =>
+                {
+                    var shared = unifier.Settings.SyncFolder;
+                    return unifier.Settings.SyncSaves && !shared.IsNullOrWhiteSpace() && System.IO.Directory.Exists(shared) ? PcSync.GetSavesFolder(shared) : null;
+                };
+                PcSync.Attach(() => library, () => unifier.Settings.SyncFolder, onWindow);
+
+                // One install after the other, never starting one while a game is open.
+                InstallQueue.Attach(
+                    id => games.Get(id),
+                    game => dispatcher?.BeginInvoke(new Action(() => PlayniteApplication.Current?.GamesEditor?.InstallGame(game))),
+                    () => OpenGames.GetOpenGames().Count == 0 && PlayniteApplication.Current?.GamesEditor?.RunningGames.Count == 0);
             }
         }
 
@@ -148,6 +179,8 @@ namespace Playnite
             Database.Games.ItemCollectionChanged -= Games_ItemCollectionChanged;
             Database.Games.ItemUpdated -= Games_ItemUpdated;
             OpenGames.Changed -= OpenGames_Changed;
+            SteamControllerSupport.Changed -= ControllerSupport_Changed;
+            PcGamingWiki.Changed -= ControllerSupport_Changed;
             Items = null;
         }
 
@@ -164,6 +197,33 @@ namespace Playnite
                     emulatorFilter = value;
                     CollectionView.Refresh();
                 }
+            }
+        }
+
+        private bool controllerOnly;
+
+        /// <summary>
+        /// Shows only the games played all through with a controller, as the store of Steam or PCGamingWiki say:
+        /// the tab of the mode for the couch.
+        /// </summary>
+        public bool ControllerOnly
+        {
+            get => controllerOnly;
+            set
+            {
+                if (controllerOnly != value)
+                {
+                    controllerOnly = value;
+                    CollectionView.Refresh();
+                }
+            }
+        }
+
+        private void ControllerSupport_Changed(object sender, EventArgs e)
+        {
+            if (controllerOnly)
+            {
+                PlayniteApplication.CurrentNative?.Dispatcher?.BeginInvoke(new Action(() => CollectionView?.Refresh()));
             }
         }
 
@@ -216,6 +276,11 @@ namespace Playnite
                         return false;
                     }
 
+                    if (controllerOnly && !SteamControllerSupport.IsFullyPlayable(group.Copies, entry.Game.Name))
+                    {
+                        return false;
+                    }
+
                     // The game has to show up in the filters of every store that sells it.
                     foreach (var copy in group.Copies)
                     {
@@ -227,6 +292,11 @@ namespace Playnite
 
                     return false;
                 }
+            }
+
+            if (controllerOnly && !SteamControllerSupport.IsFullyPlayable(new[] { entry.Game }, entry.Game.Name))
+            {
+                return false;
             }
 
             return collection?.Contains(new[] { entry.Game }) != false && MatchesFilters(entry.Game);

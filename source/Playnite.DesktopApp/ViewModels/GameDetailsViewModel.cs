@@ -45,6 +45,16 @@ namespace Playnite.DesktopApp.ViewModels
         public string MoreText { get; set; }
     }
 
+    /// <summary>One line of the card about the screen and the controller: what, and how it is in that game.</summary>
+    public class CompatRow
+    {
+        public string Label { get; set; }
+        public string Value { get; set; }
+
+        /// <summary>It works as it is: shown with the color of what is good.</summary>
+        public bool IsGood { get; set; }
+    }
+
     public class GameActivityEntry
     {
         public DateTime Date { get; set; }
@@ -54,6 +64,9 @@ namespace Playnite.DesktopApp.ViewModels
         public string Text { get; set; }
         public string ImageUrl { get; set; }
         public string Url { get; set; }
+
+        /// <summary>News published after the last time the game was played.</summary>
+        public bool IsNew { get; set; }
 
         public static GameActivityEntry Create(DateTime date, string label, string title, string text = null, string imageUrl = null, string url = null)
         {
@@ -893,8 +906,141 @@ namespace Playnite.DesktopApp.ViewModels
         public RelayCommand<object> FriendsActionCommand { get; }
 
         private List<GameActivityEntry> newsActivity = new List<GameActivityEntry>();
+        private List<SteamNewsItem> newsItems = new List<SteamNewsItem>();
         private string steamAppId;
         private string friendsActionUrl;
+
+        private List<CompatRow> compatRows = new List<CompatRow>();
+
+        /// <summary>Wide screens, HDR, frame rates and the controller, as PCGamingWiki and the store of Steam tell.</summary>
+        public List<CompatRow> CompatRows
+        {
+            get => compatRows;
+            private set
+            {
+                compatRows = value ?? new List<CompatRow>();
+                OnPropertyChanged();
+                OnPropertyChanged(nameof(HasCompat));
+            }
+        }
+
+        public bool HasCompat => compatRows.Count > 0;
+
+        private string compatUrl;
+
+        /// <summary>The page of the wiki the facts come from, which its license asks to show.</summary>
+        public string CompatUrl
+        {
+            get => compatUrl;
+            private set
+            {
+                compatUrl = value;
+                OnPropertyChanged();
+                OnPropertyChanged(nameof(HasCompatSource));
+            }
+        }
+
+        public bool HasCompatSource => !compatUrl.IsNullOrEmpty();
+
+        private static string WikiValue(string value, IResourceProvider resources, out bool good)
+        {
+            good = value == "true" || value == "always on";
+            switch (value)
+            {
+                case "true":
+                case "always on":
+                    return resources.GetString("LOCAtrioCompatYes");
+                case "false":
+                    return resources.GetString("LOCAtrioCompatNo");
+                case "hackable":
+                    return resources.GetString("LOCAtrioCompatHack");
+                case "limited":
+                    return resources.GetString("LOCAtrioCompatLimited");
+                default:
+                    return null;
+            }
+        }
+
+        /// <summary>Only what is known: a line without a fact is left out.</summary>
+        public static List<CompatRow> GetCompatRows(PcgwInfo wiki, int steamController, IResourceProvider resources)
+        {
+            var rows = new List<CompatRow>();
+            void add(string labelKey, string value, bool good)
+            {
+                if (value != null)
+                {
+                    rows.Add(new CompatRow { Label = resources.GetString(labelKey), Value = value, IsGood = good });
+                }
+            }
+
+            bool good;
+            add("LOCAtrioCompatUltrawide", WikiValue(wiki?.Ultrawide, resources, out good), good);
+            add("LOCAtrioCompatHdr", WikiValue(wiki?.Hdr, resources, out good), good);
+
+            var fps = WikiValue(wiki?.Fps120, resources, out good);
+            if (wiki?.Fps120 == "false" && wiki.Fps60 == "true")
+            {
+                fps = resources.GetString("LOCAtrioCompatFpsCapped");
+            }
+
+            add("LOCAtrioCompatFps", fps, good);
+
+            string controller = null;
+            var controllerGood = false;
+            if (steamController == SteamControllerSupport.Full || wiki?.FullController == "true")
+            {
+                controller = resources.GetString("LOCAtrioCompatControllerFull");
+                controllerGood = true;
+            }
+            else if (steamController == SteamControllerSupport.Partial || (wiki?.Controller == "true" && wiki.FullController == "false"))
+            {
+                controller = resources.GetString("LOCAtrioCompatControllerPartial");
+            }
+            else if (wiki?.Controller != null)
+            {
+                controller = WikiValue(wiki.Controller, resources, out controllerGood);
+            }
+
+            add("LOCAtrioCompatController", controller, controllerGood);
+            return rows;
+        }
+
+        /// <summary>What is saved shows right away; the wiki is asked once a month per game, after the page settles.</summary>
+        private async void LoadCompat()
+        {
+            var copies = game.Copies.Select(a => a.Game).ToList();
+            var name = game.Name;
+            var key = PcGamingWiki.GetKey(copies, name);
+            var appId = SteamContent.GetAppId(copies);
+            void show(PcgwInfo info)
+            {
+                CompatRows = GetCompatRows(info, SteamControllerSupport.GetLevel(appId), resources);
+                CompatUrl = info?.PageUrl;
+            }
+
+            var saved = PcGamingWiki.GetSaved(key);
+            show(saved);
+            if (PcGamingWiki.IsFresh(saved, DateTime.UtcNow))
+            {
+                return;
+            }
+
+            var token = contentToken.Token;
+            try
+            {
+                await Task.Delay(TimeSpan.FromMilliseconds(KeyboardPause * 6), token);
+                var info = await PcGamingWiki.GetAsync(copies, name, token);
+                token.ThrowIfCancellationRequested();
+                show(info);
+            }
+            catch (OperationCanceledException)
+            {
+            }
+            catch (Exception e) when (!(e is OutOfMemoryException))
+            {
+                logger.Debug(e, $"Failed to ask PCGamingWiki about {name}.");
+            }
+        }
 
         public RelayCommand<string> OpenPageCommand { get; }
         public RelayCommand<object> ShowAchievementsCommand { get; }
@@ -1092,6 +1238,7 @@ namespace Playnite.DesktopApp.ViewModels
             if (DesktopAppViewModel.UsesLibraryPanes)
             {
                 LoadCaptures();
+                LoadCompat();
             }
             if (appId != null && DesktopAppViewModel.UsesLibraryPanes)
             {
@@ -1196,6 +1343,15 @@ namespace Playnite.DesktopApp.ViewModels
             PlayedText = total > 0 ?
                 string.Format(resources.GetString("LOCAtrioPlayedFor"), new PlayTimeToStringConverter().Convert(total, typeof(string), null, null)) :
                 null;
+
+            // «New» is what was published after the last time it was played: playing now takes the mark away.
+            var lastPlayed = game.Copies.Select(a => a.Game.LastActivity).Where(a => a != null).DefaultIfEmpty().Max();
+            newsActivity = newsItems.Select(a =>
+            {
+                var entry = GameActivityEntry.Create(a.Date, resources.GetString("LOCAtrioActivityNews"), a.Title, a.Text, a.ImageUrl, a.Url);
+                entry.IsNew = lastPlayed != null && a.Date > lastPlayed;
+                return entry;
+            }).ToList();
             Activity = GetLocalActivity().Concat(newsActivity).OrderByDescending(a => a.Date).ToList();
         }
 
@@ -1238,7 +1394,7 @@ namespace Playnite.DesktopApp.ViewModels
                 LogoImage = await logo;
                 var news = await latestNews;
                 token.ThrowIfCancellationRequested();
-                newsActivity = news.Select(a => GameActivityEntry.Create(a.Date, resources.GetString("LOCAtrioActivityNews"), a.Title, a.Text, a.ImageUrl, a.Url)).ToList();
+                newsItems = news;
                 UpdatePlayedContent();
             }
             catch (OperationCanceledException)

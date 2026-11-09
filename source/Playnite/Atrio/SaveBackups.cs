@@ -76,7 +76,10 @@ namespace Playnite.Atrio
         public static string Folder => Path.Combine(Root ?? PlaynitePaths.ConfigRootPath, "Herramientas", "Ludusavi");
         public static string Executable => Path.Combine(Folder, "ludusavi.exe");
         public static string ConfigFolder => Path.Combine(Folder, "config");
-        public static string BackupFolder => Path.Combine(Root ?? PlaynitePaths.ConfigRootPath, "Copias de partidas");
+        public static string BackupFolder => SharedFolder?.Invoke() ?? Path.Combine(Root ?? PlaynitePaths.ConfigRootPath, "Copias de partidas");
+
+        /// <summary>The folder shared with the other computers, when the person wants the copies there too.</summary>
+        public static Func<string> SharedFolder { get; set; }
         public static bool IsInstalled => File.Exists(Executable);
 
         public static bool HashMatches(byte[] data, string expected)

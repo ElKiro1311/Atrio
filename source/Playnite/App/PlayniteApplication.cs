@@ -1312,6 +1312,7 @@ namespace Playnite
             // the saves still waiting for their seconds start now.
             Atrio.OutsidePlay.Shutdown();
             Atrio.SaveBackups.Shutdown();
+            Atrio.PcSync.Shutdown();
             MainModelBase?.RunShutdowScript();
             Extensions?.NotifiyOnApplicationStopped();
             Dialogs.ActivateGlobalProgress(_ =>
