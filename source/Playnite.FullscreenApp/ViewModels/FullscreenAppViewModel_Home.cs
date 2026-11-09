@@ -158,7 +158,12 @@ namespace Playnite.FullscreenApp.ViewModels
                     OpenCollection = null;
                     RefreshHome();
                 }
-                else if (!GameDetailsVisible)
+                else
+                {
+                    HomeEmptyText = null;
+                }
+
+                if (!value && !GameDetailsVisible)
                 {
                     // The list of the filter takes the focus that the start had.
                     GameListFocused = false;
@@ -173,6 +178,22 @@ namespace Playnite.FullscreenApp.ViewModels
                 }
             }
         }
+
+        private string homeEmptyText;
+
+        /// <summary>What the rows say when there's nothing to show, like no collections yet.</summary>
+        public string HomeEmptyText
+        {
+            get => homeEmptyText;
+            private set
+            {
+                homeEmptyText = value;
+                OnPropertyChanged();
+                OnPropertyChanged(nameof(HomeIsEmpty));
+            }
+        }
+
+        public bool HomeIsEmpty => !string.IsNullOrEmpty(homeEmptyText);
 
         private List<HomeRow> homeRows = new List<HomeRow>();
         public List<HomeRow> HomeRows
@@ -303,9 +324,11 @@ namespace Playnite.FullscreenApp.ViewModels
             if (collectionsKind)
             {
                 HomeRows = HomeRowBuilder.BuildCollections(library, Database, GameUnifier.Current?.Settings);
+                HomeEmptyText = HomeRows.Count == 0 ? ResourceProvider.GetString("LOCAtrioCouchNoCollections") : null;
                 return;
             }
 
+            HomeEmptyText = null;
             var rows = HomeRowBuilder.Build(library, Database, GameUnifier.Current?.Settings);
             HomeRows = rows;
             var progress = await AchievementProgress.GetAsync(Extensions);

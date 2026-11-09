@@ -277,6 +277,12 @@
                                         </TextBlock>
                                     </Grid>
 
+                                    <!-- Nothing to show in the rows, like no collections yet: what to do instead -->
+                                    <TextBlock Grid.Row="1" Text="{Binding HomeEmptyText}" Style="{DynamicResource TextBlockBaseStyle}" FontSize="26"
+                                               TextWrapping="Wrap" TextAlignment="Center" MaxWidth="900" Opacity="0.8"
+                                               HorizontalAlignment="Center" VerticalAlignment="Center"
+                                               Visibility="{Binding HomeIsEmpty, Converter={StaticResource BooleanToVisibilityConverter}}" />
+
                                     <!-- The start: rows of games. The arrows move between them, A opens the page of the game. -->
                                     <ScrollViewer x:Name="PART_ScrollHome" Grid.Row="1" Focusable="False"
                                                   HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Hidden">

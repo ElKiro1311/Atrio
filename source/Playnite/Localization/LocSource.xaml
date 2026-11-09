@@ -1657,6 +1657,7 @@ Open new issue on Playnite's GitHub page with a request to fix corruption in you
     <sys:String x:Key="LOCAtrioCouchCollections">Collections</sys:String>
     <sys:String x:Key="LOCAtrioCouchCollectionTab">Collections · {0}</sys:String>
     <sys:String x:Key="LOCAtrioCouchSeeCollection">See the whole collection ({0})</sys:String>
+    <sys:String x:Key="LOCAtrioCouchNoCollections">You have no collections yet. Make them on the desktop: Library, the Collections button, or mark games as favorites.</sys:String>
     <sys:String x:Key="LOCAtrioSavesToggle">Copy your saves when each game closes</sys:String>
     <sys:String x:Key="LOCAtrioSavesHint">Uses Ludusavi, open source (MIT license), which knows where thousands of games keep their saves. Atrio downloads it from its official page the first time (14 MB) and keeps the copies in its own folder, «Copias de partidas».</sys:String>
     <sys:String x:Key="LOCAtrioSavesTitle">Saves</sys:String>

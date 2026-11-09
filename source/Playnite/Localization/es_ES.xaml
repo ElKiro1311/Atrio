@@ -1654,6 +1654,7 @@ Abre un nuevo problema en la página de GitHub de Playnite con una solicitud par
     <sys:String x:Key="LOCAtrioCouchCollections">Colecciones</sys:String>
     <sys:String x:Key="LOCAtrioCouchCollectionTab">Colecciones · {0}</sys:String>
     <sys:String x:Key="LOCAtrioCouchSeeCollection">Ver toda la colección ({0})</sys:String>
+    <sys:String x:Key="LOCAtrioCouchNoCollections">Aún no tienes colecciones. Créalas en el escritorio, con el botón de Colecciones de la biblioteca, o marca juegos como favoritos.</sys:String>
     <sys:String x:Key="LOCAtrioSavesToggle">Copiar tus partidas guardadas al cerrar cada juego</sys:String>
     <sys:String x:Key="LOCAtrioSavesHint">Usa Ludusavi, de código abierto (licencia MIT), que sabe dónde guardan las partidas miles de juegos. Atrio lo descarga de su página oficial la primera vez (14 MB) y guarda las copias en su propia carpeta, «Copias de partidas».</sys:String>
     <sys:String x:Key="LOCAtrioSavesTitle">Partidas guardadas</sys:String>
