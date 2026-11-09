@@ -54,6 +54,9 @@
                            Visibility="{Binding SelectedGame.IsOpen, Converter={StaticResource InvertedBooleanToVisibilityConverter}}" />
                 <TextBlock Text="{DynamicResource LOCAtrioOpenFact}" Style="{DynamicResource GameFactText}"
                            Visibility="{Binding SelectedGame.IsOpen, Converter={StaticResource BooleanToVisibilityConverter}}" />
+                <TextBlock Text="{DynamicResource LOCAtrioUpdatePendingMark}" Style="{DynamicResource GameFactText}" Margin="8,0,0,0"
+                           Foreground="{DynamicResource WarningBrush}"
+                           Visibility="{Binding SelectedGame.UpdatePending, Converter={StaticResource BooleanToVisibilityConverter}, FallbackValue=Collapsed}" />
             </StackPanel>
 
             <StackPanel Orientation="Horizontal" Margin="0,0,30,0"
@@ -343,6 +346,10 @@
                                                                                             <StackPanel Orientation="Horizontal">
                                                                                                 <Ellipse Width="9" Height="9" Fill="{DynamicResource PositiveBrush}" VerticalAlignment="Center" Margin="0,0,7,0" />
                                                                                                 <TextBlock Text="{DynamicResource LOCAtrioOpenFact}" Style="{DynamicResource TextBlockBaseStyle}" FontSize="15" />
+                                                                                                <!-- The tile has no room for the words: the line of facts above says them in full. -->
+                                                                                                <TextBlock Text="&#x2193;" Style="{DynamicResource TextBlockBaseStyle}" FontSize="15" FontWeight="Bold"
+                                                                                                           Margin="6,0,0,0" Foreground="{DynamicResource WarningBrush}"
+                                                                                                           Visibility="{Binding Game.UpdatePending, Converter={StaticResource BooleanToVisibilityConverter}, FallbackValue=Collapsed}" />
                                                                                             </StackPanel>
                                                                                         </Border>
                                                                                         <Border x:Name="Outline" CornerRadius="10" BorderThickness="4" Margin="-4" BorderBrush="Transparent" />

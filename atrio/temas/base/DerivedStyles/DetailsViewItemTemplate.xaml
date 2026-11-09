@@ -31,6 +31,11 @@
                             </ItemsControl>
                             <!-- Like Steam: an open game goes green with "- Running" after its name, which only shortens the name. -->
                             <DockPanel HorizontalAlignment="Left" VerticalAlignment="Center">
+                                <!-- Steam has an update waiting for it, which installs when the game closes: it takes the place
+                                     of "- Running" so the name keeps its room, and the green name still says it is open. -->
+                                <TextBlock x:Name="UpdateMark" DockPanel.Dock="Right" Text="{DynamicResource LOCAtrioUpdatePendingListMark}"
+                                           Foreground="{DynamicResource WarningBrush}" FontSize="13" Margin="4,0,0,0"
+                                           ToolTip="{DynamicResource LOCAtrioUpdatePendingHint}" Visibility="Collapsed" />
                                 <TextBlock x:Name="OpenMark" DockPanel.Dock="Right" Text="{DynamicResource LOCAtrioOpenMark}"
                                            Foreground="{DynamicResource AtrioOpenBrush}" FontSize="13" Margin="4,0,0,0"
                                            Visibility="Collapsed" />
@@ -42,6 +47,10 @@
                         <DataTrigger Binding="{Binding IsOpen}" Value="True">
                             <Setter TargetName="OpenMark" Property="Visibility" Value="Visible" />
                             <Setter TargetName="GameName" Property="Foreground" Value="{DynamicResource AtrioOpenBrush}" />
+                        </DataTrigger>
+                        <DataTrigger Binding="{Binding UpdatePending}" Value="True">
+                            <Setter TargetName="UpdateMark" Property="Visibility" Value="Visible" />
+                            <Setter TargetName="OpenMark" Property="Visibility" Value="Collapsed" />
                         </DataTrigger>
                     </ControlTemplate.Triggers>
                 </ControlTemplate>

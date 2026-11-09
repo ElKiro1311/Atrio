@@ -60,6 +60,7 @@ namespace Playnite
             OpenGames.Changed += OpenGames_Changed;
             SteamControllerSupport.Changed += ControllerSupport_Changed;
             PcGamingWiki.Changed += ControllerSupport_Changed;
+            SteamUpdates.WaitingChanged += SteamUpdates_WaitingChanged;
             if (PlayniteApplication.Current != null)
             {
                 var games = Database.Games;
@@ -90,6 +91,7 @@ namespace Playnite
 
                 var library = Database;
                 SteamControllerSupport.Attach(() => games.ToList());
+                SteamUpdates.Watch(() => OpenGames.GetOpenGames().Count > 0 || PlayniteApplication.Current?.GamesEditor?.RunningGames.Count > 0);
                 Wishlist.Attach(() => unifier.Settings.WishlistAlerts);
                 Ludusavi.SharedFolder = () =>
                 {
@@ -181,6 +183,7 @@ namespace Playnite
             OpenGames.Changed -= OpenGames_Changed;
             SteamControllerSupport.Changed -= ControllerSupport_Changed;
             PcGamingWiki.Changed -= ControllerSupport_Changed;
+            SteamUpdates.WaitingChanged -= SteamUpdates_WaitingChanged;
             Items = null;
         }
 
@@ -217,6 +220,18 @@ namespace Playnite
                     CollectionView.Refresh();
                 }
             }
+        }
+
+        /// <summary>Only the open games can show it, so only they are told.</summary>
+        private void SteamUpdates_WaitingChanged(object sender, EventArgs e)
+        {
+            PlayniteApplication.CurrentNative?.Dispatcher?.BeginInvoke(new Action(() =>
+            {
+                foreach (var item in Items?.Where(a => a.IsOpen).ToList() ?? new List<GamesCollectionViewEntry>())
+                {
+                    item.NotifyUpdatePendingChanged();
+                }
+            }));
         }
 
         private void ControllerSupport_Changed(object sender, EventArgs e)

@@ -1804,6 +1804,9 @@ Open new issue on Playnite's GitHub page with a request to fix corruption in you
     <sys:String x:Key="LOCAtrioCouchController">With controller</sys:String>
     <sys:String x:Key="LOCAtrioSyncBrokenState">Atrio can't read {0}, where it remembers the synchronization of this PC. So as not to count anything twice, it doesn't synchronize until that file is fixed or deleted.</sys:String>
     <sys:String x:Key="LOCAtrioLeftoverKept">These aren't leftovers anymore, a game uses them now, so they stay: {0}.</sys:String>
+    <sys:String x:Key="LOCAtrioUpdatePendingMark">· update pending</sys:String>
+    <sys:String x:Key="LOCAtrioUpdatePendingHint">The game is running. Steam has an update waiting for it, which installs when you close the game.</sys:String>
+    <sys:String x:Key="LOCAtrioUpdatePendingListMark">- Update pending</sys:String>
     <sys:String x:Key="LOCAtrioSavesCloseFirst">Close {0} before restoring its saves.</sys:String>
     <sys:String x:Key="LOCAtrioSavesNoBackup">There's no copy of {0} to restore yet.</sys:String>
     <sys:String x:Key="LOCAtrioSavesDownloadFailed">Ludusavi couldn't be downloaded. Check the connection and try again.</sys:String>

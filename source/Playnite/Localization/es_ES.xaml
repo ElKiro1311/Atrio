@@ -1801,6 +1801,9 @@ Abre un nuevo problema en la página de GitHub de Playnite con una solicitud par
     <sys:String x:Key="LOCAtrioCouchController">Con mando</sys:String>
     <sys:String x:Key="LOCAtrioSyncBrokenState">Atrio no puede leer {0}, donde recuerda la sincronización de este PC. Para no contar nada dos veces, no sincroniza hasta que ese archivo se arregle o se borre.</sys:String>
     <sys:String x:Key="LOCAtrioLeftoverKept">Estas ya no son restos, porque ahora las usa un juego, y se quedan: {0}.</sys:String>
+    <sys:String x:Key="LOCAtrioUpdatePendingMark">· actualización pendiente</sys:String>
+    <sys:String x:Key="LOCAtrioUpdatePendingHint">El juego está en ejecución. Steam tiene una actualización esperando, que se instala cuando lo cierres.</sys:String>
+    <sys:String x:Key="LOCAtrioUpdatePendingListMark">- Actualización pendiente</sys:String>
     <sys:String x:Key="LOCAtrioSavesCloseFirst">Cierra {0} antes de restaurar sus partidas.</sys:String>
     <sys:String x:Key="LOCAtrioSavesNoBackup">Aún no hay ninguna copia de {0} que restaurar.</sys:String>
     <sys:String x:Key="LOCAtrioSavesDownloadFailed">No se pudo descargar Ludusavi. Revisa la conexión y vuelve a intentarlo.</sys:String>

@@ -75,6 +75,51 @@ namespace Playnite.Atrio
             }
         }
 
+        private static HashSet<string> waiting = new HashSet<string>();
+        private static System.Threading.Timer timer;
+
+        /// <summary>Raised when the games of Steam with an update waiting change, on a thread of the pool.</summary>
+        public static event EventHandler WaitingChanged;
+
+        /// <summary>Some copy of Steam of the game has an update waiting, as Steam said the last time it was looked at.</summary>
+        public static bool IsWaiting(IEnumerable<SDK.Models.Game> copies)
+        {
+            var appId = SteamContent.GetAppId(copies);
+            var current = waiting;
+            return appId != null && current.Contains(appId);
+        }
+
+        /// <summary>
+        /// While some game is open, every 20 seconds: an update that arrives while it's open has to wait until it's
+        /// closed, and the list says so. With nothing open nothing is read.
+        /// </summary>
+        public static void Watch(Func<bool> anyOpen)
+        {
+            if (timer != null)
+            {
+                return;
+            }
+
+            timer = new System.Threading.Timer(_ =>
+            {
+                try
+                {
+                    var now = anyOpen() ?
+                        new HashSet<string>(GetPending().Select(a => a.AppId)) :
+                        new HashSet<string>();
+                    if (!now.SetEquals(waiting))
+                    {
+                        waiting = now;
+                        WaitingChanged?.Invoke(null, EventArgs.Empty);
+                    }
+                }
+                catch (Exception e) when (!PlayniteEnvironment.ThrowAllErrors)
+                {
+                    logger.Debug(e, "Failed to look at the updates of Steam.");
+                }
+            }, null, TimeSpan.FromSeconds(15), TimeSpan.FromSeconds(20));
+        }
+
         public static string GetValidateUrl(string appId) => $"steam://validate/{appId}";
 
         /// <summary>The client checks every file of the game and downloads again whatever is missing or broken.</summary>

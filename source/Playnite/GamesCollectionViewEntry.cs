@@ -66,9 +66,18 @@ namespace Playnite
         public bool IsOpen => Game.IsRunning || OpenGames.IsOpen(Game.Id) ||
             (HasMultipleCopies && Copies.Any(a => a.Game.IsRunning || OpenGames.IsOpen(a.Game.Id)));
 
+        /// <summary>Open, and Steam has an update for it waiting: it will install when the game closes.</summary>
+        public bool UpdatePending => IsOpen && SteamUpdates.IsWaiting(HasMultipleCopies ? Copies.Select(a => a.Game) : new[] { Game });
+
         public void NotifyOpenChanged()
         {
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(IsOpen)));
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(UpdatePending)));
+        }
+
+        public void NotifyUpdatePendingChanged()
+        {
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(UpdatePending)));
         }
 
         public bool IsCustomGame => Game.IsCustomGame;
