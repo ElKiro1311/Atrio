@@ -2,6 +2,7 @@ using Playnite.SDK;
 using Playnite.SDK.Models;
 using Playnite.SDK.Plugins;
 using System;
+using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Threading;
@@ -74,6 +75,13 @@ namespace Playnite.Atrio
         /// </summary>
         public static bool IsDirect(Game game)
         {
+            return IsDirect(game, null);
+        }
+
+        /// <param name="registered">The uninstallers Windows knows, read once for many games; null reads them now.</param>
+        public static bool IsDirect(Game game, Func<List<WindowsUninstallEntry>> registered)
+        {
+            registered = registered ?? (() => WindowsUninstallEntries.Read());
             if (game == null || GameUnifier.Current?.Settings.DirectInstall == false)
             {
                 return false;
@@ -88,12 +96,12 @@ namespace Playnite.Atrio
 
                 if (game.PluginId == EaPluginId)
                 {
-                    return WindowsUninstallEntries.FindEa(WindowsUninstallEntries.Read(), game.InstallDirectory) != null;
+                    return WindowsUninstallEntries.FindEa(registered(), game.InstallDirectory) != null;
                 }
 
                 if (game.PluginId == AmazonPluginId)
                 {
-                    return WindowsUninstallEntries.FindAmazon(WindowsUninstallEntries.Read(), game.GameId, game.InstallDirectory) != null;
+                    return WindowsUninstallEntries.FindAmazon(registered(), game.GameId, game.InstallDirectory) != null;
                 }
 
                 if (game.PluginId == ItchPluginId)

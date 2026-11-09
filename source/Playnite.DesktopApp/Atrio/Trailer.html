@@ -1,0 +1,191 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+  html, body { margin: 0; height: 100%; background: #0b0c10; color: #e8e8ef; font-family: 'Segoe UI', sans-serif; overflow: hidden; }
+  #wrap { display: flex; flex-direction: column; height: 100%; }
+  video { flex: 1; width: 100%; min-height: 0; background: #000; outline: none; }
+  #list { display: flex; gap: 10px; padding: 10px 14px; overflow-x: auto; background: #121319; }
+  .t { flex: 0 0 auto; width: 184px; cursor: pointer; border-radius: 8px; border: 2px solid transparent; background: #1b1d26; color: inherit; padding: 0; text-align: left; font: inherit; }
+  .t img { width: 100%; height: 104px; object-fit: cover; border-radius: 6px 6px 0 0; display: block; }
+  .t span { display: block; padding: 6px 8px; font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .t.on { border-color: #8b90ff; }
+  .t:focus-visible { outline: 2px solid #ffffff; }
+  #note { position: absolute; top: 12px; left: 14px; font-size: 13px; background: #000000b0; padding: 4px 10px; border-radius: 6px; display: none; }
+</style>
+</head>
+<body>
+<div id="wrap">
+  <video id="v" controls autoplay playsinline></video>
+  <div id="list"></div>
+</div>
+<div id="note"></div>
+<script>
+'use strict';
+// Filled in by Atrio: the trailers of the game and the words of the page.
+const trailers = /*TRAILERS*/[];
+const texts = /*TEXTS*/{};
+
+const video = document.getElementById('v');
+const list = document.getElementById('list');
+const note = document.getElementById('note');
+let job = null;
+
+const supported = type => !!(window.MediaSource && MediaSource.isTypeSupported(type));
+const withSound = supported('audio/mp4; codecs="mp4a.40.2"') && supported('video/mp4; codecs="avc1.640028"');
+
+function say(text) {
+  note.textContent = text || '';
+  note.style.display = text ? 'block' : 'none';
+}
+
+function seconds(value) {
+  const m = /PT(?:(\d+(?:\.\d+)?)H)?(?:(\d+(?:\.\d+)?)M)?(?:(\d+(?:\.\d+)?)S)?/.exec(value || '');
+  return m ? (+(m[1] || 0)) * 3600 + (+(m[2] || 0)) * 60 + (+(m[3] || 0)) : 0;
+}
+
+function template(rep) {
+  return rep.getElementsByTagName('SegmentTemplate')[0] || rep.parentElement.getElementsByTagName('SegmentTemplate')[0];
+}
+
+function typeOf(rep) {
+  const mime = rep.getAttribute('mimeType') || rep.parentElement.getAttribute('mimeType');
+  return mime + '; codecs="' + rep.getAttribute('codecs') + '"';
+}
+
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+
+function ahead(buffer) {
+  const ranges = buffer.buffered;
+  for (let i = 0; i < ranges.length; i++) {
+    if (video.currentTime >= ranges.start(i) - 0.5 && video.currentTime <= ranges.end(i)) {
+      return ranges.end(i) - video.currentTime;
+    }
+  }
+  return 0;
+}
+
+async function append(buffer, url, run) {
+  const response = await fetch(url);
+  if (!response.ok) {
+    throw new Error(url + ': ' + response.status);
+  }
+  const data = await response.arrayBuffer();
+  if (run.cancelled) {
+    return;
+  }
+  await new Promise((resolve, reject) => {
+    buffer.addEventListener('updateend', resolve, { once: true });
+    buffer.addEventListener('error', reject, { once: true });
+    buffer.appendBuffer(data);
+  });
+}
+
+// The pieces of one kind (video or sound), in order, never more than a minute ahead of what plays.
+async function feed(source, rep, base, length, run) {
+  const tpl = template(rep);
+  const id = rep.getAttribute('id');
+  const scale = +tpl.getAttribute('timescale') || 1;
+  const piece = +tpl.getAttribute('duration');
+  const first = +(tpl.getAttribute('startNumber') || 1);
+  const count = Math.ceil(length * scale / piece);
+  const name = (pattern, number) => pattern
+    .replace(/\$RepresentationID\$/g, id)
+    .replace(/\$Number%0(\d+)d\$/g, (m, width) => String(number).padStart(+width, '0'))
+    .replace(/\$Number\$/g, number);
+  const buffer = source.addSourceBuffer(typeOf(rep));
+  await append(buffer, base + name(tpl.getAttribute('initialization'), first), run);
+  for (let n = first; n < first + count && !run.cancelled; n++) {
+    while (!run.cancelled && ahead(buffer) > 60) {
+      await sleep(400);
+    }
+    await append(buffer, base + name(tpl.getAttribute('media'), n), run);
+  }
+}
+
+async function play(index) {
+  if (job) {
+    job.cancelled = true;
+  }
+  const run = { cancelled: false };
+  job = run;
+  [...list.children].forEach((b, i) => b.classList.toggle('on', i === index));
+  say('');
+  const trailer = trailers[index];
+  const url = (withSound && trailer.dashH264) || trailer.dashAv1 || trailer.dashH264;
+  try {
+    const manifest = new DOMParser().parseFromString(await (await fetch(url)).text(), 'application/xml');
+    if (run.cancelled) {
+      return;
+    }
+    const base = url.split('?')[0].replace(/[^\/]*$/, '');
+    const length = seconds(manifest.documentElement.getAttribute('mediaPresentationDuration'));
+    const sets = [...manifest.getElementsByTagName('AdaptationSet')];
+    const pick = kind => {
+      const set = sets.find(s => s.getAttribute('contentType') === kind);
+      if (!set) {
+        return null;
+      }
+      const reps = [...set.getElementsByTagName('Representation')].filter(r => supported(typeOf(r)));
+      reps.sort((a, b) => (+b.getAttribute('height') || +b.getAttribute('bandwidth')) - (+a.getAttribute('height') || +a.getAttribute('bandwidth')));
+      const tallest = Math.min(1080, screen.height * (window.devicePixelRatio || 1));
+      return reps.find(r => !r.getAttribute('height') || +r.getAttribute('height') <= tallest) || reps[reps.length - 1] || null;
+    };
+    const pictures = pick('video');
+    const sound = pick('audio');
+    if (!pictures) {
+      say(texts.failed);
+      return;
+    }
+    if (!sound) {
+      say(texts.noSound);
+    }
+    const source = new MediaSource();
+    video.src = URL.createObjectURL(source);
+    await new Promise(r => source.addEventListener('sourceopen', r, { once: true }));
+    if (run.cancelled) {
+      return;
+    }
+    source.duration = length;
+    await Promise.all([pictures, sound].filter(Boolean).map(rep => feed(source, rep, base, length, run)));
+    if (!run.cancelled && source.readyState === 'open') {
+      source.endOfStream();
+    }
+  } catch (e) {
+    if (!run.cancelled) {
+      say(texts.failed);
+      console.log('Trailer: ' + e);
+    }
+  }
+}
+
+trailers.forEach((t, i) => {
+  const button = document.createElement('button');
+  button.className = 't';
+  button.title = t.name || '';
+  const picture = document.createElement('img');
+  picture.src = t.thumbnail || '';
+  picture.alt = '';
+  const label = document.createElement('span');
+  label.textContent = t.name || '';
+  button.append(picture, label);
+  button.addEventListener('click', () => play(i));
+  list.appendChild(button);
+});
+
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape' && window.chrome && window.chrome.webview) {
+    window.chrome.webview.postMessage('close');
+  } else if (e.key === ' ' && document.activeElement !== video) {
+    e.preventDefault();
+    video.paused ? video.play() : video.pause();
+  }
+});
+
+if (trailers.length) {
+  play(0);
+}
+</script>
+</body>
+</html>

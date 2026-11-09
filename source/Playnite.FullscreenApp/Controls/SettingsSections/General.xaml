@@ -50,6 +50,9 @@
         <pctrls:CheckBoxEx x:Name="ToggleLightWhilePlaying"
                            Content="{DynamicResource LOCAtrioLightToggle}"
                            Tag="{DynamicResource LOCAtrioLightHint}"/>
+        <pctrls:CheckBoxEx x:Name="ToggleBackupSaves"
+                           Content="{DynamicResource LOCAtrioSavesToggle}"
+                           Tag="{DynamicResource LOCAtrioSavesHint}"/>
         <pctrls:CheckBoxEx x:Name="ToggleAsyncImageLoad"
                            Content="{DynamicResource LOCSettingsAsyncImageLoading}"
                            ContentStringFormat="{}{0} *"

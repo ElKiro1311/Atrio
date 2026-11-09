@@ -106,6 +106,8 @@ if ($LASTEXITCODE -ne 0) { throw 'Fallo al preparar los complementos' }
 
 Copy-Item (Join-Path $raiz 'atrio\LEEME.txt') (Join-Path $temporal 'LEEME.txt') -Force
 Copy-Item (Join-Path $raiz 'LICENSE.md') (Join-Path $temporal 'LICENSE.md') -Force
+# Los avisos de las bibliotecas de otros que viajan dentro del paquete y piden llevar su licencia.
+Copy-Item (Join-Path $raiz 'atrio\licencias') (Join-Path $temporal 'Licencias') -Recurse -Force
 
 # Lo que es de esta versión: al actualizar, lo que deje de estar aquí se retira. Nada más se toca.
 $lista = Join-Path $temporal 'atrio-archivos.txt'

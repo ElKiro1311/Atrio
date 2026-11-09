@@ -1,7 +1,9 @@
 using Playnite.SDK.Models;
 using Playnite.SDK.Plugins;
 using System;
+using System.Collections.Generic;
 using System.Drawing;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -103,9 +105,9 @@ namespace Playnite.Atrio
             return tick ? UbisoftUninstallPage.Done : UbisoftUninstallPage.Unknown;
         }
 
-        private static IntPtr FindWindow()
+        private static List<IntPtr> FindWindows()
         {
-            return StoreWindows.Find(Process, (_, type) => type == WindowClass);
+            return StoreWindows.FindAll(Process, (_, type) => type == WindowClass);
         }
 
         private static void Click(IntPtr window, Bitmap page, Point point)
@@ -114,23 +116,24 @@ namespace Playnite.Atrio
             StoreWindows.PostClick(window, (int)(point.X * scale), (int)(point.Y * scale));
         }
 
-        private static UbisoftUninstallPage Look(out IntPtr window, out Bitmap page)
+        private static UbisoftUninstallPage Look(IntPtr window, out Bitmap page)
         {
-            page = null;
-            window = FindWindow();
-            if (window == IntPtr.Zero)
-            {
-                return UbisoftUninstallPage.Unknown;
-            }
-
             page = StoreWindows.Capture(window);
             return Classify(page);
         }
+
+        /// <summary>Its small windows that were already there before the order: none of them is ever touched.</summary>
+        private HashSet<IntPtr> before = new HashSet<IntPtr>();
+
+        /// <summary>Ends the wait of the final notice if the controller goes away without the game being gone.</summary>
+        private readonly CancellationTokenSource noticeWatch = new CancellationTokenSource();
 
         public override async void Uninstall(UninstallActionArgs args)
         {
             // The add-on asks Ubisoft Connect, as always, and notices by itself when the game is gone.
             launcherWasOpen = System.Diagnostics.Process.GetProcessesByName(Process).Length > 0;
+            before = new HashSet<IntPtr>(FindWindows());
+            var log = UbisoftClientFiles.LogFile is string file && System.IO.File.Exists(file) ? new LogFollower(file) : null;
             UseStore(args);
             if (AtrioInfo.GetTestSetting("ATRIO_SIN_TIENDA") != null)
             {
@@ -139,9 +142,9 @@ namespace Playnite.Atrio
 
             try
             {
-                await AnswerAsync(watcher.Token);
+                await AnswerAsync(log, watcher.Token);
             }
-            catch (OperationCanceledException) when (watcher.IsCancellationRequested)
+            catch (OperationCanceledException) when (watcher.IsCancellationRequested || noticeWatch.IsCancellationRequested)
             {
             }
             catch (Exception e) when (!PlayniteEnvironment.ThrowAllErrors)
@@ -151,38 +154,114 @@ namespace Playnite.Atrio
             }
         }
 
-        private async Task AnswerAsync(CancellationToken token)
+        public override void Dispose()
+        {
+            if (!storeFinished)
+            {
+                noticeWatch.Cancel();
+            }
+
+            base.Dispose();
+        }
+
+        /// <summary>The launcher wrote that it got the order to uninstall this game, not another one.</summary>
+        private bool orderSeen;
+
+        private void ReadLog(LogFollower log)
+        {
+            if (log == null || orderSeen)
+            {
+                return;
+            }
+
+            try
+            {
+                orderSeen = log.ReadNew().Any(a => UbisoftClientFiles.IsUninstallOrder(a, Game.GameId));
+            }
+            catch (System.IO.IOException)
+            {
+                // The launcher is writing it, it's read again in the next round.
+            }
+        }
+
+        /// <summary>
+        /// Presses Yes only in a question that appeared after the order, once the log of the launcher says the order
+        /// was for this game, and only when two copies in a row show the same question. If the question is still
+        /// there after the click, it's left for the person.
+        /// </summary>
+        private async Task AnswerAsync(LogFollower log, CancellationToken token)
         {
             var started = DateTime.Now;
-            var answered = false;
-            while (!answered && DateTime.Now - started < questionPatience)
+            IntPtr answered = IntPtr.Zero;
+            IntPtr seenOnce = IntPtr.Zero;
+            while (answered == IntPtr.Zero && DateTime.Now - started < questionPatience)
             {
                 await Task.Delay(checkPause, token);
-                var kind = Look(out var window, out var page);
-                using (page)
+                ReadLog(log);
+                if (log != null && !orderSeen)
                 {
-                    if (kind == UbisoftUninstallPage.Question)
+                    continue;
+                }
+
+                IntPtr question = IntPtr.Zero;
+                Bitmap questionPage = null;
+                foreach (var window in FindWindows().Where(a => !before.Contains(a)))
+                {
+                    var kind = Look(window, out var page);
+                    if (kind == UbisoftUninstallPage.Question && question == IntPtr.Zero)
                     {
-                        Click(window, page, yesPoint);
-                        answered = true;
-                        logger.Info($"Ubisoft Connect asked about {Game.GameId}: Atrio said yes, as the person did.");
+                        question = window;
+                        questionPage = page;
+                    }
+                    else
+                    {
+                        page?.Dispose();
+                    }
+                }
+
+                using (questionPage)
+                {
+                    if (question == IntPtr.Zero)
+                    {
+                        seenOnce = IntPtr.Zero;
+                    }
+                    else if (question != seenOnce)
+                    {
+                        // The first sight: it's pressed only if the next copy still shows it, so it's not a page drawing.
+                        seenOnce = question;
+                    }
+                    else
+                    {
+                        Click(question, questionPage, yesPoint);
+                        answered = question;
                     }
                 }
             }
 
-            if (!answered)
+            if (answered == IntPtr.Zero)
             {
                 logger.Info($"Ubisoft Connect didn't show its question for {Game.GameId}: its window stays for the person.");
                 return;
             }
 
+            await Task.Delay(TimeSpan.FromSeconds(2), token);
+            if (FindWindows().Contains(answered) && Look(answered, out var after) == UbisoftUninstallPage.Question)
+            {
+                after?.Dispose();
+                logger.Info($"Ubisoft Connect still asks about {Game.GameId} after the click: the question stays for the person.");
+                return;
+            }
+
+            logger.Info($"Ubisoft Connect asked about {Game.GameId}: Atrio said yes, as the person did.");
+
             // From here on the watch doesn't end with the controller: Atrio lets go of it as soon as the add-on
-            // says the game is gone, and the notice of Ubisoft Connect comes right after that.
+            // says the game is gone, and the notice of Ubisoft Connect comes right after that. If the controller
+            // goes away without that, the wait ends too.
             started = DateTime.Now;
             DateTime? finishedAt = null;
             while (DateTime.Now - started < removalPatience)
             {
-                await Task.Delay(checkPause);
+                await Task.Delay(checkPause, noticeWatch.Token);
                 if (storeFinished && finishedAt == null)
                 {
                     finishedAt = DateTime.Now;
@@ -193,11 +272,16 @@ namespace Playnite.Atrio
                     break;
                 }
 
-                var kind = Look(out var window, out var page);
-                using (page)
+                foreach (var window in FindWindows().Where(a => !before.Contains(a)))
                 {
-                    if (kind == UbisoftUninstallPage.Done)
+                    var kind = Look(window, out var page);
+                    using (page)
                     {
+                        if (kind != UbisoftUninstallPage.Done)
+                        {
+                            continue;
+                        }
+
                         Click(window, page, closePoint);
                         logger.Info($"Ubisoft Connect uninstalled {Game.GameId}: Atrio closed its notice.");
 

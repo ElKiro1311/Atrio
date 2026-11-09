@@ -84,7 +84,16 @@ namespace Playnite.DesktopApp.Windows
         {
             var ticket = System.Threading.Interlocked.Increment(ref loading);
             var width = (int)Math.Min(3840, SystemParameters.PrimaryScreenWidth * 1.5);
-            var image = await Task.Run(() => capture.IsVideo ? CaptureThumbnails.GetShellThumbnail(capture.Path, 1280) : CaptureThumbnails.GetPicture(capture.Path, width));
+            BitmapSource image = null;
+            try
+            {
+                image = await Task.Run(() => capture.IsVideo ? CaptureThumbnails.GetShellThumbnail(capture.Path, 1280) : CaptureThumbnails.GetPicture(capture.Path, width));
+            }
+            catch (Exception e) when (!(e is OutOfMemoryException))
+            {
+                logger.Debug(e, $"Failed to show the capture {capture.Path}.");
+            }
+
             if (ticket == loading)
             {
                 Picture = image;

@@ -88,9 +88,40 @@ namespace Playnite.Tests
             Assert.AreEqual("Clair Obscur Expedi", GameCaptures.GetDiscordTitle("Clair_Obscur_Expedi_9965277e-16a8-433f-9c1f-a97c807d9cd2"));
             Assert.IsNull(GameCaptures.GetDiscordTitle("Dota_2_sin-numero"));
             var variants = GameCaptures.GetNameVariants(new[] { "Clair Obscur: Expedition 33" });
-            Assert.IsTrue(GameCaptures.StartsOneOf("Clair Obscur Expedi", variants));
+            Assert.IsTrue(GameCaptures.StartsOneOf("Clair_Obscur_Expedi", variants));
             Assert.IsFalse(GameCaptures.StartsOneOf("Cla", variants), "Too short to tell.");
-            Assert.IsFalse(GameCaptures.StartsOneOf("Pantalla 1", variants));
+            Assert.IsFalse(GameCaptures.StartsOneOf("Pantalla_1", variants));
+
+            // "Portal" isn't a name Discord cut: it's another game.
+            var portal2 = GameCaptures.GetNameVariants(new[] { "Portal 2" });
+            Assert.IsFalse(GameCaptures.StartsOneOf("Portal", portal2));
+            Assert.IsTrue(GameCaptures.StartsOneOf("Portal_2", portal2));
+        }
+
+        [Test]
+        public void SequelKeepsItsOwnCapturesTest()
+        {
+            var root = Path.Combine(Path.GetTempPath(), "atrio-secuela-" + Guid.NewGuid().ToString("N"));
+            try
+            {
+                Directory.CreateDirectory(Path.Combine(root, @"Videos\Captures"));
+                File.WriteAllBytes(Path.Combine(root, @"Videos\Captures\Hollow Knight 2026-11-01 10-00-00.png"), new byte[] { 1 });
+                File.WriteAllBytes(Path.Combine(root, @"Videos\Captures\Hollow Knight Silksong 2026-11-02 10-00-00.png"), new byte[] { 1 });
+                var places = new CapturePlaces { GameBar = Path.Combine(root, @"Videos\Captures"), Videos = Path.Combine(root, "Videos") };
+
+                var library = new[] { "Hollow Knight", "Hollow Knight: Silksong" };
+                var silksong = GameCaptures.Find(new[] { "Hollow Knight: Silksong" }, null, places, library.Where(a => a != "Hollow Knight: Silksong"));
+                Assert.AreEqual(1, silksong.Count, "Only its own: the name without subtitle is another game of the library.");
+                StringAssert.Contains("Silksong", silksong[0].Path);
+
+                var original = GameCaptures.Find(new[] { "Hollow Knight" }, null, places, library.Where(a => a != "Hollow Knight"));
+                Assert.AreEqual(1, original.Count);
+                StringAssert.DoesNotContain("Silksong", original[0].Path);
+            }
+            finally
+            {
+                Directory.Delete(root, true);
+            }
         }
 
         [Test]

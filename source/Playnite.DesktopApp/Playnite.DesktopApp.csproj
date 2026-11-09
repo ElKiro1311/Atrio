@@ -67,5 +67,11 @@
     <PackageReference Include="System.IO.Abstractions" version="2.1.0.227" />
     <PackageReference Include="System.ValueTuple" version="4.5.0" />
     <PackageReference Include="VirtualizingWrapPanel" version="2.5.4" />
+    <PackageReference Include="Microsoft.Web.WebView2" version="1.0.4191.47" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- The player of the trailers, written into its window with the trailers of each game -->
+    <EmbeddedResource Include="Atrio\Trailer.html" LogicalName="Playnite.DesktopApp.Atrio.Trailer.html" />
   </ItemGroup>
 </Project>

@@ -180,11 +180,23 @@ namespace Playnite.Atrio
             return match.Success ? match.Groups["name"].Value.Replace('_', ' ') : null;
         }
 
-        /// <summary>A name cut short still counts if it's long enough and the start of one of the names.</summary>
+        /// <summary>Discord cuts the name of the game at this many letters (with "_" for the spaces).</summary>
+        public const int DiscordCut = 19;
+
+        /// <summary>
+        /// The name of a clip of Discord: equal to one of the names, or, only when Discord cut it, the start of one.
+        /// A short name like "Portal" isn't cut, so it doesn't count for "Portal 2".
+        /// </summary>
         public static bool StartsOneOf(string cut, List<string> variants)
         {
             var normal = Normalize(cut);
-            return normal.Length >= 4 && variants.Any(a => a == normal || a.StartsWith(normal, StringComparison.Ordinal));
+            if (normal.Length < 4)
+            {
+                return false;
+            }
+
+            var wasCut = (cut ?? string.Empty).Length >= DiscordCut;
+            return variants.Any(a => a == normal || (wasCut && a.StartsWith(normal, StringComparison.Ordinal)));
         }
 
         private static string[] List(string folder, bool folders)
@@ -246,8 +258,12 @@ namespace Playnite.Atrio
             return List(parent, true).Where(a => variants.Contains(Normalize(System.IO.Path.GetFileName(a))));
         }
 
-        /// <summary>The captures of a game, the newest first. Names are those of its copies; numbers are its numbers of Steam.</summary>
-        public static List<GameCapture> Find(IEnumerable<string> names, IEnumerable<string> steamAppIds, CapturePlaces places)
+        /// <summary>
+        /// The captures of a game, the newest first. Names are those of its copies; numbers are its numbers of Steam.
+        /// The names of the other games of the library keep a name without its subtitle from taking their captures:
+        /// "Hollow Knight: Silksong" doesn't get those of "Hollow Knight".
+        /// </summary>
+        public static List<GameCapture> Find(IEnumerable<string> names, IEnumerable<string> steamAppIds, CapturePlaces places, IEnumerable<string> otherNames = null)
         {
             var result = new List<GameCapture>();
             if (places == null)
@@ -270,7 +286,10 @@ namespace Playnite.Atrio
                 }
             }
 
-            var variants = GetNameVariants(names);
+            var whole = new HashSet<string>((names ?? Enumerable.Empty<string>()).Select(Normalize));
+            var others = new HashSet<string>((otherNames ?? Enumerable.Empty<string>()).Select(Normalize));
+            others.ExceptWith(whole);
+            var variants = GetNameVariants(names).Where(a => whole.Contains(a) || !others.Contains(a)).ToList();
             if (variants.Count > 0)
             {
                 AddFiles(result, List(places.GameBar, false).Where(a =>

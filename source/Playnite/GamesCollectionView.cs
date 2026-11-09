@@ -66,6 +66,7 @@ namespace Playnite
                     Database,
                     () => unifier.Settings.CountOutsidePlaytime,
                     () => PlayniteApplication.Current?.GamesEditor?.RunningGames.Keys.ToList() ?? new List<Guid>());
+                SaveBackups.Attach(Database, () => unifier.Settings.BackupSaves);
                 LightWhilePlaying.Attach(
                     PlayniteApplication.CurrentNative?.Dispatcher,
                     () => unifier.Settings.LightWhilePlaying,

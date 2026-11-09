@@ -251,6 +251,8 @@
                                                   ToolTip="{DynamicResource LOCAtrioCountOutsideHint}" />
                                         <CheckBox Content="{DynamicResource LOCAtrioLightToggle}" IsChecked="{Binding LightWhilePlaying}" Margin="0,10,0,0"
                                                   ToolTip="{DynamicResource LOCAtrioLightHint}" />
+                                        <CheckBox Content="{DynamicResource LOCAtrioSavesToggle}" IsChecked="{Binding BackupSaves}" Margin="0,10,0,0"
+                                                  ToolTip="{DynamicResource LOCAtrioSavesHint}" />
                                     </StackPanel>
                                 </Border>
 

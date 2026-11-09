@@ -149,6 +149,20 @@ namespace Playnite.FullscreenApp.Controls.SettingsSections
                 unifier.Settings.LightWhilePlaying = ToggleLightWhilePlaying.IsChecked == true;
                 unifier.Settings.Save();
             };
+
+            ToggleBackupSaves.Visibility = ToggleDirectInstall.Visibility;
+            ToggleBackupSaves.IsChecked = unifier?.Settings.BackupSaves == true;
+            ToggleBackupSaves.Click += async (_, __) =>
+            {
+                unifier.Settings.BackupSaves = ToggleBackupSaves.IsChecked == true;
+                unifier.Settings.Save();
+                if (unifier.Settings.BackupSaves && !await Playnite.Atrio.Ludusavi.InstallAsync(System.Threading.CancellationToken.None))
+                {
+                    unifier.Settings.BackupSaves = false;
+                    unifier.Settings.Save();
+                    ToggleBackupSaves.IsChecked = false;
+                }
+            };
         }
     }
 }

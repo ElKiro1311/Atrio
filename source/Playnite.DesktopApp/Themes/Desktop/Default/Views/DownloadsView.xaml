@@ -65,6 +65,17 @@
                                 </ItemsControl.ItemTemplate>
                             </ItemsControl>
 
+                            <!-- A list being uninstalled: which game goes now, and a way to stop the rest -->
+                            <Border Style="{DynamicResource AtrioCard}" Padding="16,10,12,10" Margin="0,0,14,14"
+                                    Visibility="{Binding IsRemoving, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                <DockPanel>
+                                    <Button DockPanel.Dock="Right" Style="{DynamicResource AtrioGhostButton}" Content="{DynamicResource LOCAtrioStorageStop}"
+                                            Command="{Binding StopRemovalCommand}" />
+                                    <TextBlock Text="{Binding RemovalText}" Style="{DynamicResource BaseTextBlockStyle}" FontSize="14"
+                                               VerticalAlignment="Center" TextWrapping="Wrap" Margin="0,0,12,0" />
+                                </DockPanel>
+                            </Border>
+
                             <!-- The room of each disk, with its games by size -->
                             <DockPanel Margin="0,4,14,10">
                                 <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center"

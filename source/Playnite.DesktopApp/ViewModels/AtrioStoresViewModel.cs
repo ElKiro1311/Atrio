@@ -192,6 +192,34 @@ namespace Playnite.DesktopApp.ViewModels
             }
         }
 
+        public bool BackupSaves
+        {
+            get => GameUnifier.Current?.Settings.BackupSaves == true;
+            set
+            {
+                var unifier = GameUnifier.Current;
+                unifier.Settings.BackupSaves = value;
+                unifier.Settings.Save();
+                OnPropertyChanged();
+                if (value)
+                {
+                    GetLudusavi();
+                }
+            }
+        }
+
+        /// <summary>Ludusavi comes as soon as the copies are turned on, so the first one doesn't wait for it.</summary>
+        private async void GetLudusavi()
+        {
+            if (await Ludusavi.InstallAsync(System.Threading.CancellationToken.None))
+            {
+                return;
+            }
+
+            main.Dialogs.ShowErrorMessage(ResourceProvider.GetString("LOCAtrioSavesDownloadFailed"), ResourceProvider.GetString("LOCAtrioSavesTitle"));
+            BackupSaves = false;
+        }
+
         public bool LightWhilePlaying
         {
             get => GameUnifier.Current?.Settings.LightWhilePlaying == true;

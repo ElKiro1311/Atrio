@@ -648,7 +648,13 @@ namespace Playnite.DesktopApp.ViewModels
                     Where(a => a.Game.PluginId == SteamContent.SteamPluginId).
                     Select(a => a.Game.GameId).
                     ToList();
-                var found = await Task.Run(() => GameCaptures.Find(names, appIds, CapturePlaces.Read()), token);
+                var copies = new HashSet<Guid>(game.Copies.Select(a => a.Game.Id));
+                var library = editor.Database?.Games;
+                var found = await Task.Run(() =>
+                {
+                    var others = library?.Where(a => !copies.Contains(a.Id)).Select(a => a.Name).ToList() ?? new List<string>();
+                    return GameCaptures.Find(names, appIds, CapturePlaces.Read(), others);
+                }, token);
                 token.ThrowIfCancellationRequested();
                 captures = found;
                 if (found.Count == 0)
@@ -676,6 +682,130 @@ namespace Playnite.DesktopApp.ViewModels
             catch (Exception e) when (!(e is OutOfMemoryException))
             {
                 logger.Debug(e, $"Failed to read the captures of {game.Name}.");
+            }
+        }
+
+        /// <summary>A game of Steam can show the trailers of its page in the store.</summary>
+        public bool HasTrailers => steamAppId != null && DesktopAppViewModel.UsesLibraryPanes;
+
+        private RelayCommand<object> showTrailersCommand;
+        public RelayCommand<object> ShowTrailersCommand => showTrailersCommand ?? (showTrailersCommand = new RelayCommand<object>(_ =>
+        {
+            if (steamAppId != null)
+            {
+                Windows.TrailerWindow.Open(game.DisplayName, steamAppId);
+            }
+        }));
+
+        /// <summary>The card of the saves shows while the copies are turned on.</summary>
+        public bool ShowSavesCard => SaveBackups.IsEnabled && DesktopAppViewModel.UsesLibraryPanes;
+
+        public bool SavesBusy => SaveBackups.Busy != Guid.Empty && game?.Copies.Any(a => a.Game.Id == SaveBackups.Busy) == true;
+
+        /// <summary>The copy whose saves are copied: the installed one, or the one Atrio would start.</summary>
+        private Game SavesGame => game?.Copies.Select(a => a.Game).FirstOrDefault(a => a.IsInstalled) ?? game?.Game;
+
+        public string SavesText
+        {
+            get
+            {
+                if (SavesBusy)
+                {
+                    return resources.GetString("LOCAtrioSavesBusy");
+                }
+
+                var info = game?.Copies.Select(a => SaveBackups.GetInfo(a.Game.Id)).Where(a => a != null).OrderByDescending(a => a.LastBackup ?? DateTime.MinValue).FirstOrDefault();
+                if (info == null)
+                {
+                    return resources.GetString("LOCAtrioSavesNone");
+                }
+
+                if (info.LastBackup != null)
+                {
+                    return string.Format(
+                        resources.GetString("LOCAtrioSavesLast"),
+                        info.LastBackup.Value.ToString("f", Localization.ApplicationLanguageCultureInfo),
+                        DirectUninstall.FormatSize(Math.Max(1, info.Bytes)));
+                }
+
+                return resources.GetString(string.IsNullOrEmpty(info.Title) ? "LOCAtrioSavesUnknown" : "LOCAtrioSavesNotFound");
+            }
+        }
+
+        private RelayCommand<object> backupSavesCommand;
+        public RelayCommand<object> BackupSavesCommand => backupSavesCommand ?? (backupSavesCommand = new RelayCommand<object>(async _ =>
+        {
+            var target = SavesGame;
+            if (target != null)
+            {
+                await SaveBackups.BackupAsync(target, System.Threading.CancellationToken.None);
+            }
+        }, _ => !SavesBusy));
+
+        private RelayCommand<object> restoreSavesCommand;
+        public RelayCommand<object> RestoreSavesCommand => restoreSavesCommand ?? (restoreSavesCommand = new RelayCommand<object>(_ => RestoreSaves(), _ => !SavesBusy));
+
+        private RelayCommand<object> openSavesFolderCommand;
+        public RelayCommand<object> OpenSavesFolderCommand => openSavesFolderCommand ?? (openSavesFolderCommand = new RelayCommand<object>(_ =>
+        {
+            try
+            {
+                System.IO.Directory.CreateDirectory(Ludusavi.BackupFolder);
+                System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(Ludusavi.BackupFolder) { UseShellExecute = true });
+            }
+            catch (Exception e) when (!PlayniteEnvironment.ThrowAllErrors)
+            {
+                logger.Warn(e, "Failed to open the folder of the copies of the saves.");
+            }
+        }));
+
+        /// <summary>Puts back the last copy, after saying which one and that the current saves get a copy first.</summary>
+        private async void RestoreSaves()
+        {
+            var target = SavesGame;
+            if (target == null)
+            {
+                return;
+            }
+
+            if (game.Copies.Any(a => a.Game.IsRunning || a.Game.IsLaunching || OpenGames.IsOpen(a.Game.Id)))
+            {
+                dialogs.ShowMessage(string.Format(resources.GetString("LOCAtrioSavesCloseFirst"), game.DisplayName), resources.GetString("LOCAtrioSavesTitle"));
+                return;
+            }
+
+            var latest = await SaveBackups.GetLatestAsync(target, System.Threading.CancellationToken.None);
+            if (latest == null)
+            {
+                dialogs.ShowMessage(string.Format(resources.GetString("LOCAtrioSavesNoBackup"), game.DisplayName), resources.GetString("LOCAtrioSavesTitle"));
+                return;
+            }
+
+            var when = latest.When.ToString("f", Localization.ApplicationLanguageCultureInfo);
+            if (dialogs.ShowMessage(
+                    string.Format(resources.GetString("LOCAtrioSavesRestoreAsk"), game.DisplayName, when),
+                    resources.GetString("LOCAtrioSavesTitle"),
+                    MessageBoxButton.YesNo,
+                    MessageBoxImage.Question) != MessageBoxResult.Yes)
+            {
+                return;
+            }
+
+            var restored = await SaveBackups.RestoreLatestAsync(target, System.Threading.CancellationToken.None);
+            dialogs.ShowMessage(
+                string.Format(resources.GetString(restored ? "LOCAtrioSavesRestoreDone" : "LOCAtrioSavesRestoreFailed"), game.DisplayName, when),
+                resources.GetString("LOCAtrioSavesTitle"));
+        }
+
+        private void SaveBackups_Changed(object sender, Guid e)
+        {
+            if (game?.Copies.Any(a => a.Game.Id == e) == true)
+            {
+                Application.Current?.Dispatcher.BeginInvoke(new Action(() =>
+                {
+                    OnPropertyChanged(nameof(SavesText));
+                    OnPropertyChanged(nameof(SavesBusy));
+                }));
             }
         }
 
@@ -879,6 +1009,7 @@ namespace Playnite.DesktopApp.ViewModels
             settings.PropertyChanged += Settings_PropertyChanged;
             DirectInstallProgress.Changed += DirectInstallProgress_Changed;
             OpenGames.Changed += OpenGames_Changed;
+            SaveBackups.Changed += SaveBackups_Changed;
         }
 
         private void OpenGames_Changed(object sender, OpenGamesChangedEventArgs e)
@@ -917,6 +1048,7 @@ namespace Playnite.DesktopApp.ViewModels
             UpdatePlayedContent();
             steamAppId = appId;
             OnPropertyChanged(nameof(HasSteamGuides));
+            OnPropertyChanged(nameof(HasTrailers));
             if (DesktopAppViewModel.UsesLibraryPanes)
             {
                 LoadCaptures();
@@ -1084,6 +1216,7 @@ namespace Playnite.DesktopApp.ViewModels
         {
             DirectInstallProgress.Changed -= DirectInstallProgress_Changed;
             OpenGames.Changed -= OpenGames_Changed;
+            SaveBackups.Changed -= SaveBackups_Changed;
             contentToken.Cancel();
             if (game != null)
             {

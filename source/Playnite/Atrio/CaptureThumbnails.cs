@@ -110,8 +110,9 @@ namespace Playnite.Atrio
                     DeleteObject(bitmap);
                 }
             }
-            catch (Exception e) when (e is COMException || e is ArgumentException || e is InvalidCastException || e is FileNotFoundException)
+            catch (Exception e) when (!(e is OutOfMemoryException))
             {
+                // The clip went away, the folder can't be read, Windows has no picture for that kind of file...
                 logger.Debug(e, $"Windows has no picture for the clip {path}.");
                 return null;
             }

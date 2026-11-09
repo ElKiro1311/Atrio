@@ -65,6 +65,9 @@ namespace Playnite.Atrio
         /// <summary>Raised after a sitting is added, on the thread that added it.</summary>
         public static event EventHandler Changed;
 
+        /// <summary>The sitting just added, on the thread that added it: for what has to happen after playing.</summary>
+        public static event EventHandler<PlaySession> Recorded;
+
         public static string FilePath
         {
             get => filePath ?? Path.Combine(PlaynitePaths.ConfigRootPath, FileName);
@@ -96,22 +99,25 @@ namespace Playnite.Atrio
                 return;
             }
 
+            var session = new PlaySession
+            {
+                GameId = gameId,
+                Start = ToUtc(startUtc),
+                End = ToUtc(endUtc),
+                Seconds = Math.Round(seconds, 1),
+                Outside = outside
+            };
+
             lock (sync)
             {
                 var current = Load();
-                current.Sessions.Add(new PlaySession
-                {
-                    GameId = gameId,
-                    Start = ToUtc(startUtc),
-                    End = ToUtc(endUtc),
-                    Seconds = Math.Round(seconds, 1),
-                    Outside = outside
-                });
+                current.Sessions.Add(session);
                 Prune(current, DateTime.UtcNow);
                 Save(current);
             }
 
             Changed?.Invoke(null, EventArgs.Empty);
+            Recorded?.Invoke(null, session);
         }
 
         /// <summary>The sittings that touch this period, oldest first.</summary>

@@ -27,6 +27,16 @@ namespace Playnite.Atrio
     /// What Steam publishes about a game for anyone to read: its artwork and its news. No account or key
     /// is involved. The time played in the last two weeks is read from the files of the local client.
     /// </summary>
+    /// <summary>A trailer of the store of Steam: the video in pieces (DASH), in H.264 with AAC and in AV1.</summary>
+    public class SteamTrailer
+    {
+        public string Name { get; set; }
+        public string DashH264 { get; set; }
+        public string DashAv1 { get; set; }
+        public string Thumbnail { get; set; }
+        public bool Highlight { get; set; }
+    }
+
     public static class SteamContent
     {
         private class NewsResponse
@@ -185,6 +195,59 @@ namespace Playnite.Atrio
                 logger.Debug(e, $"Failed to read the logo {path}.");
                 return false;
             }
+        }
+
+        private const string MoviesUrl = "https://store.steampowered.com/api/appdetails?appids={0}&filters=movies";
+        private static readonly ConcurrentDictionary<string, Tuple<DateTime, List<SteamTrailer>>> trailerCache =
+            new ConcurrentDictionary<string, Tuple<DateTime, List<SteamTrailer>>>();
+
+        /// <summary>The trailers of the page of the game in the store, the highlighted ones first. Asked only when wanted.</summary>
+        public static async Task<List<SteamTrailer>> GetTrailersAsync(string appId, CancellationToken token)
+        {
+            if (trailerCache.TryGetValue(appId, out var cached) && DateTime.Now - cached.Item1 < TimeSpan.FromHours(12))
+            {
+                return cached.Item2;
+            }
+
+            var json = await client.GetStringAsync(string.Format(MoviesUrl, appId)).ConfigureAwait(false);
+            token.ThrowIfCancellationRequested();
+            var trailers = ParseTrailers(json, appId);
+            trailerCache[appId] = Tuple.Create(DateTime.Now, trailers);
+            return trailers;
+        }
+
+        public static List<SteamTrailer> ParseTrailers(string json, string appId)
+        {
+            var result = new List<SteamTrailer>();
+            try
+            {
+                // Steam sometimes answers "data": [] instead of an object: each step is checked.
+                var app = Newtonsoft.Json.Linq.JObject.Parse(json)?[appId] as Newtonsoft.Json.Linq.JObject;
+                var data = app?["data"] as Newtonsoft.Json.Linq.JObject;
+                var movies = data?["movies"] as Newtonsoft.Json.Linq.JArray;
+                foreach (var movie in movies ?? new Newtonsoft.Json.Linq.JArray())
+                {
+                    var trailer = new SteamTrailer
+                    {
+                        Name = (string)movie["name"],
+                        DashH264 = (string)movie["dash_h264"],
+                        DashAv1 = (string)movie["dash_av1"],
+                        Thumbnail = (string)movie["thumbnail"],
+                        Highlight = (bool?)movie["highlight"] == true
+                    };
+
+                    if (!trailer.DashH264.IsNullOrEmpty() || !trailer.DashAv1.IsNullOrEmpty())
+                    {
+                        result.Add(trailer);
+                    }
+                }
+            }
+            catch (Newtonsoft.Json.JsonException)
+            {
+                // Steam answered something else, like a page of limits: no trailers this time.
+            }
+
+            return result.OrderByDescending(a => a.Highlight).ToList();
         }
 
         public static async Task<List<SteamNewsItem>> GetNewsAsync(string appId, int count, CancellationToken token)

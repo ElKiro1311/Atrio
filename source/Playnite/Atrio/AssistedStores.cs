@@ -141,6 +141,12 @@ namespace Playnite.Atrio
             return Regex.IsMatch(line, "uplay://install/" + Regex.Escape(gameId) + @"(\D|$)");
         }
 
+        /// <summary>The launcher got the order to uninstall this game.</summary>
+        public static bool IsUninstallOrder(string line, string gameId)
+        {
+            return Regex.IsMatch(line, "uplay://uninstall/" + Regex.Escape(gameId) + @"(\D|$)");
+        }
+
         public static bool IsDownloadStart(string line, string gameId)
         {
             return line.Contains("Download initiated for product: " + gameId + ",");

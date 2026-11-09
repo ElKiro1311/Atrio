@@ -8,8 +8,10 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
+using System.Windows.Input;
 using System.Windows.Threading;
 
 namespace Playnite.DesktopApp.ViewModels
@@ -48,7 +50,22 @@ namespace Playnite.DesktopApp.ViewModels
             }
         }
 
-        public string SizeText => size > 0 ? DirectUninstall.FormatSize(size) : ResourceProvider.GetString("LOCAtrioStorageMeasuring");
+        private bool measured;
+
+        /// <summary>Atrio already tried to measure it: without a size now, it can't be known.</summary>
+        public bool Measured
+        {
+            get => measured;
+            set
+            {
+                SetValue(ref measured, value);
+                OnPropertyChanged(nameof(SizeText));
+            }
+        }
+
+        public string SizeText => size > 0 ?
+            DirectUninstall.FormatSize(size) :
+            ResourceProvider.GetString(measured ? "LOCAtrioStorageUnknownSize" : "LOCAtrioStorageMeasuring");
 
         private bool isSelected;
         public bool IsSelected
@@ -86,12 +103,20 @@ namespace Playnite.DesktopApp.ViewModels
     /// </summary>
     public class DownloadsViewModel : ObservableObject
     {
+        /// <summary>The question lists this many games; the rest are counted, and they're all ticked on the page.</summary>
+        public const int QuestionListed = 15;
+
+        /// <summary>A game that waits longer for its store stops the rest of the list.</summary>
+        public static readonly TimeSpan StorePatience = TimeSpan.FromMinutes(10);
+
         private static readonly ILogger logger = LogManager.GetLogger();
         private readonly DesktopAppViewModel main;
         private readonly DispatcherTimer refreshTimer;
+        private readonly HashSet<Guid> measuredGames = new HashSet<Guid>();
         private bool isOpen;
         private bool measuring;
-        private bool removing;
+        private bool wholePage;
+        private CancellationTokenSource removal;
 
         private List<ActiveDownload> active = new List<ActiveDownload>();
         public List<ActiveDownload> Active
@@ -127,9 +152,30 @@ namespace Playnite.DesktopApp.ViewModels
             set => SetValue(ref hasSelection, value);
         }
 
+        private bool isRemoving;
+
+        /// <summary>A list of games is being uninstalled: the page says which one and can stop it.</summary>
+        public bool IsRemoving
+        {
+            get => isRemoving;
+            set
+            {
+                SetValue(ref isRemoving, value);
+                CommandManager.InvalidateRequerySuggested();
+            }
+        }
+
+        private string removalText;
+        public string RemovalText
+        {
+            get => removalText;
+            set => SetValue(ref removalText, value);
+        }
+
         public RelayCommand<object> RefreshCommand { get; }
         public RelayCommand<object> UninstallSelectedCommand { get; }
         public RelayCommand<object> ClearSelectionCommand { get; }
+        public RelayCommand<object> StopRemovalCommand { get; }
         public RelayCommand<StorageRow> UninstallCommand { get; }
         public RelayCommand<StorageRow> OpenFolderCommand { get; }
         public RelayCommand<Game> OpenGameCommand { get; }
@@ -138,9 +184,10 @@ namespace Playnite.DesktopApp.ViewModels
         {
             this.main = main;
             RefreshCommand = new RelayCommand<object>(_ => Refresh());
-            UninstallSelectedCommand = new RelayCommand<object>(_ => UninstallSelected(), _ => HasSelection && !removing);
+            UninstallSelectedCommand = new RelayCommand<object>(_ => UninstallSelected(), _ => HasSelection && !IsRemoving);
             ClearSelectionCommand = new RelayCommand<object>(_ => SetSelection(false));
-            UninstallCommand = new RelayCommand<StorageRow>(a => Uninstall(new List<StorageRow> { a }), a => a != null && !removing);
+            StopRemovalCommand = new RelayCommand<object>(_ => removal?.Cancel(), _ => IsRemoving);
+            UninstallCommand = new RelayCommand<StorageRow>(a => Uninstall(new List<StorageRow> { a }), a => a != null && !IsRemoving);
             OpenFolderCommand = new RelayCommand<StorageRow>(a => OpenFolder(a));
             OpenGameCommand = new RelayCommand<Game>(a =>
             {
@@ -150,14 +197,23 @@ namespace Playnite.DesktopApp.ViewModels
                 }
             });
 
-            // Installs report every few seconds: the page waits for a pause before it rebuilds.
+            // Installs report every few seconds: the page waits for a pause, and only what changed is made again.
             refreshTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(1) };
             refreshTimer.Tick += (_, __) =>
             {
                 refreshTimer.Stop();
+                var everything = wholePage;
+                wholePage = false;
                 if (isOpen && !main.IsDisposing)
                 {
-                    Refresh();
+                    if (everything)
+                    {
+                        Refresh();
+                    }
+                    else
+                    {
+                        RefreshActive();
+                    }
                 }
             };
         }
@@ -188,10 +244,11 @@ namespace Playnite.DesktopApp.ViewModels
             DirectInstallProgress.Changed -= DirectInstallProgress_Changed;
         }
 
-        private void RefreshSoon()
+        private void RefreshSoon(bool everything)
         {
             refreshTimer.Dispatcher.BeginInvoke(new Action(() =>
             {
+                wholePage |= everything;
                 if (!refreshTimer.IsEnabled)
                 {
                     refreshTimer.Start();
@@ -201,19 +258,38 @@ namespace Playnite.DesktopApp.ViewModels
 
         private void Games_ItemUpdated(object sender, ItemUpdatedEventArgs<Game> e)
         {
-            if (e.UpdatedItems.Any(a =>
-                a.OldData.IsInstalling != a.NewData.IsInstalling ||
-                a.OldData.IsUninstalling != a.NewData.IsUninstalling ||
-                a.OldData.IsInstalled != a.NewData.IsInstalled ||
-                a.OldData.InstallSize != a.NewData.InstallSize))
+            // Installed or not changes the disks; the rest only the list of what's in progress or one size.
+            if (e.UpdatedItems.Any(a => a.OldData.IsInstalled != a.NewData.IsInstalled || a.OldData.IsUninstalling != a.NewData.IsUninstalling))
             {
-                RefreshSoon();
+                RefreshSoon(true);
+            }
+            else if (e.UpdatedItems.Any(a => a.OldData.IsInstalling != a.NewData.IsInstalling))
+            {
+                RefreshSoon(false);
+            }
+
+            var sizes = e.UpdatedItems.Where(a => a.OldData.InstallSize != a.NewData.InstallSize).Select(a => a.NewData).ToList();
+            if (sizes.Count > 0)
+            {
+                refreshTimer.Dispatcher.BeginInvoke(new Action(() =>
+                {
+                    foreach (var game in sizes)
+                    {
+                        var row = Disks.SelectMany(a => a.Rows ?? new List<StorageRow>()).FirstOrDefault(a => a.Game.Id == game.Id);
+                        if (row != null)
+                        {
+                            row.Size = (long)Math.Min(game.InstallSize ?? 0, long.MaxValue);
+                        }
+                    }
+
+                    UpdateSelection();
+                }));
             }
         }
 
         private void DirectInstallProgress_Changed(object sender, Guid e)
         {
-            RefreshSoon();
+            RefreshSoon(false);
         }
 
         private string GetStoreName(Game game)
@@ -230,6 +306,21 @@ namespace Playnite.DesktopApp.ViewModels
             }
 
             return result;
+        }
+
+        private Func<Guid, GamesCollectionViewEntry> GetEntryFinder()
+        {
+            var entries = GetEntries();
+            return id =>
+            {
+                if (entries.TryGetValue(id, out var entry))
+                {
+                    return entry;
+                }
+
+                var primary = GameUnifier.Current?.GetGroup(id)?.Primary?.Id;
+                return primary != null && entries.TryGetValue(primary.Value, out entry) ? entry : null;
+            };
         }
 
         public static string GetLastPlayedText(DateTime? lastActivity, DateTime now)
@@ -264,27 +355,16 @@ namespace Playnite.DesktopApp.ViewModels
             return string.Format(ResourceProvider.GetString("LOCAtrioStoragePlayedYears"), (int)(days / 365.25));
         }
 
-        public void Refresh()
+        /// <summary>Only what is installing or uninstalling now: a progress report doesn't touch the disks.</summary>
+        private void RefreshActive()
         {
             if (main.Database?.Games == null)
             {
                 return;
             }
 
-            var entries = GetEntries();
-            GamesCollectionViewEntry findEntry(Guid id)
-            {
-                if (entries.TryGetValue(id, out var entry))
-                {
-                    return entry;
-                }
-
-                var primary = GameUnifier.Current?.GetGroup(id)?.Primary?.Id;
-                return primary != null && entries.TryGetValue(primary.Value, out entry) ? entry : null;
-            }
-
-            var games = main.Database.Games.ToList();
-            Active = games.
+            var findEntry = GetEntryFinder();
+            Active = main.Database.Games.
                 Where(a => a.IsInstalling || a.IsUninstalling).
                 OrderBy(a => a.Name, StringComparer.CurrentCultureIgnoreCase).
                 Select(a =>
@@ -318,7 +398,18 @@ namespace Playnite.DesktopApp.ViewModels
                     };
                 }).
                 ToList();
+        }
 
+        public void Refresh()
+        {
+            if (main.Database?.Games == null)
+            {
+                return;
+            }
+
+            RefreshActive();
+            var findEntry = GetEntryFinder();
+            var games = main.Database.Games.ToList();
             var selected = new HashSet<Guid>(Disks.SelectMany(a => a.Rows ?? new List<StorageRow>()).Where(a => a.IsSelected).Select(a => a.Game.Id));
             var installed = games.Where(a => a.IsInstalled && !a.IsUninstalling && !a.InstallDirectory.IsNullOrWhiteSpace() && !a.Roms.HasItems()).ToList();
             var folders = new Dictionary<Guid, string>();
@@ -339,8 +430,12 @@ namespace Playnite.DesktopApp.ViewModels
                 Select(a => new StorageGame { GameId = a.Id, Name = a.Name, Folder = folders[a.Id], Size = (long)Math.Min(a.InstallSize ?? 0, long.MaxValue) }).
                 ToList();
             var byId = installed.ToDictionary(a => a.Id);
-            var culture = Localization.ApplicationLanguageCultureInfo;
             var now = DateTime.Now;
+
+            // The uninstallers that Windows knows, read once for the whole page and only if a game needs them.
+            List<WindowsUninstallEntry> registered = null;
+            List<WindowsUninstallEntry> readRegistered() => registered ?? (registered = WindowsUninstallEntries.Read());
+
             var cards = new List<StorageDiskCard>();
             foreach (var disk in Storage.Build(storageGames, Storage.ReadDisks()))
             {
@@ -375,8 +470,9 @@ namespace Playnite.DesktopApp.ViewModels
                             StoreName = GetStoreName(game),
                             LastPlayedText = GetLastPlayedText(game.LastActivity, now),
                             Folder = a.Folder,
-                            IsDirect = DirectUninstall.IsDirect(game),
-                            Size = a.Size
+                            IsDirect = DirectUninstall.IsDirect(game, readRegistered),
+                            Size = a.Size,
+                            Measured = measuredGames.Contains(game.Id) || game.InstallSize != null
                         };
                         row.IsSelected = selected.Contains(game.Id);
                         row.SelectionChanged = UpdateSelection;
@@ -398,7 +494,7 @@ namespace Playnite.DesktopApp.ViewModels
                 return;
             }
 
-            var missing = Disks.SelectMany(a => a.Rows).Where(a => a.Size <= 0).Select(a => a.Game).ToList();
+            var missing = Disks.SelectMany(a => a.Rows).Where(a => a.Size <= 0 && !a.Measured && !measuredGames.Contains(a.Game.Id)).ToList();
             if (missing.Count == 0)
             {
                 return;
@@ -407,24 +503,27 @@ namespace Playnite.DesktopApp.ViewModels
             measuring = true;
             try
             {
-                foreach (var game in missing)
+                foreach (var row in missing)
                 {
                     if (!isOpen || main.IsDisposing)
                     {
                         break;
                     }
 
+                    measuredGames.Add(row.Game.Id);
                     await Task.Run(() =>
                     {
                         try
                         {
-                            main.GamesEditor.UpdateGameSize(game, true, true, false);
+                            main.GamesEditor.UpdateGameSize(row.Game, true, true, false);
                         }
                         catch (Exception e) when (!PlayniteEnvironment.ThrowAllErrors)
                         {
-                            logger.Warn(e, $"Failed to measure {game.Name}.");
+                            logger.Warn(e, $"Failed to measure {row.Game.Name}.");
                         }
                     });
+
+                    row.Measured = true;
                 }
             }
             finally
@@ -464,7 +563,10 @@ namespace Playnite.DesktopApp.ViewModels
             Uninstall(Disks.SelectMany(a => a.Rows ?? new List<StorageRow>()).Where(a => a.IsSelected).ToList());
         }
 
-        /// <summary>The question lists every game with its size and folder: nothing is deleted that the person didn't read.</summary>
+        /// <summary>
+        /// The question lists the games with their size and folder; with many, the first ones and how many more,
+        /// all of them ticked on the page. Nothing is deleted that the person didn't choose.
+        /// </summary>
         public static string GetQuestion(IEnumerable<StorageRow> rows)
         {
             var list = rows.ToList();
@@ -473,9 +575,14 @@ namespace Playnite.DesktopApp.ViewModels
                 ResourceProvider.GetString(list.Count == 1 ? "LOCAtrioStorageAskOne" : "LOCAtrioStorageAsk"),
                 list.Count));
             text.AppendLine();
-            foreach (var row in list)
+            foreach (var row in list.Take(QuestionListed))
             {
                 text.AppendLine($"• {row.Game.Name} — {row.SizeText} — {row.Folder}");
+            }
+
+            if (list.Count > QuestionListed)
+            {
+                text.AppendLine(string.Format(ResourceProvider.GetString("LOCAtrioStorageAskMore"), list.Count - QuestionListed));
             }
 
             text.AppendLine();
@@ -490,51 +597,74 @@ namespace Playnite.DesktopApp.ViewModels
             return text.ToString();
         }
 
-        /// <summary>One question for all, then one game after the other, each when the one before has finished.</summary>
+        private static bool IsOpen(Game game)
+        {
+            return game.IsRunning || game.IsLaunching || OpenGames.IsOpen(game.Id);
+        }
+
+        /// <summary>
+        /// One question for all, with Cancel as the default answer, then one game after the other, each when the one
+        /// before has finished. A game that waits too long for its store stops the list, and so does Stop.
+        /// </summary>
         private async void Uninstall(List<StorageRow> rows)
         {
             rows = rows?.Where(a => a?.Game != null && a.Game.IsInstalled && !a.Game.IsUninstalling).ToList();
-            if (rows == null || rows.Count == 0 || removing)
+            if (rows == null || rows.Count == 0 || IsRemoving)
             {
                 return;
             }
 
-            if (rows.Any(a => a.Game.IsRunning || a.Game.IsLaunching || OpenGames.IsOpen(a.Game.Id)))
+            var open = rows.Where(a => IsOpen(a.Game)).ToList();
+            if (open.Count > 0)
             {
                 main.Dialogs.ShowMessage(
-                    string.Format(ResourceProvider.GetString("LOCAtrioStorageOpenGame"), string.Join(", ", rows.Where(a => a.Game.IsRunning || a.Game.IsLaunching || OpenGames.IsOpen(a.Game.Id)).Select(a => a.Game.Name))),
+                    string.Format(ResourceProvider.GetString("LOCAtrioStorageOpenGame"), string.Join(", ", open.Select(a => a.Game.Name))),
                     ResourceProvider.GetString("LOCAtrioUninstallTitle"), MessageBoxButton.OK, MessageBoxImage.Information);
                 return;
             }
 
-            if (main.Dialogs.ShowMessage(GetQuestion(rows), ResourceProvider.GetString("LOCAtrioUninstallTitle"), MessageBoxButton.YesNo, MessageBoxImage.Question) != MessageBoxResult.Yes)
+            var yes = new MessageBoxOption(ResourceProvider.GetString("LOCAtrioStorageUninstall"));
+            var no = new MessageBoxOption(ResourceProvider.GetString("LOCCancelLabel"), true, true);
+            if (main.Dialogs.ShowMessage(GetQuestion(rows), ResourceProvider.GetString("LOCAtrioUninstallTitle"), MessageBoxImage.Question, new List<MessageBoxOption> { yes, no }) != yes)
             {
                 return;
             }
 
-            removing = true;
+            removal = new CancellationTokenSource();
+            var token = removal.Token;
+            IsRemoving = true;
+            var skipped = new List<string>();
+            string stalled = null;
             try
             {
-                foreach (var row in rows)
+                for (var i = 0; i < rows.Count; i++)
                 {
-                    if (main.IsDisposing)
+                    if (main.IsDisposing || token.IsCancellationRequested)
                     {
                         break;
                     }
 
-                    var game = main.Database.Games.Get(row.Game.Id);
+                    var game = main.Database.Games.Get(rows[i].Game.Id);
                     if (game == null || !game.IsInstalled || game.IsUninstalling)
                     {
                         continue;
                     }
 
-                    logger.Info($"Storage page: uninstalling {game.Name} ({row.SizeText}).");
+                    // Someone could have opened it while the ones before were going away.
+                    if (IsOpen(game))
+                    {
+                        skipped.Add(game.Name);
+                        continue;
+                    }
+
+                    RemovalText = string.Format(ResourceProvider.GetString("LOCAtrioStorageRemoving"), game.Name, i + 1, rows.Count);
+                    logger.Info($"Storage page: uninstalling {game.Name} ({rows[i].SizeText}).");
                     main.GamesEditor.UnInstallGame(game, true);
 
                     // The next one waits until this one is done, or has handed over to its store.
                     var waited = DateTime.Now;
                     await Task.Delay(1500);
-                    while (!main.IsDisposing && DateTime.Now - waited < TimeSpan.FromMinutes(30))
+                    while (!main.IsDisposing && !token.IsCancellationRequested)
                     {
                         var current = main.Database.Games.Get(game.Id);
                         if (current == null || !current.IsUninstalling)
@@ -542,14 +672,41 @@ namespace Playnite.DesktopApp.ViewModels
                             break;
                         }
 
+                        if (DateTime.Now - waited > StorePatience)
+                        {
+                            stalled = game.Name;
+                            break;
+                        }
+
+                        if (DateTime.Now - waited > TimeSpan.FromSeconds(20))
+                        {
+                            RemovalText = string.Format(ResourceProvider.GetString("LOCAtrioStorageWaitingStore"), game.Name, GetStoreName(game));
+                        }
+
                         await Task.Delay(1000);
+                    }
+
+                    if (stalled != null)
+                    {
+                        break;
                     }
                 }
             }
             finally
             {
-                removing = false;
+                IsRemoving = false;
+                RemovalText = null;
+                removal = null;
                 Refresh();
+            }
+
+            if (stalled != null)
+            {
+                main.Dialogs.ShowMessage(string.Format(ResourceProvider.GetString("LOCAtrioStorageStalled"), stalled), ResourceProvider.GetString("LOCAtrioUninstallTitle"));
+            }
+            else if (skipped.Count > 0)
+            {
+                main.Dialogs.ShowMessage(string.Format(ResourceProvider.GetString("LOCAtrioStorageSkipped"), string.Join(", ", skipped)), ResourceProvider.GetString("LOCAtrioUninstallTitle"));
             }
         }
     }

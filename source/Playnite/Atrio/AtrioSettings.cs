@@ -42,6 +42,12 @@ namespace Playnite.Atrio
         public bool LightWhilePlaying { get; set; } = true;
 
         /// <summary>
+        /// A copy of the saves of each game after playing, with Ludusavi. Off unless the person turns it on: it
+        /// downloads a program.
+        /// </summary>
+        public bool BackupSaves { get; set; }
+
+        /// <summary>
         /// Lets Atrio accept the terms of a game when a store asks for them. It's the person's decision and
         /// it's off unless they turn it on: without it the install stops there and the store shows the terms.
         /// </summary>

@@ -164,6 +164,30 @@ namespace Playnite.Atrio
             return children;
         }
 
+        /// <summary>Every visible window of a process that passes the filter of title and class.</summary>
+        public static List<IntPtr> FindAll(string process, Func<string, string, bool> filter = null)
+        {
+            var ids = new HashSet<uint>(Process.GetProcessesByName(process).Select(a => (uint)a.Id));
+            var found = new List<IntPtr>();
+            if (ids.Count == 0)
+            {
+                return found;
+            }
+
+            EnumWindows((window, _) =>
+            {
+                GetWindowThreadProcessId(window, out var owner);
+                if (ids.Contains(owner) && IsWindowVisible(window) && (filter == null || filter(GetText(window), GetClass(window))))
+                {
+                    found.Add(window);
+                }
+
+                return true;
+            }, IntPtr.Zero);
+
+            return found;
+        }
+
         /// <summary>The biggest visible window of a process that passes the filter of title and class.</summary>
         public static IntPtr Find(string process, Func<string, string, bool> filter = null)
         {
