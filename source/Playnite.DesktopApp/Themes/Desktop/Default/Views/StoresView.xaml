@@ -246,6 +246,11 @@
                                                   ToolTip="{DynamicResource LOCAtrioAcceptTermsHint}" />
                                         <CheckBox Content="{DynamicResource LOCAtrioDetectOpenGamesToggle}" IsChecked="{Binding DetectOpenGames}" Margin="0,10,0,0"
                                                   ToolTip="{DynamicResource LOCAtrioDetectOpenGamesHint}" />
+                                        <CheckBox Content="{DynamicResource LOCAtrioCountOutsideToggle}" IsChecked="{Binding CountOutsidePlaytime}" Margin="0,10,0,0"
+                                                  IsEnabled="{Binding DetectOpenGames}"
+                                                  ToolTip="{DynamicResource LOCAtrioCountOutsideHint}" />
+                                        <CheckBox Content="{DynamicResource LOCAtrioLightToggle}" IsChecked="{Binding LightWhilePlaying}" Margin="0,10,0,0"
+                                                  ToolTip="{DynamicResource LOCAtrioLightHint}" />
                                     </StackPanel>
                                 </Border>
 

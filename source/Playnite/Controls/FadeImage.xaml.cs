@@ -312,7 +312,23 @@ namespace Playnite.Controls
                 }
             }
 
-            var copy = ImageSourceManager.GetImage(path, false, new BitmapLoadProperties(BlurredCopyWidth, 0))?.ToBlurred(radius);
+            return MakeBlurredCopy(path, radius, key);
+        }
+
+        /// <summary>Lets go of the blurred copies: they are made again the next time a picture needs one.</summary>
+        public static int ClearBlurredCopies()
+        {
+            lock (blurredCopies)
+            {
+                var count = blurredCopies.Count;
+                blurredCopies.Clear();
+                return count;
+            }
+        }
+
+        private static BitmapSource MakeBlurredCopy(string path, int radius, string key)
+        {
+            var copy =ImageSourceManager.GetImage(path, false, new BitmapLoadProperties(BlurredCopyWidth, 0))?.ToBlurred(radius);
             if (copy != null)
             {
                 lock (blurredCopies)

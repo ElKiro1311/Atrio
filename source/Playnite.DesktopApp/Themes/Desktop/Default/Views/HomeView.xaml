@@ -157,6 +157,121 @@
                         <ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto" Focusable="False"
                                       Visibility="{Binding IsEmpty, Converter={StaticResource InvertedBooleanToVisibilityConverter}}">
                             <StackPanel Margin="{DynamicResource AtrioHomeMargin}">
+                                <!-- The week in numbers: the time played, by day and by game -->
+                                <Border Margin="0,0,28,24" Padding="24,18,24,18" CornerRadius="{DynamicResource AtrioCardRadius}"
+                                        Background="{DynamicResource AtrioCardBrush}" DataContext="{Binding Week}"
+                                        Visibility="{Binding Converter={StaticResource NullToVisibilityConverter}}">
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto" MinWidth="210" />
+                                            <ColumnDefinition Width="Auto" />
+                                            <ColumnDefinition Width="*" />
+                                        </Grid.ColumnDefinitions>
+
+                                        <StackPanel Grid.Column="0" VerticalAlignment="Top">
+                                            <TextBlock Text="{DynamicResource LOCAtrioWeekTitle}" Style="{DynamicResource AtrioSectionTitle}" Margin="0" />
+                                            <TextBlock Text="{Binding RangeText}" Style="{DynamicResource AtrioCaption}" Margin="0,2,0,0" />
+                                            <TextBlock Text="{Binding TotalText}" Style="{DynamicResource BaseTextBlockStyle}"
+                                                       FontSize="48" FontWeight="SemiBold" Margin="0,8,0,0" />
+                                            <TextBlock Text="{Binding CompareText}" Style="{DynamicResource AtrioCaption}"
+                                                       Visibility="{Binding CompareText, Converter={StaticResource NullToVisibilityConverter}}" />
+                                            <StackPanel Orientation="Horizontal" Margin="0,14,0,0">
+                                                <StackPanel Margin="0,0,28,0">
+                                                    <TextBlock Text="{Binding GamesValue}" Style="{DynamicResource BaseTextBlockStyle}" FontSize="20" FontWeight="SemiBold" />
+                                                    <TextBlock Text="{Binding GamesLabel}" Style="{DynamicResource AtrioCaption}" />
+                                                </StackPanel>
+                                                <StackPanel Visibility="{Binding AchievementsValue, Converter={StaticResource NullToVisibilityConverter}}">
+                                                    <TextBlock Text="{Binding AchievementsValue}" Style="{DynamicResource BaseTextBlockStyle}" FontSize="20" FontWeight="SemiBold" />
+                                                    <TextBlock Text="{Binding AchievementsLabel}" Style="{DynamicResource AtrioCaption}" />
+                                                </StackPanel>
+                                            </StackPanel>
+                                        </StackPanel>
+
+                                        <!-- One column per day, from the same baseline -->
+                                        <StackPanel Grid.Column="1" Margin="36,6,40,0" VerticalAlignment="Bottom">
+                                            <ItemsControl ItemsSource="{Binding Days}" Focusable="False">
+                                                <ItemsControl.ItemsPanel>
+                                                    <ItemsPanelTemplate>
+                                                        <StackPanel Orientation="Horizontal" />
+                                                    </ItemsPanelTemplate>
+                                                </ItemsControl.ItemsPanel>
+                                                <ItemsControl.ItemTemplate>
+                                                    <DataTemplate>
+                                                        <StackPanel Width="40" Background="Transparent" ToolTip="{Binding ToolTip}"
+                                                                    AutomationProperties.Name="{Binding ToolTip}">
+                                                            <Grid Height="96">
+                                                                <Border Width="20" Height="{Binding BarHeight}" VerticalAlignment="Bottom"
+                                                                        CornerRadius="4,4,0,0" Background="{DynamicResource GlyphBrush}" />
+                                                            </Grid>
+                                                            <Border Height="1" Background="{DynamicResource AtrioBorderBrush}" />
+                                                            <TextBlock x:Name="DayName" Text="{Binding Label}" Style="{DynamicResource AtrioCaption}"
+                                                                       HorizontalAlignment="Center" Margin="0,6,0,0" />
+                                                        </StackPanel>
+                                                        <DataTemplate.Triggers>
+                                                            <DataTrigger Binding="{Binding IsToday}" Value="True">
+                                                                <Setter TargetName="DayName" Property="Foreground" Value="{DynamicResource TextBrush}" />
+                                                                <Setter TargetName="DayName" Property="FontWeight" Value="SemiBold" />
+                                                            </DataTrigger>
+                                                            <DataTrigger Binding="{Binding IsFuture}" Value="True">
+                                                                <Setter TargetName="DayName" Property="Opacity" Value="0.5" />
+                                                            </DataTrigger>
+                                                        </DataTemplate.Triggers>
+                                                    </DataTemplate>
+                                                </ItemsControl.ItemTemplate>
+                                            </ItemsControl>
+                                        </StackPanel>
+
+                                        <!-- The games played most, each with a bar as long as its time -->
+                                        <ItemsControl Grid.Column="2" ItemsSource="{Binding Games}" Focusable="False" VerticalAlignment="Center" MaxWidth="900"
+                                                      HorizontalAlignment="Right" MinWidth="320">
+                                            <ItemsControl.ItemTemplate>
+                                                <DataTemplate>
+                                                    <Button Cursor="Hand" Focusable="False" Margin="0,3,0,3" CommandParameter="{Binding Game}"
+                                                            ToolTip="{Binding Game.DisplayName}"
+                                                            Command="{Binding DataContext.OpenGameCommand, RelativeSource={RelativeSource AncestorType={x:Type HomeView}}}">
+                                                        <Button.Template>
+                                                            <ControlTemplate TargetType="Button">
+                                                                <Border x:Name="Row" Background="Transparent" CornerRadius="6" Padding="4">
+                                                                    <ContentPresenter />
+                                                                </Border>
+                                                                <ControlTemplate.Triggers>
+                                                                    <Trigger Property="IsMouseOver" Value="True">
+                                                                        <Setter TargetName="Row" Property="Background" Value="{DynamicResource AtrioCardHoverBrush}" />
+                                                                    </Trigger>
+                                                                </ControlTemplate.Triggers>
+                                                            </ControlTemplate>
+                                                        </Button.Template>
+                                                        <Grid>
+                                                            <Grid.ColumnDefinitions>
+                                                                <ColumnDefinition Width="32" />
+                                                                <ColumnDefinition Width="*" />
+                                                                <ColumnDefinition Width="Auto" />
+                                                            </Grid.ColumnDefinitions>
+                                                            <Border Width="32" Height="32" CornerRadius="6" ClipToBounds="True" Background="{DynamicResource AtrioCardHoverBrush}">
+                                                                <Image Source="{Binding Game.IconObjectCached, Mode=OneWay}" Stretch="UniformToFill"
+                                                                       RenderOptions.BitmapScalingMode="HighQuality" />
+                                                            </Border>
+                                                            <StackPanel Grid.Column="1" Margin="10,0,12,0" VerticalAlignment="Center">
+                                                                <TextBlock Text="{Binding Game.DisplayName}" Style="{DynamicResource BaseTextBlockStyle}"
+                                                                           FontSize="13" TextTrimming="CharacterEllipsis" />
+                                                                <Grid Height="6" Margin="0,5,0,0">
+                                                                    <Grid.ColumnDefinitions>
+                                                                        <ColumnDefinition Width="{Binding BarLength}" />
+                                                                        <ColumnDefinition Width="{Binding RestLength}" />
+                                                                    </Grid.ColumnDefinitions>
+                                                                    <Border CornerRadius="0,3,3,0" Background="{DynamicResource GlyphBrush}" />
+                                                                </Grid>
+                                                            </StackPanel>
+                                                            <TextBlock Grid.Column="2" Text="{Binding TimeText}" Style="{DynamicResource AtrioCaption}"
+                                                                       VerticalAlignment="Center" />
+                                                        </Grid>
+                                                    </Button>
+                                                </DataTemplate>
+                                            </ItemsControl.ItemTemplate>
+                                        </ItemsControl>
+                                    </Grid>
+                                </Border>
+
                                 <!-- News of the games played last -->
                                 <StackPanel Margin="0,0,0,24" Visibility="{Binding News, Converter={StaticResource ICollectionNullOrEmptyToVisibilityConverter}}">
                                     <DockPanel Margin="0,0,28,6">

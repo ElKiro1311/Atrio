@@ -133,6 +133,22 @@ namespace Playnite.FullscreenApp.Controls.SettingsSections
                 unifier.Settings.Save();
                 Playnite.Atrio.OpenGames.SetEnabled(unifier.Settings.DetectOpenGames);
             };
+
+            ToggleCountOutside.Visibility = ToggleDirectInstall.Visibility;
+            ToggleCountOutside.IsChecked = unifier?.Settings.CountOutsidePlaytime == true;
+            ToggleCountOutside.Click += (_, __) =>
+            {
+                unifier.Settings.CountOutsidePlaytime = ToggleCountOutside.IsChecked == true;
+                unifier.Settings.Save();
+            };
+
+            ToggleLightWhilePlaying.Visibility = ToggleDirectInstall.Visibility;
+            ToggleLightWhilePlaying.IsChecked = unifier?.Settings.LightWhilePlaying == true;
+            ToggleLightWhilePlaying.Click += (_, __) =>
+            {
+                unifier.Settings.LightWhilePlaying = ToggleLightWhilePlaying.IsChecked == true;
+                unifier.Settings.Save();
+            };
         }
     }
 }

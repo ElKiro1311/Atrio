@@ -10,6 +10,7 @@ using System.Globalization;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Windows;
 using System.Windows.Threading;
 
 namespace Playnite.DesktopApp.ViewModels
@@ -37,6 +38,58 @@ namespace Playnite.DesktopApp.ViewModels
         public string GameName { get; set; }
         public string ImageUrl { get; set; }
         public string Url { get; set; }
+    }
+
+    /// <summary>One day of the week in the summary: a column as tall as the time played.</summary>
+    public class WeekDayBar
+    {
+        public string Label { get; set; }
+        public double BarHeight { get; set; }
+        public bool IsToday { get; set; }
+        public bool IsFuture { get; set; }
+        public string ToolTip { get; set; }
+    }
+
+    /// <summary>One of the games played most this week, with a bar as long as its share.</summary>
+    public class WeekGameBar
+    {
+        public GamesCollectionViewEntry Game { get; set; }
+        public string TimeText { get; set; }
+        public GridLength BarLength { get; set; }
+        public GridLength RestLength { get; set; }
+    }
+
+    /// <summary>The week in numbers at the top of the start page.</summary>
+    public class WeekCard : ObservableObject
+    {
+        public const double PlotHeight = 96;
+        public const int MaxGames = 5;
+
+        public DateTime WeekStart { get; set; }
+        public string RangeText { get; set; }
+        public string TotalText { get; set; }
+        public string CompareText { get; set; }
+        public string GamesValue { get; set; }
+        public string GamesLabel { get; set; }
+        public List<WeekDayBar> Days { get; set; }
+        public List<WeekGameBar> Games { get; set; }
+
+        /// <summary>Every game that counts this week, all its copies, to look for its achievements.</summary>
+        public List<Guid> GameIds { get; set; } = new List<Guid>();
+
+        private string achievementsValue;
+        public string AchievementsValue
+        {
+            get => achievementsValue;
+            set => SetValue(ref achievementsValue, value);
+        }
+
+        private string achievementsLabel;
+        public string AchievementsLabel
+        {
+            get => achievementsLabel;
+            set => SetValue(ref achievementsLabel, value);
+        }
     }
 
     public class HomeShelf
@@ -86,6 +139,14 @@ namespace Playnite.DesktopApp.ViewModels
         {
             get => shelves;
             set => SetValue(ref shelves, value);
+        }
+
+        /// <summary>Null while nothing was played this week.</summary>
+        private WeekCard week;
+        public WeekCard Week
+        {
+            get => week;
+            set => SetValue(ref week, value);
         }
 
         private List<GamesCollectionViewEntry> allGames;
@@ -175,6 +236,11 @@ namespace Playnite.DesktopApp.ViewModels
             }
         }
 
+        private void PlayHistory_Changed(object sender, EventArgs e)
+        {
+            RefreshSoon();
+        }
+
         public void StartWatching()
         {
             if (main.Database?.Games != null)
@@ -184,6 +250,9 @@ namespace Playnite.DesktopApp.ViewModels
                 main.Database.Games.ItemUpdated -= Games_ItemUpdated;
                 main.Database.Games.ItemUpdated += Games_ItemUpdated;
             }
+
+            PlayHistory.Changed -= PlayHistory_Changed;
+            PlayHistory.Changed += PlayHistory_Changed;
         }
 
         public void StopWatching()
@@ -195,6 +264,8 @@ namespace Playnite.DesktopApp.ViewModels
                 main.Database.Games.ItemCollectionChanged -= Games_ItemCollectionChanged;
                 main.Database.Games.ItemUpdated -= Games_ItemUpdated;
             }
+
+            PlayHistory.Changed -= PlayHistory_Changed;
         }
 
         public void OpenGame(GamesCollectionViewEntry entry)
@@ -367,6 +438,150 @@ namespace Playnite.DesktopApp.ViewModels
             Shelves = updated;
         }
 
+        /// <summary>"2–8 de noviembre": the days of the week, in the words of the language.</summary>
+        public static string GetWeekRange(DateTime start, CultureInfo culture)
+        {
+            var end = start.AddDays(6);
+            if (start.Month == end.Month)
+            {
+                return string.Format(
+                    ResourceProvider.GetString("LOCAtrioWeekRangeSameMonth"),
+                    start.Day,
+                    end.Day,
+                    start.ToString("MMMM", culture));
+            }
+
+            return string.Format(
+                ResourceProvider.GetString("LOCAtrioWeekRangeTwoMonths"),
+                start.Day,
+                start.ToString("MMMM", culture),
+                end.Day,
+                end.ToString("MMMM", culture));
+        }
+
+        /// <summary>Compared with the week before, or null when the history doesn't reach it.</summary>
+        public static string GetWeekComparison(double seconds, double? previousSeconds)
+        {
+            if (previousSeconds == null)
+            {
+                return null;
+            }
+
+            var difference = seconds - previousSeconds.Value;
+            if (Math.Abs(difference) < 60)
+            {
+                return ResourceProvider.GetString("LOCAtrioWeekSame");
+            }
+
+            return string.Format(
+                ResourceProvider.GetString(difference > 0 ? "LOCAtrioWeekMore" : "LOCAtrioWeekLess"),
+                GetPlaytime((ulong)Math.Round(Math.Abs(difference))));
+        }
+
+        internal static WeekCard CreateWeekCard(WeekSummaryData summary, Func<Guid, GamesCollectionViewEntry> findEntry, CultureInfo culture)
+        {
+            if (summary == null || summary.TotalSeconds < 60)
+            {
+                return null;
+            }
+
+            var busiest = Math.Max(1, summary.Days.Max(a => a.Seconds));
+            var days = summary.Days.Select(a =>
+            {
+                var name = culture.DateTimeFormat.GetAbbreviatedDayName(a.Date.DayOfWeek).TrimEnd('.');
+                var longName = culture.DateTimeFormat.GetDayName(a.Date.DayOfWeek);
+                var height = a.Seconds < 1 ? 0 : Math.Max(3, Math.Round(WeekCard.PlotHeight * a.Seconds / busiest));
+                return new WeekDayBar
+                {
+                    Label = name,
+                    BarHeight = height,
+                    IsToday = a.IsToday,
+                    IsFuture = a.IsFuture,
+                    ToolTip = a.IsFuture ? null : string.Format(
+                        ResourceProvider.GetString("LOCAtrioWeekDayTip"),
+                        longName,
+                        a.Date.Day,
+                        a.Seconds < 1 ? ResourceProvider.GetString("LOCAtrioWeekNothing") : GetPlaytime((ulong)Math.Max(1, Math.Round(a.Seconds))))
+                };
+            }).ToList();
+
+            var games = summary.Games.
+                Select(a => new { a.Seconds, Entry = findEntry(a.GameId) }).
+                Where(a => a.Entry != null).
+                ToList();
+            var most = Math.Max(1, games.Select(a => a.Seconds).DefaultIfEmpty(1).Max());
+            var count = games.Count;
+            return new WeekCard
+            {
+                WeekStart = summary.WeekStart,
+                RangeText = GetWeekRange(summary.WeekStart, culture),
+                TotalText = GetPlaytime((ulong)Math.Round(summary.TotalSeconds)),
+                CompareText = GetWeekComparison(summary.TotalSeconds, summary.PreviousWeekSeconds),
+                GamesValue = count.ToString(culture),
+                GamesLabel = ResourceProvider.GetString(count == 1 ? "LOCAtrioWeekGame" : "LOCAtrioWeekGames"),
+                Days = days,
+                Games = games.Take(WeekCard.MaxGames).Select(a =>
+                {
+                    var share = Math.Min(1, a.Seconds / most);
+                    return new WeekGameBar
+                    {
+                        Game = a.Entry,
+                        TimeText = GetPlaytime((ulong)Math.Max(1, Math.Round(a.Seconds))),
+                        BarLength = new GridLength(share, GridUnitType.Star),
+                        RestLength = new GridLength(1 - share, GridUnitType.Star)
+                    };
+                }).ToList()
+            };
+        }
+
+        private WeekCard CreateWeek()
+        {
+            try
+            {
+                var culture = Localization.ApplicationLanguageCultureInfo;
+                var now = DateTime.Now;
+                var start = WeekSummary.GetWeekStart(now, culture.DateTimeFormat.FirstDayOfWeek);
+                var sessions = PlayHistory.GetSessions(start.AddDays(-7).ToUniversalTime(), DateTime.UtcNow);
+                var unifier = GameUnifier.Current;
+                Guid groupOf(Guid id) => unifier?.GetGroup(id)?.Primary?.Id ?? id;
+                var summary = WeekSummary.Build(sessions, now, culture.DateTimeFormat.FirstDayOfWeek, PlayHistory.Since, groupOf);
+                var byId = entries.ToDictionary(a => a.Id);
+                var card = CreateWeekCard(summary, a => byId.TryGetValue(a, out var entry) ? entry : null, culture);
+                if (card != null)
+                {
+                    card.GameIds = summary.Games.
+                        SelectMany(a => unifier?.GetGroup(a.GameId)?.Copies?.Select(b => b.Id) ?? new[] { a.GameId }).
+                        Distinct().
+                        ToList();
+                }
+
+                return card;
+            }
+            catch (Exception e) when (!PlayniteEnvironment.ThrowAllErrors)
+            {
+                LogManager.GetLogger().Error(e, "Failed to put together the summary of the week.");
+                return null;
+            }
+        }
+
+        /// <summary>The achievements of the week come once the add-on of the achievements has its numbers ready.</summary>
+        private async void AddWeekAchievements(WeekCard card)
+        {
+            if (card == null)
+            {
+                return;
+            }
+
+            var count = await AchievementProgress.CountUnlockedSinceAsync(main.Extensions, card.WeekStart.ToUniversalTime());
+            if (count == null || count == 0 || main.IsDisposing || Week != card)
+            {
+                return;
+            }
+
+            card.AchievementsValue = count.Value.ToString(Localization.ApplicationLanguageCultureInfo);
+            card.AchievementsLabel = ResourceProvider.GetString(count == 1 ? "LOCAtrioWeekAchievement" : "LOCAtrioWeekAchievements");
+        }
+
         private HomeShelf CreateCollectionShelf(GameCollection collection)
         {
             var games = main.CollectionsModel.GetMembers(collection);
@@ -494,6 +709,8 @@ namespace Playnite.DesktopApp.ViewModels
             add(CreatePlayNextShelf());
             add(CreateAddedShelf());
             Shelves = list;
+            Week = CreateWeek();
+            AddWeekAchievements(Week);
             AddAlmostDoneShelf(list);
             UpdateAllGames();
             LoadNews(played);

@@ -35,6 +35,12 @@ namespace Playnite.Atrio
         /// <summary>Holding View and Menu for a second switches between the open game and the mode for the couch.</summary>
         public bool GuideComboReturns { get; set; } = true;
 
+        /// <summary>The time in front of games opened outside Atrio goes to the library, like the games started from it.</summary>
+        public bool CountOutsidePlaytime { get; set; } = true;
+
+        /// <summary>While a game is open and Atrio isn't on screen, Atrio lets go of the memory it doesn't need.</summary>
+        public bool LightWhilePlaying { get; set; } = true;
+
         /// <summary>
         /// Lets Atrio accept the terms of a game when a store asks for them. It's the person's decision and
         /// it's off unless they turn it on: without it the install stops there and the store shows the terms.

@@ -1307,6 +1307,9 @@ namespace Playnite
             }
 
             updateCheckTimer?.Dispose();
+
+            // The time of the games opened outside Atrio goes to the library before it closes.
+            Atrio.OutsidePlay.Shutdown();
             MainModelBase?.RunShutdowScript();
             Extensions?.NotifiyOnApplicationStopped();
             Dialogs.ActivateGlobalProgress(_ =>

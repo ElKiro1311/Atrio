@@ -180,6 +180,30 @@ namespace Playnite.DesktopApp.ViewModels
             }
         }
 
+        public bool CountOutsidePlaytime
+        {
+            get => GameUnifier.Current?.Settings.CountOutsidePlaytime == true;
+            set
+            {
+                var unifier = GameUnifier.Current;
+                unifier.Settings.CountOutsidePlaytime = value;
+                unifier.Settings.Save();
+                OnPropertyChanged();
+            }
+        }
+
+        public bool LightWhilePlaying
+        {
+            get => GameUnifier.Current?.Settings.LightWhilePlaying == true;
+            set
+            {
+                var unifier = GameUnifier.Current;
+                unifier.Settings.LightWhilePlaying = value;
+                unifier.Settings.Save();
+                OnPropertyChanged();
+            }
+        }
+
         public bool AcceptStoreTerms
         {
             get => GameUnifier.Current?.Settings.AcceptStoreTerms == true;

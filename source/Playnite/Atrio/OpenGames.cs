@@ -22,6 +22,23 @@ namespace Playnite.Atrio
         public bool IsEmpty => Opened.Count == 0 && Closed.Count == 0;
     }
 
+    /// <summary>One round of the watch: what is open and which program the person has in front.</summary>
+    public class OpenGamesTickEventArgs : EventArgs
+    {
+        public IReadOnlyDictionary<Guid, List<int>> Open { get; }
+        public int ForegroundProcessId { get; }
+
+        /// <summary>Time since the previous round, without the time the computer was asleep.</summary>
+        public double ElapsedSeconds { get; }
+
+        public OpenGamesTickEventArgs(IReadOnlyDictionary<Guid, List<int>> open, int foregroundProcessId, double elapsedSeconds)
+        {
+            Open = open ?? new Dictionary<Guid, List<int>>();
+            ForegroundProcessId = foregroundProcessId;
+            ElapsedSeconds = elapsedSeconds;
+        }
+    }
+
     public enum CloseGameResult
     {
         Closed,
@@ -52,6 +69,14 @@ namespace Playnite.Atrio
 
         /// <summary>Raised on the interface thread when games are opened or closed.</summary>
         public static event EventHandler<OpenGamesChangedEventArgs> Changed;
+
+        /// <summary>Raised on the thread of the watch after every round, also when nothing changed.</summary>
+        public static event EventHandler<OpenGamesTickEventArgs> Ticked;
+
+        /// <summary>A round never counts for more than this: a longer gap is the computer asleep.</summary>
+        public const double MaxTickSeconds = 3 * CheckMilliseconds / 1000.0;
+
+        private static readonly Stopwatch tickWatch = new Stopwatch();
 
         public static bool IsRunning => timer != null;
 
@@ -122,6 +147,11 @@ namespace Playnite.Atrio
             }
 
             libraryChanged = true;
+            lock (tickWatch)
+            {
+                tickWatch.Reset();
+            }
+
             timer = new System.Threading.Timer(_ => CheckFromTimer(), null, 2000, CheckMilliseconds);
             logger.Info("Watching which games are open.");
         }
@@ -139,6 +169,19 @@ namespace Playnite.Atrio
             }
 
             Raise(change);
+            RaiseTick(new Dictionary<Guid, List<int>>(), 0, 0);
+        }
+
+        private static void RaiseTick(Dictionary<Guid, List<int>> now, int foreground, double elapsed)
+        {
+            try
+            {
+                Ticked?.Invoke(null, new OpenGamesTickEventArgs(now, foreground, elapsed));
+            }
+            catch (Exception e)
+            {
+                logger.Error(e, "Failed to handle a round of the open games.");
+            }
         }
 
         /// <summary>Games were added, removed or changed: their folders are read again on the next check.</summary>
@@ -201,6 +244,28 @@ namespace Playnite.Atrio
                 logger.Info($"Open games changed: {change.Opened.Count} opened, {change.Closed.Count} closed.");
                 Raise(change);
             }
+
+            double elapsed;
+            lock (tickWatch)
+            {
+                elapsed = tickWatch.IsRunning ? Math.Min(tickWatch.Elapsed.TotalSeconds, MaxTickSeconds) : 0;
+                tickWatch.Restart();
+            }
+
+            RaiseTick(now, now.Count == 0 ? 0 : GetForegroundProcessId(), elapsed);
+        }
+
+        /// <summary>The program of the window the person has in front, 0 when it can't be known.</summary>
+        public static int GetForegroundProcessId()
+        {
+            var window = GetForegroundWindow();
+            if (window == IntPtr.Zero)
+            {
+                return 0;
+            }
+
+            GetWindowThreadProcessId(window, out var processId);
+            return processId;
         }
 
         private static void Raise(OpenGamesChangedEventArgs change)
@@ -496,6 +561,9 @@ namespace Playnite.Atrio
         [DllImport("kernel32.dll")]
         private static extern bool CloseHandle(IntPtr handle);
 
+        [DllImport("kernel32.dll", SetLastError = true)]
+        private static extern bool GetProcessTimes(IntPtr process, out long creation, out long exit, out long kernel, out long user);
+
         [DllImport("user32.dll")]
         private static extern bool EnumWindows(EnumWindowsProc callback, IntPtr parameter);
 
@@ -545,6 +613,30 @@ namespace Playnite.Atrio
                 var size = 1024;
                 var builder = new StringBuilder(size);
                 return QueryFullProcessImageName(handle, 0, builder, ref size) ? builder.ToString(0, size) : null;
+            }
+            finally
+            {
+                CloseHandle(handle);
+            }
+        }
+
+        /// <summary>
+        /// The program as number and start time: Windows reuses numbers, so both together tell that it's the
+        /// same program after Atrio restarts. Null when Windows doesn't say.
+        /// </summary>
+        public static string GetProcessKey(int processId)
+        {
+            var handle = OpenProcess(ProcessQueryLimitedInformation, false, processId);
+            if (handle == IntPtr.Zero)
+            {
+                return null;
+            }
+
+            try
+            {
+                return GetProcessTimes(handle, out var creation, out _, out _, out _) && creation > 0 ?
+                    processId.ToString(System.Globalization.CultureInfo.InvariantCulture) + ":" + creation.ToString(System.Globalization.CultureInfo.InvariantCulture) :
+                    null;
             }
             finally
             {

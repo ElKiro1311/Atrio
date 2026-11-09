@@ -61,6 +61,12 @@ namespace Playnite
             if (PlayniteApplication.Current != null)
             {
                 var games = Database.Games;
+                var unifier = Unifier;
+                OutsidePlay.Attach(Database, () => unifier.Settings.CountOutsidePlaytime);
+                LightWhilePlaying.Attach(
+                    PlayniteApplication.CurrentNative?.Dispatcher,
+                    () => unifier.Settings.LightWhilePlaying,
+                    () => OpenGames.GetOpenGames().Count > 0 || PlayniteApplication.Current?.GamesEditor?.RunningGames.Count > 0);
                 OpenGames.Attach(() => games, PlayniteApplication.Current.SyncContext, Unifier.Settings.DetectOpenGames);
             }
         }

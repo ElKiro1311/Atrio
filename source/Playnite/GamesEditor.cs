@@ -1303,6 +1303,7 @@ namespace Playnite
                 {
                     ellapsedTime = Convert.ToUInt64((DateTime.Now - startupTime).TotalSeconds);
                     dbGame.Playtime += ellapsedTime;
+                    RecordSession(game.Id, ellapsedTime);
                 }
             }
 
@@ -1430,6 +1431,18 @@ namespace Playnite
             }
         }
 
+        /// <summary>The sitting also goes to the history of Atrio, for its summaries.</summary>
+        private static void RecordSession(Guid gameId, ulong seconds)
+        {
+            if (seconds == 0)
+            {
+                return;
+            }
+
+            var end = DateTime.UtcNow;
+            Atrio.PlayHistory.Record(gameId, end.AddSeconds(-(double)seconds), end, seconds, false);
+        }
+
         private void Controllers_Stopped(object sender, GameStoppedEventArgs args)
         {
             var game = args.Source.Game;
@@ -1448,6 +1461,7 @@ namespace Playnite
             dbGame.IsLaunching = false;
             dbGame.Playtime += args.SessionLength;
             Database.Games.Update(dbGame);
+            RecordSession(game.Id, args.SessionLength);
             controllers.RemoveController(args.Source);
             gameStartups.TryRemove(game.Id, out _);
 
