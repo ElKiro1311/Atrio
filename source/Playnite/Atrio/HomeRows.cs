@@ -19,6 +19,14 @@ namespace Playnite.Atrio
 
         /// <summary>A short note under the cover, like how many achievements are left.</summary>
         public string Note { get; set; }
+
+        /// <summary>The last tile of a row of a collection: it opens the whole collection instead of a game.</summary>
+        public GameCollection Collection { get; set; }
+
+        /// <summary>What the tile says when it has no game.</summary>
+        public string Label { get; set; }
+
+        public string Title => Game?.DisplayName ?? Label;
     }
 
     /// <summary>
@@ -71,6 +79,54 @@ namespace Playnite.Atrio
 
             add(ResourceProvider.GetString("LOCAtrioHomeAdded"),
                 entries.Where(a => a.Added != null).OrderByDescending(a => a.Added));
+            return rows;
+        }
+
+        /// <summary>
+        /// The collections of the person, one row each with its first games and, at the end, a tile that opens the
+        /// whole collection. Favorites, the ones the person made and the dynamic ones; not the ones of everything
+        /// without a collection or of the hidden games, which would be most of the library.
+        /// </summary>
+        public static List<HomeRow> BuildCollections(IEnumerable<GamesCollectionViewEntry> library, IGameDatabaseMain database, AtrioSettings settings)
+        {
+            var rows = new List<HomeRow>();
+            if (database == null || settings == null)
+            {
+                return rows;
+            }
+
+            var unifier = GameUnifier.Current;
+            var seen = new HashSet<Guid>();
+            var entries = (library ?? Enumerable.Empty<GamesCollectionViewEntry>()).
+                Where(a => !a.Hidden && unifier?.IsSecondaryCopy(a.Id) != true && seen.Add(a.Id)).
+                ToList();
+            foreach (var collection in GameCollections.GetAll(database, settings))
+            {
+                if (collection.Kind == GameCollectionKind.Uncategorized || collection.Kind == GameCollectionKind.Hidden)
+                {
+                    continue;
+                }
+
+                var games = entries.
+                    Where(a => collection.Contains(a.Copies?.Select(b => b.Game) ?? new[] { a.Game })).
+                    OrderByDescending(a => a.LastActivity ?? DateTime.MinValue).
+                    ThenBy(a => a.Name, StringComparer.CurrentCultureIgnoreCase).
+                    ToList();
+                if (games.Count == 0)
+                {
+                    continue;
+                }
+
+                var tiles = games.Take(RowSize).Select(a => new HomeTile { Game = a }).ToList();
+                tiles.Add(new HomeTile
+                {
+                    Collection = collection,
+                    Label = string.Format(ResourceProvider.GetString("LOCAtrioCouchSeeCollection"), games.Count)
+                });
+
+                rows.Add(new HomeRow { Title = $"{collection.Name} ({games.Count})", Tiles = tiles });
+            }
+
             return rows;
         }
 

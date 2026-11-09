@@ -1644,6 +1644,9 @@ Abre un nuevo problema en la página de GitHub de Playnite con una solicitud par
     <sys:String x:Key="LOCAtrioCapturesFolder">Ver en la carpeta</sys:String>
     <sys:String x:Key="LOCAtrioCapturesPrevious">Anterior</sys:String>
     <sys:String x:Key="LOCAtrioCapturesNext">Siguiente</sys:String>
+    <sys:String x:Key="LOCAtrioCouchCollections">Colecciones</sys:String>
+    <sys:String x:Key="LOCAtrioCouchCollectionTab">Colecciones · {0}</sys:String>
+    <sys:String x:Key="LOCAtrioCouchSeeCollection">Ver toda la colección ({0})</sys:String>
     <sys:String x:Key="LOCAtrioWeekTitle">Tu semana</sys:String>
     <sys:String x:Key="LOCAtrioWeekRangeSameMonth">{0}–{1} de {2}</sys:String>
     <sys:String x:Key="LOCAtrioWeekRangeTwoMonths">{0} de {1} – {2} de {3}</sys:String>

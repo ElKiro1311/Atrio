@@ -1647,6 +1647,9 @@ Open new issue on Playnite's GitHub page with a request to fix corruption in you
     <sys:String x:Key="LOCAtrioCapturesFolder">Show in folder</sys:String>
     <sys:String x:Key="LOCAtrioCapturesPrevious">Previous</sys:String>
     <sys:String x:Key="LOCAtrioCapturesNext">Next</sys:String>
+    <sys:String x:Key="LOCAtrioCouchCollections">Collections</sys:String>
+    <sys:String x:Key="LOCAtrioCouchCollectionTab">Collections · {0}</sys:String>
+    <sys:String x:Key="LOCAtrioCouchSeeCollection">See the whole collection ({0})</sys:String>
     <sys:String x:Key="LOCAtrioWeekTitle">This week</sys:String>
     <sys:String x:Key="LOCAtrioWeekRangeSameMonth">{2} {0}–{1}</sys:String>
     <sys:String x:Key="LOCAtrioWeekRangeTwoMonths">{1} {0} – {3} {2}</sys:String>

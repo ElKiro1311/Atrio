@@ -306,14 +306,14 @@
                                                                 <ItemsControl.ItemTemplate>
                                                                     <DataTemplate>
                                                                         <ButtonEx x:Name="Tile" Margin="0,0,22,0" FocusVisualStyle="{x:Null}" Cursor="Hand"
-                                                                                  Command="{Binding DataContext.OpenHomeGameCommand, RelativeSource={RelativeSource AncestorType=ItemsControl, AncestorLevel=2}}"
-                                                                                  CommandParameter="{Binding Game}"
-                                                                                  AutomationProperties.Name="{Binding Game.DisplayName}">
+                                                                                  Command="{Binding DataContext.OpenHomeTileCommand, RelativeSource={RelativeSource AncestorType=ItemsControl, AncestorLevel=2}}"
+                                                                                  CommandParameter="{Binding}"
+                                                                                  AutomationProperties.Name="{Binding Title}">
                                                                             <ButtonEx.Template>
                                                                                 <ControlTemplate TargetType="ButtonEx">
                                                                                     <Grid x:Name="Root" Width="196" Height="294" RenderTransformOrigin="0.5,0.5">
                                                                                         <Border Background="#1AFFFFFF" CornerRadius="8" />
-                                                                                        <TextBlock Text="{Binding Game.DisplayName}" Style="{DynamicResource TextBlockBaseStyle}" FontSize="20"
+                                                                                        <TextBlock Text="{Binding Title}" Style="{DynamicResource TextBlockBaseStyle}" FontSize="20"
                                                                                                    TextWrapping="Wrap" TextAlignment="Center" VerticalAlignment="Center" Margin="12" Opacity="0.7" />
                                                                                         <Image Source="{Binding Game.CoverImageObjectCached, IsAsync=True}" Stretch="UniformToFill"
                                                                                                RenderOptions.BitmapScalingMode="Fant" RoundedClip.Radius="8" />
@@ -333,7 +333,7 @@
                                                                                         <!-- The game is open right now, from Atrio or from anywhere else -->
                                                                                         <Border VerticalAlignment="Top" HorizontalAlignment="Left" Margin="8" Padding="10,3,11,4"
                                                                                                 CornerRadius="8" Background="#D9101218"
-                                                                                                Visibility="{Binding Game.IsOpen, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                                                                                Visibility="{Binding Game.IsOpen, Converter={StaticResource BooleanToVisibilityConverter}, FallbackValue=Collapsed}">
                                                                                             <StackPanel Orientation="Horizontal">
                                                                                                 <Ellipse Width="9" Height="9" Fill="{DynamicResource PositiveBrush}" VerticalAlignment="Center" Margin="0,0,7,0" />
                                                                                                 <TextBlock Text="{DynamicResource LOCAtrioOpenFact}" Style="{DynamicResource TextBlockBaseStyle}" FontSize="15" />
