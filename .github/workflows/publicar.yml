@@ -1,0 +1,57 @@
+# Compila una versión de Atrio en GitHub y la deja como borrador en Releases, sin usar ningún PC de nadie.
+# Nadie la ve hasta que quien la comprueba la publica: gh release edit vX.Y.Z --draft=false
+# Aparte queda el banco de pruebas (artefacto «banco», 7 días), que no va en la versión.
+name: Publicar
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Versión, x.y.z (antes tiene que estar atrio/novedades/x.y.z.md en main)'
+        required: true
+      solo_compilar:
+        description: 'Solo compilar y dejar el banco de pruebas, sin crear ninguna versión'
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+
+jobs:
+  compilar:
+    runs-on: windows-2022
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '9.0.x'
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Compilar y crear la versión en borrador
+        if: ${{ !inputs.solo_compilar }}
+        shell: powershell
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ATRIO_VERSION: ${{ inputs.version }}
+        run: |
+          & .\atrio\herramientas\publicar.ps1 -Version $env:ATRIO_VERSION -Borrador
+
+      - name: Banco de pruebas
+        shell: powershell
+        run: |
+          & .\atrio\herramientas\compilar.ps1 -Banco -Salida salida\Banco
+          Compress-Archive -Path salida\Banco\* -DestinationPath salida\Banco.zip
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: banco
+          path: salida/Banco.zip
+          retention-days: 7
