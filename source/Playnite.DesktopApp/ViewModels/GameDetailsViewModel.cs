@@ -20,6 +20,23 @@ namespace Playnite.DesktopApp.ViewModels
         public string Url { get; set; }
     }
 
+    /// <summary>One small picture of the captures card: a screenshot, or the frame of a clip.</summary>
+    public class CaptureTile : ObservableObject
+    {
+        public const int Shown = 6;
+
+        public GameCapture Capture { get; set; }
+        public string ToolTip { get; set; }
+        public bool IsVideo => Capture?.IsVideo == true;
+
+        private System.Windows.Media.Imaging.BitmapSource thumbnail;
+        public System.Windows.Media.Imaging.BitmapSource Thumbnail
+        {
+            get => thumbnail;
+            set => SetValue(ref thumbnail, value);
+        }
+    }
+
     public class SteamFriendsGroup
     {
         public string Title { get; set; }
@@ -573,6 +590,95 @@ namespace Playnite.DesktopApp.ViewModels
 
         public string ReviewUrl { get; private set; }
 
+        /// <summary>The screenshots and clips of the game on this computer, the newest first.</summary>
+        private List<GameCapture> captures = new List<GameCapture>();
+
+        private List<CaptureTile> captureTiles;
+        public List<CaptureTile> CaptureTiles
+        {
+            get => captureTiles;
+            private set
+            {
+                captureTiles = value;
+                OnPropertyChanged();
+                OnPropertyChanged(nameof(HasCaptures));
+            }
+        }
+
+        public bool HasCaptures => CaptureTiles.HasItems();
+
+        private string capturesTitle;
+        public string CapturesTitle
+        {
+            get => capturesTitle;
+            private set
+            {
+                capturesTitle = value;
+                OnPropertyChanged();
+            }
+        }
+
+        private RelayCommand<CaptureTile> openCaptureCommand;
+        public RelayCommand<CaptureTile> OpenCaptureCommand =>
+            openCaptureCommand ?? (openCaptureCommand = new RelayCommand<CaptureTile>(a => OpenCaptures(a == null ? 0 : captures.IndexOf(a.Capture))));
+
+        private RelayCommand<object> showAllCapturesCommand;
+        public RelayCommand<object> ShowAllCapturesCommand =>
+            showAllCapturesCommand ?? (showAllCapturesCommand = new RelayCommand<object>(_ => OpenCaptures(0)));
+
+        private void OpenCaptures(int index)
+        {
+            if (captures.Count == 0)
+            {
+                return;
+            }
+
+            Windows.CaptureViewerWindow.Open(game.DisplayName, captures, Math.Max(0, index));
+        }
+
+        /// <summary>The captures come after the page is already showing, and each small picture when it's ready.</summary>
+        private async void LoadCaptures()
+        {
+            var token = contentToken.Token;
+            try
+            {
+                await Task.Delay(TimeSpan.FromMilliseconds(KeyboardPause * 3), token);
+                var names = game.Copies.Select(a => a.Game.Name).Where(a => !a.IsNullOrWhiteSpace()).Distinct().ToList();
+                var appIds = game.Copies.
+                    Where(a => a.Game.PluginId == SteamContent.SteamPluginId).
+                    Select(a => a.Game.GameId).
+                    ToList();
+                var found = await Task.Run(() => GameCaptures.Find(names, appIds, CapturePlaces.Read()), token);
+                token.ThrowIfCancellationRequested();
+                captures = found;
+                if (found.Count == 0)
+                {
+                    CaptureTiles = null;
+                    return;
+                }
+
+                var culture = Localization.ApplicationLanguageCultureInfo;
+                var tiles = found.Take(CaptureTile.Shown).Select(a => new CaptureTile
+                {
+                    Capture = a,
+                    ToolTip = $"{a.Source} · {a.Date.ToString("f", culture)}"
+                }).ToList();
+                CapturesTitle = string.Format(resources.GetString("LOCAtrioCapturesTitle"), found.Count);
+                CaptureTiles = tiles;
+                foreach (var tile in tiles)
+                {
+                    tile.Thumbnail = await Task.Run(() => CaptureThumbnails.Get(tile.Capture, 320), token);
+                }
+            }
+            catch (OperationCanceledException)
+            {
+            }
+            catch (Exception e) when (!(e is OutOfMemoryException))
+            {
+                logger.Debug(e, $"Failed to read the captures of {game.Name}.");
+            }
+        }
+
         private List<SteamFriendsGroup> friendGroups;
         public List<SteamFriendsGroup> FriendGroups
         {
@@ -811,6 +917,10 @@ namespace Playnite.DesktopApp.ViewModels
             UpdatePlayedContent();
             steamAppId = appId;
             OnPropertyChanged(nameof(HasSteamGuides));
+            if (DesktopAppViewModel.UsesLibraryPanes)
+            {
+                LoadCaptures();
+            }
             if (appId != null && DesktopAppViewModel.UsesLibraryPanes)
             {
                 // What is already saved comes with the page: the picture changes straight into the

@@ -1159,6 +1159,12 @@ namespace Playnite
 
         public void UnInstallGame(Game game)
         {
+            UnInstallGame(game, false);
+        }
+
+        /// <param name="confirmed">The person already said yes to this game, in a list of several: Atrio doesn't ask again.</param>
+        public void UnInstallGame(Game game, bool confirmed)
+        {
             if (game.IsRunning || game.IsLaunching)
             {
                 Dialogs.ShowMessage(LOC.GameUninstallRunningError, LOC.GameError,
@@ -1194,7 +1200,7 @@ namespace Playnite
 
                 // Without the store in between nobody else asks before the files go.
                 controller = Playnite.Atrio.DirectUninstall.Wrap(game, controller);
-                if (controller is Playnite.Atrio.IDirectUninstall direct &&
+                if (!confirmed && controller is Playnite.Atrio.IDirectUninstall direct &&
                     Dialogs.ShowMessage(direct.GetQuestion(), resources.GetString("LOCAtrioUninstallTitle"), MessageBoxButton.YesNo, MessageBoxImage.Question) != MessageBoxResult.Yes)
                 {
                     controller.Dispose();

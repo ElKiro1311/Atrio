@@ -245,6 +245,26 @@ namespace Playnite.DesktopApp.Controls.Views
         }
     }
 
+    public class DownloadsView : AtrioPage
+    {
+        private readonly DownloadsViewModel model;
+
+        static DownloadsView()
+        {
+            DefaultStyleKeyProperty.OverrideMetadata(typeof(DownloadsView), new FrameworkPropertyMetadata(typeof(DownloadsView)));
+        }
+
+        public DownloadsView()
+        {
+        }
+
+        public DownloadsView(DownloadsViewModel model)
+        {
+            this.model = model;
+            DataContext = model;
+        }
+    }
+
     public class ThemesView : AtrioPage
     {
         private readonly ThemesViewModel model;

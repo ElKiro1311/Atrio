@@ -232,10 +232,19 @@ namespace Playnite.DesktopApp.ViewModels
         }
 
         private SidebarWrapperItem storesSidebarItem;
+        private SidebarWrapperItem downloadsSidebarItem;
+
+        /// <summary>The page of the installs in progress and the room of the disks.</summary>
+        public DownloadsViewModel DownloadsModel { get; private set; }
 
         public void SwitchToStoresView()
         {
             storesSidebarItem?.Command.Execute(null);
+        }
+
+        public void SwitchToDownloadsView()
+        {
+            downloadsSidebarItem?.Command.Execute(null);
         }
 
         /// <summary>
@@ -388,6 +397,14 @@ namespace Playnite.DesktopApp.ViewModels
                 Icon = "SidebarStoresIcon",
                 Title = Resources.GetString("LOCAtrioStores")
             }, this);
+            DownloadsModel = new DownloadsViewModel(this);
+            downloadsSidebarItem = new SidebarWrapperItem(new AtrioSidebarItem(new Controls.Views.DownloadsView(DownloadsModel), DownloadsModel.OnShown)
+            {
+                Icon = "SidebarDownloadsIcon",
+                Title = Resources.GetString("LOCAtrioDownloads"),
+                Closed = DownloadsModel.OnHidden
+            }, this);
+            sideItems.Insert(0, downloadsSidebarItem);
             sideItems.Insert(0, storesSidebarItem);
             sideItems.Insert(0, new SidebarWrapperItem(libraryItem, this));
             if (!UsesLibraryPanes)

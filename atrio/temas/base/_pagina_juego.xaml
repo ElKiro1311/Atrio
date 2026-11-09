@@ -465,6 +465,48 @@
                                         </StackPanel>
                                     </Border>
 
+                                    <!-- The screenshots and clips of the game made on this computer: Steam, the Game Bar, AMD, NVIDIA, Medal, Discord -->
+                                    <Border Style="{DynamicResource AtrioCard}" Margin="0,0,0,14"
+                                            Visibility="{Binding HasCaptures, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                        <StackPanel>
+                                            <DockPanel>
+                                                <Button DockPanel.Dock="Right" Style="{DynamicResource AtrioLinkButton}" Content="{DynamicResource LOCAtrioCapturesSeeAll}"
+                                                        FontSize="12" VerticalAlignment="Center" Command="{Binding ShowAllCapturesCommand}" />
+                                                <TextBlock Text="{Binding CapturesTitle}" Style="{DynamicResource AtrioSectionTitle}" />
+                                            </DockPanel>
+                                            <ItemsControl ItemsSource="{Binding CaptureTiles}" Focusable="False" Margin="0,0,-6,0">
+                                                <ItemsControl.ItemsPanel>
+                                                    <ItemsPanelTemplate>
+                                                        <UniformGrid Columns="2" />
+                                                    </ItemsPanelTemplate>
+                                                </ItemsControl.ItemsPanel>
+                                                <ItemsControl.ItemTemplate>
+                                                    <DataTemplate>
+                                                        <Button Style="{DynamicResource AtrioPlainButton}" Margin="0,0,6,6" ToolTip="{Binding ToolTip}"
+                                                                AutomationProperties.Name="{Binding ToolTip}"
+                                                                Command="{Binding DataContext.OpenCaptureCommand, RelativeSource={RelativeSource AncestorType={x:Type GameOverview}}}"
+                                                                CommandParameter="{Binding}">
+                                                            <Grid Height="100">
+                                                                <Border CornerRadius="6" Background="{DynamicResource AtrioCardHoverBrush}" />
+                                                                <Border CornerRadius="6">
+                                                                    <Border.Background>
+                                                                        <ImageBrush ImageSource="{Binding Thumbnail}" Stretch="UniformToFill" />
+                                                                    </Border.Background>
+                                                                </Border>
+                                                                <Border CornerRadius="12" Width="24" Height="24" Background="#B0000000" Margin="6"
+                                                                        HorizontalAlignment="Left" VerticalAlignment="Bottom"
+                                                                        Visibility="{Binding IsVideo, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                                                    <TextBlock Text="&#xE768;" FontFamily="Segoe MDL2 Assets" FontSize="10" Foreground="White"
+                                                                               HorizontalAlignment="Center" VerticalAlignment="Center" Margin="2,0,0,0" />
+                                                                </Border>
+                                                            </Grid>
+                                                        </Button>
+                                                    </DataTemplate>
+                                                </ItemsControl.ItemTemplate>
+                                            </ItemsControl>
+                                        </StackPanel>
+                                    </Border>
+
                                     <!-- The achievements of the game. The first ones are here, "Show more" brings the rest right below,
                                          and a click on one tells what it is about without leaving the page. The full list is the advanced view. -->
                                     <Border Style="{DynamicResource AtrioCard}" Margin="0,0,0,14"
