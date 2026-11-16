@@ -321,10 +321,24 @@
 
                                 <ItemsControl ItemsSource="{Binding Shelves}" ItemTemplate="{DynamicResource AtrioShelfTemplate}" Focusable="False" />
 
-                                <!-- What the store of Epic gives away this week: Atrio opens its page, taking it is the person's thing -->
+                                <!-- Games that cost money and are free now, as the stores say it: Atrio opens their page, taking them is the person's thing -->
                                 <StackPanel Margin="0,0,0,24" Visibility="{Binding FreeGames, Converter={StaticResource ICollectionNullOrEmptyToVisibilityConverter}}">
-                                    <DockPanel Margin="0,0,28,6">
+                                    <DockPanel Margin="0,0,28,8">
                                         <StackPanel Orientation="Horizontal" DockPanel.Dock="Right" VerticalAlignment="Center">
+                                            <Button Style="{DynamicResource AtrioIconLinkButton}" Command="{Binding OpenSteamDbFreeCommand}" Padding="4,6"
+                                                    ToolTip="{DynamicResource LOCAtrioFreeSteamDbHint}" VerticalAlignment="Center">
+                                                <StackPanel Orientation="Horizontal">
+                                                    <TextBlock Text="{DynamicResource LOCAtrioFreeSteamDb}" />
+                                                    <TextBlock Text="&#xE8A7;" FontFamily="{DynamicResource AtrioIconFont}" FontSize="10" Margin="5,2,0,0" />
+                                                </StackPanel>
+                                            </Button>
+                                            <Button Style="{DynamicResource AtrioIconLinkButton}" Command="{Binding OpenGgDealsFreeCommand}" Padding="4,6" Margin="10,0,8,0"
+                                                    ToolTip="{DynamicResource LOCAtrioFreeGgDealsHint}" VerticalAlignment="Center">
+                                                <StackPanel Orientation="Horizontal">
+                                                    <TextBlock Text="{DynamicResource LOCAtrioFreeGgDeals}" />
+                                                    <TextBlock Text="&#xE8A7;" FontFamily="{DynamicResource AtrioIconFont}" FontSize="10" Margin="5,2,0,0" />
+                                                </StackPanel>
+                                            </Button>
                                             <Button Style="{DynamicResource AtrioShelfArrow}" Content="&#xE76B;"
                                                     Command="ScrollBar.PageLeftCommand" CommandTarget="{Binding ElementName=FreeScroller}" />
                                             <Button Style="{DynamicResource AtrioShelfArrow}" Content="&#xE76C;"
@@ -332,7 +346,7 @@
                                         </StackPanel>
                                         <StackPanel VerticalAlignment="Center">
                                             <TextBlock Text="{DynamicResource LOCAtrioFreeTitle}" Style="{DynamicResource AtrioSectionTitle}" Margin="0" />
-                                            <TextBlock Text="{DynamicResource LOCAtrioFreeHint}" Style="{DynamicResource AtrioCaption}" />
+                                            <TextBlock Text="{DynamicResource LOCAtrioFreeHint}" Style="{DynamicResource AtrioCaption}" TextWrapping="Wrap" />
                                         </StackPanel>
                                     </DockPanel>
                                     <ScrollViewer x:Name="FreeScroller" HorizontalScrollBarVisibility="Hidden" VerticalScrollBarVisibility="Disabled"
@@ -345,7 +359,7 @@
                                             </ItemsControl.ItemsPanel>
                                             <ItemsControl.ItemTemplate>
                                                 <DataTemplate>
-                                                    <Button Width="300" Margin="0,0,14,0" Cursor="Hand" Focusable="False" CommandParameter="{Binding}" ToolTip="{Binding Url}"
+                                                    <Button Width="300" Margin="0,0,14,0" Cursor="Hand" Focusable="False" CommandParameter="{Binding}" ToolTip="{Binding KindHint}"
                                                             Command="{Binding DataContext.OpenFreeGameCommand, RelativeSource={RelativeSource AncestorType={x:Type HomeView}}}">
                                                         <Button.Template>
                                                             <ControlTemplate TargetType="Button">
@@ -358,14 +372,34 @@
                                                                     <Image Source="{Binding ImageUrl, Converter={StaticResource RemoteImageConverter}, ConverterParameter=600}"
                                                                            Stretch="UniformToFill" RoundedClip.Radius="{DynamicResource AtrioCoverRadius}" />
                                                                 </Border>
-                                                                <Border x:Name="Owned" CornerRadius="4" Padding="7,2,7,3" Margin="8" Background="#C0000000"
-                                                                        HorizontalAlignment="Left" VerticalAlignment="Top" Visibility="Collapsed">
+                                                                <!-- The store that gives it -->
+                                                                <Border CornerRadius="4" Padding="6,3,8,3" Margin="8" Background="#C8000000"
+                                                                        HorizontalAlignment="Left" VerticalAlignment="Top">
+                                                                    <StackPanel Orientation="Horizontal">
+                                                                        <Image x:Name="StoreIcon" Source="{Binding StoreIcon}" Width="14" Height="14" Margin="0,0,5,0"
+                                                                               RenderOptions.BitmapScalingMode="HighQuality" VerticalAlignment="Center" />
+                                                                        <TextBlock Text="{Binding StoreName}" FontSize="11" Foreground="White" VerticalAlignment="Center" />
+                                                                    </StackPanel>
+                                                                </Border>
+                                                                <Border x:Name="Owned" CornerRadius="4" Padding="7,3,7,3" Margin="8" Background="#C8000000"
+                                                                        HorizontalAlignment="Right" VerticalAlignment="Top" Visibility="Collapsed">
                                                                     <TextBlock Text="{DynamicResource LOCAtrioFreeOwned}" FontSize="11" Foreground="White" />
+                                                                </Border>
+                                                                <!-- To keep, to try, or coming; and what it cost, crossed out -->
+                                                                <Border x:Name="Kind" CornerRadius="4" Padding="7,3,7,3" Margin="8" Background="#E61E7A3C"
+                                                                        HorizontalAlignment="Left" VerticalAlignment="Bottom">
+                                                                    <TextBlock Text="{Binding KindText}" FontSize="11" FontWeight="SemiBold" Foreground="White" />
+                                                                </Border>
+                                                                <Border x:Name="Price" CornerRadius="4" Padding="7,3,7,3" Margin="8" Background="#C8000000"
+                                                                        HorizontalAlignment="Right" VerticalAlignment="Bottom">
+                                                                    <TextBlock Text="{Binding PriceText}" FontSize="11" Foreground="#D9FFFFFF" TextDecorations="Strikethrough" />
                                                                 </Border>
                                                             </Grid>
                                                             <TextBlock Text="{Binding Title}" Style="{DynamicResource BaseTextBlockStyle}" FontSize="13" FontWeight="SemiBold"
                                                                        TextTrimming="CharacterEllipsis" Margin="2,6,2,0" />
                                                             <TextBlock x:Name="When" Text="{Binding WhenText}" Style="{DynamicResource AtrioCaption}" TextTrimming="CharacterEllipsis" Margin="2,1,2,0" />
+                                                            <TextBlock x:Name="TrialPrice" Text="{Binding PriceText}" Style="{DynamicResource AtrioCaption}" TextTrimming="CharacterEllipsis"
+                                                                       Margin="2,1,2,0" Visibility="Collapsed" />
                                                         </StackPanel>
                                                     </Button>
                                                     <DataTemplate.Triggers>
@@ -375,7 +409,75 @@
                                                         <DataTrigger Binding="{Binding IsNow}" Value="True">
                                                             <Setter TargetName="When" Property="Foreground" Value="{DynamicResource GlyphBrush}" />
                                                         </DataTrigger>
+                                                        <DataTrigger Binding="{Binding IsTrial}" Value="True">
+                                                            <Setter TargetName="Kind" Property="Background" Value="#E6A35A00" />
+                                                            <Setter TargetName="Price" Property="Visibility" Value="Collapsed" />
+                                                            <Setter TargetName="TrialPrice" Property="Visibility" Value="Visible" />
+                                                        </DataTrigger>
+                                                        <DataTrigger Binding="{Binding IsNow}" Value="False">
+                                                            <Setter TargetName="Kind" Property="Background" Value="#C8000000" />
+                                                        </DataTrigger>
+                                                        <DataTrigger Binding="{Binding PriceText}" Value="{x:Null}">
+                                                            <Setter TargetName="Price" Property="Visibility" Value="Collapsed" />
+                                                            <Setter TargetName="TrialPrice" Property="Visibility" Value="Collapsed" />
+                                                        </DataTrigger>
+                                                        <DataTrigger Binding="{Binding StoreIcon}" Value="{x:Null}">
+                                                            <Setter TargetName="StoreIcon" Property="Visibility" Value="Collapsed" />
+                                                        </DataTrigger>
                                                     </DataTemplate.Triggers>
+                                                </DataTemplate>
+                                            </ItemsControl.ItemTemplate>
+                                        </ItemsControl>
+                                    </ScrollViewer>
+                                </StackPanel>
+
+                                <!-- Headlines of GG.deals about games given away: Atrio opens the article, where it says the store and until when -->
+                                <StackPanel Margin="0,0,0,24" Visibility="{Binding FreeNews, Converter={StaticResource ICollectionNullOrEmptyToVisibilityConverter}}">
+                                    <DockPanel Margin="0,0,28,8">
+                                        <StackPanel Orientation="Horizontal" DockPanel.Dock="Right" VerticalAlignment="Center">
+                                            <Button Style="{DynamicResource AtrioShelfArrow}" Content="&#xE76B;"
+                                                    Command="ScrollBar.PageLeftCommand" CommandTarget="{Binding ElementName=FreeNewsScroller}" />
+                                            <Button Style="{DynamicResource AtrioShelfArrow}" Content="&#xE76C;"
+                                                    Command="ScrollBar.PageRightCommand" CommandTarget="{Binding ElementName=FreeNewsScroller}" />
+                                        </StackPanel>
+                                        <StackPanel VerticalAlignment="Center">
+                                            <TextBlock Text="{DynamicResource LOCAtrioFreeNewsTitle}" Style="{DynamicResource AtrioSectionTitle}" FontSize="16" Margin="0" />
+                                            <TextBlock Text="{DynamicResource LOCAtrioFreeNewsHint}" Style="{DynamicResource AtrioCaption}" TextWrapping="Wrap" />
+                                        </StackPanel>
+                                    </DockPanel>
+                                    <ScrollViewer x:Name="FreeNewsScroller" HorizontalScrollBarVisibility="Hidden" VerticalScrollBarVisibility="Disabled"
+                                                  PageWheel.PassToParent="True" Focusable="False">
+                                        <ItemsControl ItemsSource="{Binding FreeNews}" Focusable="False">
+                                            <ItemsControl.ItemsPanel>
+                                                <ItemsPanelTemplate>
+                                                    <StackPanel Orientation="Horizontal" />
+                                                </ItemsPanelTemplate>
+                                            </ItemsControl.ItemsPanel>
+                                            <ItemsControl.ItemTemplate>
+                                                <DataTemplate>
+                                                    <Button Width="250" Margin="0,0,14,0" Cursor="Hand" Focusable="False" CommandParameter="{Binding}" ToolTip="{Binding Title}"
+                                                            Command="{Binding DataContext.OpenFreeNewsCommand, RelativeSource={RelativeSource AncestorType={x:Type HomeView}}}">
+                                                        <Button.Template>
+                                                            <ControlTemplate TargetType="Button">
+                                                                <ContentPresenter />
+                                                            </ControlTemplate>
+                                                        </Button.Template>
+                                                        <StackPanel>
+                                                            <Grid Height="120">
+                                                                <Border CornerRadius="{DynamicResource AtrioCardRadius}" ClipToBounds="True" Background="{DynamicResource AtrioCardBrush}">
+                                                                    <Image Source="{Binding ImageUrl, Converter={StaticResource RemoteImageConverter}, ConverterParameter=500}"
+                                                                           Stretch="UniformToFill" RoundedClip.Radius="{DynamicResource AtrioCoverRadius}" />
+                                                                </Border>
+                                                                <Border CornerRadius="4" Padding="7,3,7,3" Margin="8" Background="#C8000000"
+                                                                        HorizontalAlignment="Left" VerticalAlignment="Bottom">
+                                                                    <TextBlock Text="{Binding KindText}" FontSize="11" FontWeight="SemiBold" Foreground="White" />
+                                                                </Border>
+                                                            </Grid>
+                                                            <TextBlock Text="{Binding Title}" Style="{DynamicResource BaseTextBlockStyle}" FontSize="12.5" FontWeight="SemiBold"
+                                                                       TextWrapping="Wrap" Height="34" TextTrimming="CharacterEllipsis" Margin="2,6,2,0" />
+                                                            <TextBlock Text="{Binding WhenText}" Style="{DynamicResource AtrioCaption}" TextTrimming="CharacterEllipsis" Margin="2,1,2,0" />
+                                                        </StackPanel>
+                                                    </Button>
                                                 </DataTemplate>
                                             </ItemsControl.ItemTemplate>
                                         </ItemsControl>

@@ -255,6 +255,12 @@
                                                   ToolTip="{DynamicResource LOCAtrioSavesHint}" />
                                         <CheckBox Content="{DynamicResource LOCAtrioFreeGamesToggle}" IsChecked="{Binding ShowFreeGames}" Margin="0,10,0,0"
                                                   ToolTip="{DynamicResource LOCAtrioFreeGamesHint}" />
+                                        <CheckBox Content="{DynamicResource LOCAtrioFreeTrialsToggle}" IsChecked="{Binding FreeGameTrials}" Margin="26,8,0,0"
+                                                  IsEnabled="{Binding ShowFreeGames}"
+                                                  ToolTip="{DynamicResource LOCAtrioFreeTrialsHint}" />
+                                        <CheckBox Content="{DynamicResource LOCAtrioFreeNewsToggle}" IsChecked="{Binding FreeGameNews}" Margin="26,8,0,0"
+                                                  IsEnabled="{Binding ShowFreeGames}"
+                                                  ToolTip="{DynamicResource LOCAtrioFreeNewsToggleHint}" />
                                         <CheckBox Content="{DynamicResource LOCAtrioWishAlertsToggle}" IsChecked="{Binding WishlistAlerts}" Margin="0,10,0,0"
                                                   ToolTip="{DynamicResource LOCAtrioWishAlertsHint}" />
                                     </StackPanel>

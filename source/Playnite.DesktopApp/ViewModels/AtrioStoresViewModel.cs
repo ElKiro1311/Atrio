@@ -264,6 +264,34 @@ namespace Playnite.DesktopApp.ViewModels
             }
         }
 
+        public bool FreeGameTrials
+        {
+            get => GameUnifier.Current?.Settings.FreeGameTrials == true;
+            set
+            {
+                var unifier = GameUnifier.Current;
+                unifier.Settings.FreeGameTrials = value;
+                unifier.Settings.Save();
+                OnPropertyChanged();
+                Playnite.Atrio.FreeGames.Forget();
+                main.HomeModel?.Refresh();
+            }
+        }
+
+        public bool FreeGameNews
+        {
+            get => GameUnifier.Current?.Settings.FreeGameNews == true;
+            set
+            {
+                var unifier = GameUnifier.Current;
+                unifier.Settings.FreeGameNews = value;
+                unifier.Settings.Save();
+                OnPropertyChanged();
+                Playnite.Atrio.FreeGames.Forget();
+                main.HomeModel?.Refresh();
+            }
+        }
+
         public bool WishlistAlerts
         {
             get => GameUnifier.Current?.Settings.WishlistAlerts == true;

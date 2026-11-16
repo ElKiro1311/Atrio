@@ -53,8 +53,14 @@ namespace Playnite.Atrio
         /// </summary>
         public bool AcceptStoreTerms { get; set; }
 
-        /// <summary>The start shows the games the store of Epic gives away this week.</summary>
+        /// <summary>The start shows the games that cost money and are free now: Epic, Steam and GOG give them away.</summary>
         public bool ShowFreeGames { get; set; } = true;
+
+        /// <summary>With them, the games that can be played for nothing for a few days, like the free weekends of Steam.</summary>
+        public bool FreeGameTrials { get; set; } = true;
+
+        /// <summary>And the latest headlines of the public feed of free games of GG.deals.</summary>
+        public bool FreeGameNews { get; set; } = true;
 
         /// <summary>Atrio tells when a game of the list of wishes gets cheaper, becomes free or comes out.</summary>
         public bool WishlistAlerts { get; set; } = true;
