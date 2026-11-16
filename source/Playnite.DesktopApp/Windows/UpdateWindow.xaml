@@ -28,7 +28,7 @@
                         <DataTemplate>
                             <DockPanel Margin="10,5,10,15">
                                 <Border BorderThickness="0,0,0,1" BorderBrush="{StaticResource NormalBorderBrush}" DockPanel.Dock="Top">
-                                    <TextBlock Text="{Binding Version}"  Margin="0,5,0,5"
+                                    <TextBlock Text="{Binding Label}"  Margin="0,5,0,5"
                                                Style="{DynamicResource BaseTextBlockStyle}" FontWeight="Bold" />
                                 </Border>
                                 <html:HtmlPanel Text="{Binding Note}" Foreground="White" Margin="0,10,0,0"

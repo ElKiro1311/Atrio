@@ -13,6 +13,12 @@ namespace Playnite
             get; set;
         }
 
+        /// <summary>How the version is shown: «1.12.3-beta».</summary>
+        public string Label
+        {
+            get; set;
+        }
+
         public string Note
         {
             get; set;

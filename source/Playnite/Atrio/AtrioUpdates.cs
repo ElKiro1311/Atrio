@@ -18,6 +18,9 @@ namespace Playnite.Atrio
     public class AtrioRelease
     {
         public Version Version { get; set; }
+
+        /// <summary>How it is shown: its tag with the phase (1.12.3-beta), or the number with Atrio's phase.</summary>
+        public string Label { get; set; }
         public string PageUrl { get; set; }
         public string Notes { get; set; }
         public string PackageUrl { get; set; }
@@ -94,12 +97,17 @@ namespace Playnite.Atrio
             foreach (var release in JsonConvert.DeserializeObject<List<GitHubRelease>>(json) ?? new List<GitHubRelease>())
             {
                 var package = ChoosePackage(release);
+                // The tag is the version: x.y.z-beta since 1.12.2 (the phase goes after a dash), vx.y.z before. The
+                // copies before 1.12.2 only understand the number, so 1.12.2 itself went out as plain 1.12.2.
+                var tag = release.TagName?.TrimStart('v', 'V') ?? string.Empty;
+                var dash = tag.IndexOf('-');
                 if (!release.Draft && !release.Prerelease && package != null &&
-                    Version.TryParse(release.TagName?.TrimStart('v', 'V'), out var version))
+                    Version.TryParse(dash > 0 ? tag.Substring(0, dash) : tag, out var version))
                 {
                     releases.Add(new AtrioRelease
                     {
                         Version = version,
+                        Label = dash > 0 ? tag : AtrioInfo.Label(version),
                         PageUrl = release.Url,
                         Notes = release.Body,
                         PackageUrl = package.Url,
@@ -350,7 +358,7 @@ namespace Playnite.Atrio
                     WaitFor = process.Id,
                     Start = startPath,
                     StartArguments = startArguments,
-                    Version = release.Version.ToString(),
+                    Version = release.Label ?? AtrioInfo.Label(release.Version),
                     WaitingText = ResourceProvider.GetString("LOCAtrioUpdaterWaiting"),
                     InstallingText = ResourceProvider.GetString("LOCAtrioUpdaterInstalling"),
                     FailedText = ResourceProvider.GetString("LOCAtrioUpdaterFailed"),
@@ -384,7 +392,7 @@ namespace Playnite.Atrio
             var marker = Path.Combine(UpdateFolder, MarkerName);
             var version = File.Exists(marker) ? File.ReadAllText(marker).Trim() : null;
             TryDeleteUpdateFolder();
-            return version;
+            return AtrioInfo.Label(version);  // (the updater of a copy before 1.12.2 wrote only the number)
         }
     }
 }

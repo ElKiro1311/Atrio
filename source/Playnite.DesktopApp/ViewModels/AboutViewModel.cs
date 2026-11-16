@@ -26,7 +26,7 @@ namespace Playnite.DesktopApp.ViewModels
         {
             get
             {
-                return "Atrio " + Playnite.Atrio.AtrioInfo.Version;
+                return "Atrio " + Playnite.Atrio.AtrioInfo.VersionLabel;
             }
         }
 

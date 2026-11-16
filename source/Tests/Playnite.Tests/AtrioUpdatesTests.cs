@@ -37,6 +37,28 @@ namespace Playnite.Tests
         }
 
         [Test]
+        public void TagsWithThePhaseAreUnderstoodTest()
+        {
+            // Since 1.12.2 the tags are x.y.z-beta; 1.12.2 itself is plain (the copies before it only read x.y.z).
+            var releases = AtrioUpdates.ParseReleases(@"[
+                {""tag_name"":""1.12.3-beta"",""draft"":false,""prerelease"":false,""assets"":[{""name"":""Atrio.zip"",""url"":""otro"",""size"":1},{""name"":""Atrio-1.12.3-beta.zip"",""url"":""a"",""size"":1}]},
+                {""tag_name"":""1.12.2"",""draft"":false,""prerelease"":false,""assets"":[{""name"":""Atrio-1.12.2.zip"",""url"":""b"",""size"":1}]},
+                {""tag_name"":""v1.12.1"",""draft"":false,""prerelease"":false,""assets"":[{""name"":""Atrio-1.12.1.zip"",""url"":""c"",""size"":1}]},
+                {""tag_name"":""1.13.0-alfa"",""draft"":false,""prerelease"":false,""assets"":[{""name"":""Atrio-1.13.0-alfa.zip"",""url"":""d"",""size"":1}]},
+                {""tag_name"":""-beta"",""draft"":false,""prerelease"":false,""assets"":[{""name"":""Atrio-x.zip"",""url"":""e"",""size"":1}]}
+            ]");
+
+            CollectionAssert.AreEqual(new[] { new Version(1, 13, 0), new Version(1, 12, 3), new Version(1, 12, 2), new Version(1, 12, 1) },
+                releases.Select(a => a.Version));
+            CollectionAssert.AreEqual(new[] { "1.13.0-alfa", "1.12.3-beta", "1.12.2-beta", "1.12.1-beta" }, releases.Select(a => a.Label));
+            Assert.AreEqual("a", releases[1].PackageUrl);
+            Assert.AreEqual("b", releases[2].PackageUrl);
+            Assert.AreEqual("1.12.2-beta", AtrioInfo.Label(new Version(1, 12, 2)));
+            Assert.AreEqual("1.12.3-beta", AtrioInfo.Label("1.12.3-beta"));
+            Assert.IsNull(AtrioInfo.Label((string)null));
+        }
+
+        [Test]
         public void NoReleasesIsNotAnErrorTest()
         {
             Assert.AreEqual(0, AtrioUpdates.ParseReleases("[]").Count);

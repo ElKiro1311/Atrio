@@ -1,5 +1,5 @@
 # Compila una versión de Atrio en GitHub y la deja como borrador en Releases, sin usar ningún PC de nadie.
-# Nadie la ve hasta que quien la comprueba la publica: gh release edit vX.Y.Z --draft=false
+# Nadie la ve hasta que quien la comprueba la publica: gh release edit x.y.z-beta --draft=false
 # Aparte queda el banco de pruebas (artefacto «banco», 7 días), que no va en la versión.
 name: Publicar
 
@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: 'Versión, x.y.z (antes tiene que estar atrio/novedades/x.y.z.md en main)'
+        description: 'Versión: la etiqueta, x.y.z-beta (antes tiene que estar atrio/novedades/x.y.z.md en main)'
         required: true
       solo_compilar:
         description: 'Solo compilar y dejar el banco de pruebas, sin crear ninguna versión'

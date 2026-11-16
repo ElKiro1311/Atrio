@@ -1461,7 +1461,7 @@ namespace Playnite
                         MainModelBase.UpdatesAvailable = true;
                         Notifications.Add(new NotificationMessage(
                             "AtrioUpdateAvailable",
-                            string.Format(ResourceProvider.GetString("LOCAtrioUpdateAvailable"), release.Version),
+                            string.Format(ResourceProvider.GetString("LOCAtrioUpdateAvailable"), release.Label),
                             NotificationType.Info,
                             () => MainModelBase.OpenUpdatesCommand.Execute(null)));
                     }

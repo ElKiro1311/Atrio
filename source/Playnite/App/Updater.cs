@@ -62,6 +62,7 @@ namespace Playnite
             return NewerReleases.Select(a => new ReleaseNoteData
             {
                 Version = a.Version,
+                Label = a.Label,
                 Note = $"<html><head>{NotesStyle}</head><body>{new MarkupConverter().MarkdownToHtml(a.Notes ?? string.Empty)}</body></html>"
             }).ToList();
         }

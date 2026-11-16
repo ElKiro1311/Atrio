@@ -25,7 +25,10 @@ $Salida = (Resolve-Path $Salida).Path
 $fuentes = Join-Path $raiz 'source'
 $infoAtrio = Join-Path $fuentes 'Playnite\Atrio\AtrioInfo.cs'
 $patronVersion = 'const string Version = "([^"]+)"'
-if ($Version -ne '' -and $Version -notmatch '^\d+\.\d+\.\d+$') { throw "Versión no válida: $Version" }
+# -Version x.y.z o x.y.z-beta (la etiqueta de la Release): el programa lleva solo el numero, que es lo que compara, y el
+# zip de las actualizaciones, la etiqueta entera.
+if ($Version -ne '' -and $Version -notmatch '^\d+\.\d+\.\d+(-(alfa|beta))?$') { throw "Versión no válida: $Version" }
+$numeroVersion = $Version -replace '-.*$', ''
 
 function Buscar-Dotnet {
     $local = Join-Path $herramientas 'dotnet\dotnet.exe'
@@ -65,7 +68,7 @@ New-Item -ItemType Directory -Force $temporal | Out-Null
 # La versión solo cambia mientras se compila: el código fuente se queda como estaba.
 $infoOriginal = [IO.File]::ReadAllText($infoAtrio)
 if ($Version -ne '') {
-    [IO.File]::WriteAllText($infoAtrio, ($infoOriginal -replace $patronVersion, "const string Version = `"$Version`""))
+    [IO.File]::WriteAllText($infoAtrio, ($infoOriginal -replace $patronVersion, "const string Version = `"$numeroVersion`""))
 }
 
 try {

@@ -16,11 +16,38 @@ namespace Playnite.Atrio
 
     public static class AtrioInfo
     {
-        /// <summary>The published versions get theirs from the tag: this one is what a build of the source says.</summary>
+        /// <summary>
+        /// The published versions get theirs from the tag: this one is what a build of the source says. Only the number
+        /// (x.y.z): it is what gets compared; the phase is shown after it (<see cref="Phase"/>).
+        /// </summary>
         public const string Version = "1.0";
+
+        /// <summary>The phase shown after the number (Semantic Versioning): «1.12.2-beta». Empty once Atrio is stable.</summary>
+        public const string Phase = "beta";
+
         public const string ProjectUrl = "https://github.com/ElKiro1311/Atrio";
 
         public static Version CurrentVersion => System.Version.Parse(GetTestSetting("ATRIO_VERSION") ?? Version);
+
+        /// <summary>The version of this copy as it is shown: «1.12.2-beta».</summary>
+        public static string VersionLabel => Label(GetTestSetting("ATRIO_VERSION") ?? Version);
+
+        /// <summary>A version as it is shown: 1.12.2 becomes «1.12.2-beta».</summary>
+        public static string Label(Version version)
+        {
+            return version == null ? null : Label(version.ToString());
+        }
+
+        /// <summary>A version as it is shown: one that already carries its phase (1.12.3-beta) stays as it is.</summary>
+        public static string Label(string version)
+        {
+            if (string.IsNullOrEmpty(version) || string.IsNullOrEmpty(Phase) || version.Contains("-"))
+            {
+                return version;
+            }
+
+            return version + "-" + Phase;
+        }
 
         /// <summary>Playnite Achievements: reads the achievements of the stores and of RetroAchievements.</summary>
         public static readonly Guid AchievementsPluginId = Guid.Parse("e6aad2c9-6e06-4d8d-ac55-ac3b252b5f7b");
