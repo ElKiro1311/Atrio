@@ -125,9 +125,16 @@ namespace Playnite.DesktopApp.Atrio
             {
                 if (!wantedIds.Contains(extension.Id) && BrowserExtensions.Find(extension.Id) != null)
                 {
-                    await extension.RemoveAsync();
-                    state.Remove(extension.Id);
-                    logger.Info($"Extension {extension.Name} removed from the browser.");
+                    try
+                    {
+                        await extension.RemoveAsync();
+                        state.Remove(extension.Id);
+                        logger.Info($"Extension {extension.Name} removed from the browser.");
+                    }
+                    catch (Exception e) when (!(e is OutOfMemoryException))
+                    {
+                        logger.Error(e, $"Failed to remove the extension {extension.Name}.");
+                    }
                 }
             }
 
@@ -238,6 +245,8 @@ namespace Playnite.DesktopApp.Atrio
         private Dictionary<string, string> lastCef;
         private Dictionary<string, string> lastEdge;
         private bool firstFromEdge = true;
+        private bool remembered;
+        private string savedText;
 
         public CookieBridge(string picturePath)
         {
@@ -247,8 +256,91 @@ namespace Playnite.DesktopApp.Atrio
         /// <summary>Both ways: first what changed in Edge, which is where the person signs in, then the rest.</summary>
         public async Task SyncAsync(CoreWebView2CookieManager edge)
         {
+            await busy.WaitAsync();
+            try
+            {
+                LoadPictures();
+                if (!remembered)
+                {
+                    await FirstMergeAsync(edge);
+                    return;
+                }
+            }
+            finally
+            {
+                busy.Release();
+            }
+
             await FromEdgeAsync(edge);
             await ToEdgeAsync(edge);
+        }
+
+        /// <summary>
+        /// Without a picture of either side (the first time, or if it got lost), neither side is taken as the newer
+        /// one: each gets what it lacks, and the cookie that lasts longer wins where both differ.
+        /// </summary>
+        private async Task FirstMergeAsync(CoreWebView2CookieManager edge)
+        {
+            try
+            {
+                var cef = await ReadCefAsync();
+                if (cef == null)
+                {
+                    return;
+                }
+
+                var edgeCookies = (await edge.GetCookiesAsync(null)).Select(FromEdge).ToList();
+                var merge = CookieSync.FirstMerge(edgeCookies, cef);
+                foreach (var cookie in merge.Item1)
+                {
+                    try
+                    {
+                        edge.AddOrUpdateCookie(ToEdge(edge, cookie));
+                    }
+                    catch (Exception e) when (!(e is OutOfMemoryException))
+                    {
+                        logger.Debug(e, $"Failed to pass the cookie {cookie.Name} of {cookie.Domain} to Edge.");
+                    }
+                }
+
+                var manager = Cef.GetGlobalCookieManager();
+                foreach (var cookie in merge.Item2)
+                {
+                    await SetCefAsync(manager, cookie);
+                }
+
+                lastEdge = CookieSync.Picture((await edge.GetCookiesAsync(null)).Select(FromEdge));
+                lastCef = CookieSync.Picture(await ReadCefAsync() ?? new List<BridgeCookie>());
+                remembered = true;
+                firstFromEdge = false;
+                SavePictures();
+                logger.Info($"Sessions joined for the first time: {merge.Item1.Count} cookies to Edge, {merge.Item2.Count} from Edge.");
+            }
+            catch (Exception e) when (!(e is OutOfMemoryException))
+            {
+                logger.Warn(e, "Failed to join the sessions of both browsers.");
+            }
+        }
+
+        /// <summary>A cookie without HttpOnly can't replace one that has it: the second try keeps it.</summary>
+        private static async Task<bool> SetCefAsync(ICookieManager manager, BridgeCookie cookie)
+        {
+            try
+            {
+                if (await manager.SetCookieAsync(CookieSync.GetUrl(cookie), ToCef(cookie)) ||
+                    (!cookie.HttpOnly && await manager.SetCookieAsync(CookieSync.GetUrl(cookie), ToCef(cookie, true))))
+                {
+                    return true;
+                }
+
+                logger.Info($"The other browser refused the cookie {cookie.Name} of {cookie.Domain}.");
+            }
+            catch (Exception e) when (!(e is OutOfMemoryException))
+            {
+                logger.Debug(e, $"Failed to pass the cookie {cookie.Name} of {cookie.Domain} from Edge.");
+            }
+
+            return false;
         }
 
         /// <summary>From the other browser to Edge.</summary>
@@ -258,6 +350,12 @@ namespace Playnite.DesktopApp.Atrio
             try
             {
                 LoadPictures();
+                if (!remembered)
+                {
+                    await FirstMergeAsync(edge);
+                    return;
+                }
+
                 var cef = await ReadCefAsync();
                 if (cef == null)
                 {
@@ -265,6 +363,8 @@ namespace Playnite.DesktopApp.Atrio
                 }
 
                 var changes = CookieSync.Changes(cef, lastCef);
+                var edgeBefore = (await edge.GetCookiesAsync(null)).Select(FromEdge).ToList();
+                changes = Tuple.Create(changes.Item1, CookieSync.SafeDeletes(changes.Item2, edgeBefore, lastEdge));
                 lastCef = CookieSync.Picture(cef);
                 if (changes.Item1.Count == 0 && changes.Item2.Count == 0)
                 {
@@ -328,6 +428,12 @@ namespace Playnite.DesktopApp.Atrio
                 }
 
                 LoadPictures();
+                if (!remembered)
+                {
+                    await FirstMergeAsync(edge);
+                    return;
+                }
+
                 var current = (await edge.GetCookiesAsync(null)).Select(FromEdge).ToList();
                 var changes = CookieSync.Changes(current, lastEdge);
                 if (firstFromEdge)
@@ -344,6 +450,8 @@ namespace Playnite.DesktopApp.Atrio
                     return;
                 }
 
+                // B: a cookie the other browser renewed meanwhile isn't taken away.
+                changes = Tuple.Create(changes.Item1, CookieSync.SafeDeletes(changes.Item2, await ReadCefAsync() ?? new List<BridgeCookie>(), lastCef));
                 var manager = Cef.GetGlobalCookieManager();
                 var refused = 0;
                 foreach (var key in changes.Item2)
@@ -370,19 +478,9 @@ namespace Playnite.DesktopApp.Atrio
 
                 foreach (var cookie in changes.Item1)
                 {
-                    try
+                    if (!await SetCefAsync(manager, cookie))
                     {
-                        // A cookie without HttpOnly can't replace one that has it: the second try keeps it.
-                        if (!await manager.SetCookieAsync(CookieSync.GetUrl(cookie), ToCef(cookie)) &&
-                            (cookie.HttpOnly || !await manager.SetCookieAsync(CookieSync.GetUrl(cookie), ToCef(cookie, true))))
-                        {
-                            refused++;
-                            logger.Info($"The other browser refused the cookie {cookie.Name} of {cookie.Domain}.");
-                        }
-                    }
-                    catch (Exception e) when (!(e is OutOfMemoryException))
-                    {
-                        logger.Debug(e, $"Failed to pass the cookie {cookie.Name} of {cookie.Domain} from Edge.");
+                        refused++;
                     }
                 }
 
@@ -419,6 +517,7 @@ namespace Playnite.DesktopApp.Atrio
                         if (parts.Length == 3)
                         {
                             (parts[0] == "E" ? lastEdge : lastCef)[parts[1]] = parts[2];
+                            remembered = true;
                         }
                     }
                 }
@@ -441,14 +540,24 @@ namespace Playnite.DesktopApp.Atrio
                 Directory.CreateDirectory(Path.GetDirectoryName(picturePath));
                 var lines = lastCef.Where(a => !a.Key.Contains("\t") && !a.Key.Contains("\n")).Select(a => "C\t" + a.Key + "\t" + a.Value).
                     Concat(lastEdge.Where(a => !a.Key.Contains("\t") && !a.Key.Contains("\n")).Select(a => "E\t" + a.Key + "\t" + a.Value));
-                var temp = picturePath + ".tmp";
-                File.WriteAllLines(temp, lines);
-                if (File.Exists(picturePath))
+                var text = string.Join("\n", lines);
+                if (text == savedText)
                 {
-                    File.Delete(picturePath);
+                    return;
                 }
 
-                File.Move(temp, picturePath);
+                var temp = picturePath + ".tmp";
+                File.WriteAllText(temp, text);
+                if (File.Exists(picturePath))
+                {
+                    File.Replace(temp, picturePath, null);
+                }
+                else
+                {
+                    File.Move(temp, picturePath);
+                }
+
+                savedText = text;
             }
             catch (Exception e) when (!(e is OutOfMemoryException))
             {

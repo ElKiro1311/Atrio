@@ -77,6 +77,52 @@ namespace Playnite.Atrio
             return gone.Where(a => !(before.TryGetValue(a, out var fingerprint) && fingerprint.StartsWith(SessionMark))).ToList();
         }
 
+        /// <summary>
+        /// The cookies gone from one side that can go away from the other: not the ones the other side changed since
+        /// it was last seen, which would be a session renewed there.
+        /// </summary>
+        public static List<string> SafeDeletes(IEnumerable<string> gone, IEnumerable<BridgeCookie> otherNow, IDictionary<string, string> otherBefore)
+        {
+            var now = Index(otherNow);
+            return gone.Where(a => !now.TryGetValue(a, out var there) ||
+                                   (otherBefore.TryGetValue(a, out var fingerprint) && fingerprint == Fingerprint(there))).ToList();
+        }
+
+        /// <summary>
+        /// The first time both sides meet, with nothing remembered: each one gets the cookies it lacks, and when both
+        /// have one with different values, the one that lasts longer wins. Cookies to write on Edge and on the other.
+        /// </summary>
+        public static Tuple<List<BridgeCookie>, List<BridgeCookie>> FirstMerge(IEnumerable<BridgeCookie> edge, IEnumerable<BridgeCookie> other)
+        {
+            var inEdge = Index(edge);
+            var inOther = Index(other);
+            var toEdge = new List<BridgeCookie>();
+            var toOther = new List<BridgeCookie>();
+            foreach (var cookie in inOther.Values)
+            {
+                if (!inEdge.TryGetValue(cookie.Key, out var there))
+                {
+                    toEdge.Add(cookie);
+                }
+                else if (Fingerprint(there) != Fingerprint(cookie))
+                {
+                    var otherLasts = cookie.Expires ?? DateTime.MinValue;
+                    var edgeLasts = there.Expires ?? DateTime.MinValue;
+                    if (otherLasts.ToUniversalTime() > edgeLasts.ToUniversalTime())
+                    {
+                        toEdge.Add(cookie);
+                    }
+                    else if (edgeLasts.ToUniversalTime() > otherLasts.ToUniversalTime())
+                    {
+                        toOther.Add(there);
+                    }
+                }
+            }
+
+            toOther.AddRange(inEdge.Values.Where(a => !inOther.ContainsKey(a.Key)));
+            return Tuple.Create(toEdge, toOther);
+        }
+
         /// <summary>The cookie a key names, without its value: what's needed to delete it.</summary>
         public static BridgeCookie FromKey(string key)
         {

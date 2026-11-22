@@ -42,6 +42,9 @@ namespace Playnite.DesktopApp.ViewModels
         /// <summary>Until then, the pages of extensions open by themselves (see IsUnaskedExtensionPage).</summary>
         private DateTime quietUntil = DateTime.MinValue;
 
+        /// <summary>Applications of the extensions under way, all on the thread of the window.</summary>
+        private int installing;
+
         /// <summary>The last page asked for by the person or by a page, not by an extension on its own.</summary>
         private string pageWanted;
 
@@ -125,6 +128,10 @@ namespace Playnite.DesktopApp.ViewModels
                 if (e.NewValue is bool initialized && initialized)
                 {
                     InAppBrowserLanguage.Apply(view, main.AppSettings.Language);
+                    if (!shown)
+                    {
+                        view.GetBrowserHost()?.SetAudioMuted(true);
+                    }
                 }
             };
 
@@ -171,6 +178,11 @@ namespace Playnite.DesktopApp.ViewModels
         /// <summary>The page goes on with the engine of the rest of Atrio, where it was going.</summary>
         private void FallBackToChromium()
         {
+            if (edge == null)
+            {
+                return;
+            }
+
             var failed = edge;
             edge = null;
             edgeReady = null;
@@ -199,6 +211,11 @@ namespace Playnite.DesktopApp.ViewModels
         {
             var environment = await EdgeBrowser.GetEnvironmentAsync(main.AppSettings.Language);
             await view.EnsureCoreWebView2Async(environment);
+            if (edge != view)
+            {
+                return;
+            }
+
             var core = view.CoreWebView2;
             core.Settings.IsStatusBarEnabled = true;
             core.Settings.AreDevToolsEnabled = PlayniteEnvironment.IsDebugBuild || Environment.GetEnvironmentVariable("ATRIO_BANCO") == "1";
@@ -295,6 +312,12 @@ namespace Playnite.DesktopApp.ViewModels
             core.NavigationCompleted += (_, __) => RestartCookieTimer();
             await cookies.SyncAsync(core.CookieManager);
 
+            // The engine could have failed meanwhile, and the other one took its place.
+            if (edge != view)
+            {
+                return;
+            }
+
             // The page opens right away; the extensions loaded before are in the browser already.
             edgeStarted = true;
             if (!Address.IsNullOrEmpty())
@@ -317,6 +340,7 @@ namespace Playnite.DesktopApp.ViewModels
         /// </summary>
         public async Task RefreshExtensionsAsync()
         {
+            installing++;
             quietUntil = DateTime.MaxValue;
             bool added;
             try
@@ -325,7 +349,10 @@ namespace Playnite.DesktopApp.ViewModels
             }
             finally
             {
-                quietUntil = DateTime.UtcNow.AddSeconds(10);
+                if (--installing == 0)
+                {
+                    quietUntil = DateTime.UtcNow.AddSeconds(10);
+                }
             }
 
             if (added)
@@ -346,6 +373,18 @@ namespace Playnite.DesktopApp.ViewModels
         private bool IsUnaskedExtensionPage(string url)
         {
             return IsExtensionPage(url) && DateTime.UtcNow < quietUntil;
+        }
+
+        private static void TryNavigate(CoreWebView2 core, string url)
+        {
+            try
+            {
+                core.Navigate(url);
+            }
+            catch (Exception e) when (!PlayniteEnvironment.ThrowAllErrors)
+            {
+                logger.Warn(e, $"The browser of Edge couldn't open {url}.");
+            }
         }
 
         private static bool IsExtensionPage(string url)
@@ -427,7 +466,7 @@ namespace Playnite.DesktopApp.ViewModels
             if (core != null)
             {
                 pageWanted = url;
-                core.Navigate(url);
+                TryNavigate(core, url);
             }
             else
             {
@@ -449,7 +488,11 @@ namespace Playnite.DesktopApp.ViewModels
             else
             {
                 // Before the engine is ready, it opens Address when it is.
-                GetCore()?.Navigate(url);
+                var core = GetCore();
+                if (core != null)
+                {
+                    TryNavigate(core, url);
+                }
             }
 
             view.Focus();
@@ -477,7 +520,10 @@ namespace Playnite.DesktopApp.ViewModels
                 {
                     // A sign in done meanwhile in a window of a store reaches this browser.
                     await cookies.SyncAsync(core.CookieManager);
-                    cookieHeartbeat.Start();
+                    if (shown)
+                    {
+                        cookieHeartbeat.Start();
+                    }
                 }
             }
             catch (Exception e) when (!PlayniteEnvironment.ThrowAllErrors)

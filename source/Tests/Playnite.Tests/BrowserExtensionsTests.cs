@@ -334,6 +334,38 @@ namespace Playnite.Tests
         }
 
         [Test]
+        public void TheFirstMeetingTakesNoSideTest()
+        {
+            var edge = new[]
+            {
+                Cookie(".steampowered.com", "steamLoginSecure", "old edge", new DateTime(2026, 12, 1)),
+                Cookie("gog.com", "only edge", "1", new DateTime(2027, 1, 1)),
+                Cookie("epicgames.com", "same", "x", new DateTime(2027, 1, 1)),
+                Cookie("a.com", "longer in edge", "e", new DateTime(2028, 1, 1))
+            };
+            var other = new[]
+            {
+                Cookie(".steampowered.com", "steamLoginSecure", "new other", new DateTime(2027, 6, 1)),
+                Cookie("steamcommunity.com", "only other", "1"),
+                Cookie("epicgames.com", "same", "x", new DateTime(2027, 1, 1)),
+                Cookie("a.com", "longer in edge", "o", new DateTime(2027, 1, 1))
+            };
+
+            var merge = CookieSync.FirstMerge(edge, other);
+            CollectionAssert.AreEquivalent(new[] { "new other", "1" }, merge.Item1.Select(a => a.Value), "To Edge: what it lacks and what lasts longer on the other side.");
+            CollectionAssert.AreEquivalent(new[] { "only edge", "longer in edge" }, merge.Item2.Select(a => a.Name));
+        }
+
+        [Test]
+        public void ASessionRenewedOnTheOtherSideIsNotDeletedTest()
+        {
+            var otherBefore = CookieSync.Picture(new[] { Cookie(".a.com", "renewed", "v1"), Cookie(".a.com", "kept", "k") });
+            var otherNow = new[] { Cookie(".a.com", "renewed", "v2"), Cookie(".a.com", "kept", "k") };
+            var gone = new[] { ".a.com|/|renewed", ".a.com|/|kept", ".a.com|/|not there" };
+            CollectionAssert.AreEquivalent(new[] { ".a.com|/|kept", ".a.com|/|not there" }, CookieSync.SafeDeletes(gone, otherNow, otherBefore));
+        }
+
+        [Test]
         public void ARefusedChangeKeepsTheValueThatIsThereTest()
         {
             var other = CookieSync.Picture(new[] { Cookie(".a.com", "s", "old") });
