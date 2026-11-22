@@ -294,6 +294,33 @@
                                 </Border>
                             </Grid>
 
+                            <!-- Extensions of Chrome for the browser of Atrio, each one from the Chrome Web Store -->
+                            <Border Style="{DynamicResource AtrioCard}" Padding="20,18,20,16" Margin="0,16,14,0">
+                                <StackPanel>
+                                    <TextBlock Text="{DynamicResource LOCAtrioExtensionsTitle}" Style="{DynamicResource AtrioSectionTitle}" />
+                                    <TextBlock Text="{DynamicResource LOCAtrioExtensionsHint}" Style="{DynamicResource AtrioCaption}" FontSize="13"
+                                               TextWrapping="Wrap" Margin="0,-6,0,12" />
+                                    <ItemsControl ItemsSource="{Binding BrowserExtensionItems}" Focusable="False">
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate>
+                                                <DockPanel Margin="0,0,0,10">
+                                                    <Button DockPanel.Dock="Right" Style="{DynamicResource AtrioGhostButton}" VerticalAlignment="Top"
+                                                            Padding="11,0,11,0" MinHeight="28" FontSize="12" Margin="12,0,0,0"
+                                                            Content="{DynamicResource LOCAtrioExtensionWeb}" Command="{Binding OpenHomepageCommand}" />
+                                                    <StackPanel>
+                                                        <CheckBox Content="{Binding Name}" IsChecked="{Binding IsOn}" IsEnabled="{Binding Available}" />
+                                                        <TextBlock Text="{Binding Description}" Style="{DynamicResource AtrioCaption}" TextWrapping="Wrap" Margin="26,2,0,0" />
+                                                        <TextBlock Text="{Binding State}" Style="{DynamicResource AtrioCaption}" TextWrapping="Wrap" Margin="26,2,0,0"
+                                                                   Foreground="{DynamicResource GlyphBrush}"
+                                                                   Visibility="{Binding HasState, Converter={StaticResource BooleanToVisibilityConverter}}" />
+                                                    </StackPanel>
+                                                </DockPanel>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                </StackPanel>
+                            </Border>
+
                             <!-- The library on several computers, through a folder that something else keeps in sync -->
                             <Border Style="{DynamicResource AtrioCard}" Padding="20,18,20,18" Margin="0,16,14,0">
                                 <StackPanel>

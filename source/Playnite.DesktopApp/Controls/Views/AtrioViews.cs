@@ -208,6 +208,15 @@ namespace Playnite.DesktopApp.Controls.Views
         {
             this.model = model;
             DataContext = model;
+
+            // The engine of Edge can fail to start: the other one takes its place on the page.
+            model.PropertyChanged += (_, e) =>
+            {
+                if (e.PropertyName == nameof(BrowserViewModel.Browser) && Template?.FindName("PART_BrowserHost", this) is ContentControl host)
+                {
+                    host.Content = model.Browser;
+                }
+            };
         }
 
         public override void OnApplyTemplate()

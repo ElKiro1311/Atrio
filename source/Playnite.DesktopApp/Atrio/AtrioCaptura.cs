@@ -521,12 +521,138 @@ namespace Playnite.DesktopApp.Atrio
                     Log($"navegador: {model.BrowserModel.Address}, en la fila: {model.SidebarItems.Any(a => a.Title == ResourceProvider.GetString("LOCAtrioBrowser") && a.Visible)}, activa: {model.ActiveView?.GetType().Name}");
                     break;
                 case "textonavegador":
-                    var pageText = await CefSharp.WebBrowserExtensions.GetTextAsync(model.BrowserModel.Browser);
-                    Log($"pagina {model.BrowserModel.Address}: {pageText.Substring(0, Math.Min(int.Parse(argument), pageText.Length))}");
+                    var pageText = await model.BrowserModel.RunScriptAsync("document.body ? document.body.innerText : ''") ?? string.Empty;
+                    Log($"pagina {model.BrowserModel.Address} (edge {model.BrowserModel.UsesEdge}): {pageText.Substring(0, Math.Min(int.Parse(argument), pageText.Length))}");
                     break;
                 case "jsnavegador":
-                    var evaluated = await CefSharp.WebBrowserExtensions.EvaluateScriptAsync(model.BrowserModel.Browser, argument);
-                    Log("js: " + evaluated.Success + " " + evaluated.Result + " " + evaluated.Message);
+                    Log("js: " + await model.BrowserModel.RunScriptAsync(argument));
+                    break;
+                case "esperanavegador":
+                    // esperanavegador <segundos>: until the page is loaded.
+                    await model.BrowserModel.WaitReadyAsync();
+                    var loadWait = System.Diagnostics.Stopwatch.StartNew();
+                    while (loadWait.Elapsed.TotalSeconds < int.Parse(argument) &&
+                           await model.BrowserModel.RunScriptAsync("document.readyState") != "\"complete\"")
+                    {
+                        await Task.Delay(250);
+                    }
+
+                    Log($"navegador listo en {loadWait.Elapsed.TotalSeconds:0.0} s: {model.BrowserModel.Address} (edge {model.BrowserModel.UsesEdge})");
+                    break;
+                case "extensionesnavegador":
+                    await model.BrowserModel.WaitReadyAsync();
+                    var edgeCore = model.BrowserModel.EdgeCore;
+                    if (edgeCore == null)
+                    {
+                        Log("extensiones: sin Edge");
+                        break;
+                    }
+
+                    var loadedExtensions = await edgeCore.Profile.GetBrowserExtensionsAsync();
+                    Log("extensiones: " + string.Join(", ", loadedExtensions.Select(a => $"{a.Name} {a.Id} {(a.IsEnabled ? "activa" : "apagada")}")));
+                    break;
+                case "cookiesnavegador":
+                    // cookiesnavegador <dominio>: the cookies of a domain in both engines, without their values.
+                    await model.BrowserModel.WaitReadyAsync();
+                    var edgeCookies = model.BrowserModel.EdgeCore == null ? new List<string>() :
+                        (await model.BrowserModel.EdgeCore.CookieManager.GetCookiesAsync(null)).Where(a => a.Domain.EndsWith(argument)).Select(a => a.Domain + a.Path + " " + a.Name).OrderBy(a => a).ToList();
+                    var cefCookies = (await CookieBridge.ReadCefAsync() ?? new List<BridgeCookie>()).Where(a => a.Domain.EndsWith(argument)).Select(a => a.Domain + a.Path + " " + a.Name).OrderBy(a => a).ToList();
+                    Log($"cookies edge ({edgeCookies.Count}): {string.Join(", ", edgeCookies)}");
+                    Log($"cookies cef ({cefCookies.Count}): {string.Join(", ", cefCookies)}");
+                    break;
+                case "capturanavegador":
+                    // capturanavegador <archivo.png>: the page of Edge, which a capture of the window doesn't see.
+                    await model.BrowserModel.WaitReadyAsync();
+                    if (model.BrowserModel.EdgeCore != null)
+                    {
+                        using (var pagePng = System.IO.File.Create(argument))
+                        {
+                            await model.BrowserModel.EdgeCore.CapturePreviewAsync(Microsoft.Web.WebView2.Core.CoreWebView2CapturePreviewImageFormat.Png, pagePng);
+                        }
+
+                        Log("captura del navegador: " + argument);
+                    }
+
+                    break;
+                case "cookiecef":
+                    // cookiecef <dominio> <nombre> <valor>: a session of the other browser, as a store window leaves it.
+                    var cefParts = argument.Split(' ');
+                    var cefSet = CefSharp.Cef.GetGlobalCookieManager().SetCookie("https://" + cefParts[0].TrimStart('.') + "/",
+                        new CefSharp.Cookie { Name = cefParts[1], Value = cefParts[2], Domain = cefParts[0].StartsWith(".") ? cefParts[0] : null, Path = "/", Secure = true, HttpOnly = true, Expires = DateTime.Now.AddDays(30) }, null);
+                    await Task.Delay(300);
+                    Log($"cookie cef {cefParts[1]}: {cefSet}");
+                    break;
+                case "cookieedge":
+                    // cookieedge <dominio> <nombre> <valor>: a sign in done in the browser of Edge.
+                    await model.BrowserModel.WaitReadyAsync();
+                    var setParts = argument.Split(' ');
+                    var edgeManager = model.BrowserModel.EdgeCore.CookieManager;
+                    var newCookie = edgeManager.CreateCookie(setParts[1], setParts[2], setParts[0], "/");
+                    newCookie.IsSecure = true;
+                    newCookie.Expires = DateTime.Now.AddDays(30);
+                    edgeManager.AddOrUpdateCookie(newCookie);
+                    Log($"cookie edge {setParts[1]} = {setParts[2]}");
+                    break;
+                case "valorcookie":
+                    // valorcookie <dominio> <nombre>: the value in both engines (only for the fake cookies of the bench).
+                    await model.BrowserModel.WaitReadyAsync();
+                    var valueParts = argument.Split(' ');
+                    var inEdge = model.BrowserModel.EdgeCore == null ? new List<string>() :
+                        (await model.BrowserModel.EdgeCore.CookieManager.GetCookiesAsync(null)).Where(a => a.Domain == valueParts[0] && a.Name == valueParts[1]).Select(a => a.Value).ToList();
+                    var inCef = (await CookieBridge.ReadCefAsync() ?? new List<BridgeCookie>()).Where(a => a.Domain == valueParts[0] && a.Name == valueParts[1]).Select(a => a.Value).ToList();
+                    Log($"valor {valueParts[1]}: edge [{string.Join(",", inEdge)}] cef [{string.Join(",", inCef)}]");
+                    break;
+                case "probarcookie":
+                    // Which attributes the other browser refuses, one at a time.
+                    var probe = CefSharp.Cef.GetGlobalCookieManager();
+                    var edgeProbe = model.BrowserModel.EdgeCore == null ? null :
+                        (await model.BrowserModel.EdgeCore.CookieManager.GetCookiesAsync(null)).FirstOrDefault(a => a.Name == "steamLoginSecure");
+                    if (edgeProbe != null)
+                    {
+                        Log($"edge: domain={edgeProbe.Domain} path={edgeProbe.Path} expires={edgeProbe.Expires:o} kind={edgeProbe.Expires.Kind} session={edgeProbe.IsSession} secure={edgeProbe.IsSecure} httponly={edgeProbe.IsHttpOnly} samesite={edgeProbe.SameSite}");
+                    }
+
+                    var variants = new (string, CefSharp.Cookie)[]
+                    {
+                        ("base", new CefSharp.Cookie { Name = "p1", Value = "x", Domain = ".steampowered.com", Path = "/", Secure = true }),
+                        ("expira local", new CefSharp.Cookie { Name = "p2", Value = "x", Domain = ".steampowered.com", Path = "/", Secure = true, Expires = DateTime.Now.AddDays(30) }),
+                        ("expira utc", new CefSharp.Cookie { Name = "p3", Value = "x", Domain = ".steampowered.com", Path = "/", Secure = true, Expires = DateTime.UtcNow.AddDays(30) }),
+                        ("expira edge", new CefSharp.Cookie { Name = "p4", Value = "x", Domain = ".steampowered.com", Path = "/", Secure = true, Expires = edgeProbe?.Expires }),
+                        ("samesite none", new CefSharp.Cookie { Name = "p5", Value = "x", Domain = ".steampowered.com", Path = "/", Secure = true, SameSite = CefSharp.Enums.CookieSameSite.NoRestriction }),
+                        ("samesite lax", new CefSharp.Cookie { Name = "p6", Value = "x", Domain = ".steampowered.com", Path = "/", Secure = true, SameSite = CefSharp.Enums.CookieSameSite.LaxMode }),
+                        ("httponly", new CefSharp.Cookie { Name = "p7", Value = "x", Domain = ".steampowered.com", Path = "/", Secure = true, HttpOnly = true }),
+                    };
+                    foreach (var variant in variants)
+                    {
+                        var accepted = await CefSharp.AsyncExtensions.SetCookieAsync(probe, "https://steampowered.com/", variant.Item2);
+                        Log($"cef {variant.Item1}: {accepted}");
+                    }
+
+                    break;
+                case "borracookieedge":
+                    // borracookieedge <dominio> <nombre>: signing out in the browser.
+                    await model.BrowserModel.WaitReadyAsync();
+                    var edgeParts = argument.Split(' ');
+                    model.BrowserModel.EdgeCore.CookieManager.DeleteCookiesWithDomainAndPath(edgeParts[1], edgeParts[0], "/");
+                    Log($"cookie edge {edgeParts[1]} borrada");
+                    break;
+                case "extensionatrio":
+                    // extensionatrio <id> si|no: the switch of the page of the stores.
+                    var switchParts = argument.Split(' ');
+                    var extensionItem = new BrowserExtensionItem(model, Playnite.Atrio.BrowserExtensions.Find(switchParts[0]));
+                    extensionItem.IsOn = switchParts[1] == "si";
+                    await Task.Delay(4000);
+                    Log($"interruptor {extensionItem.Name}: {extensionItem.IsOn}, estado: {extensionItem.State}");
+                    break;
+                case "mostrarnavegador":
+                    model.BrowserModel.OnShown();
+                    await Task.Delay(1500);
+                    Log("navegador visible");
+                    break;
+                case "ocultanavegador":
+                    model.BrowserModel.OnHidden();
+                    await Task.Delay(1500);
+                    Log("navegador oculto");
                     break;
                 case "cerrarnavegador":
                     model.BrowserModel.CloseCommand.Execute(null);

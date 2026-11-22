@@ -65,6 +65,12 @@ namespace Playnite.Atrio
         /// <summary>Atrio tells when a game of the list of wishes gets cheaper, becomes free or comes out.</summary>
         public bool WishlistAlerts { get; set; } = true;
 
+        /// <summary>
+        /// The extensions of the browser the person turned on, by their identity in the Chrome Web Store. None at first:
+        /// each one is downloaded from there.
+        /// </summary>
+        public List<string> BrowserExtensions { get; set; } = new List<string>();
+
         /// <summary>The folder shared with the other computers of the person, null while it doesn't synchronize.</summary>
         public string SyncFolder { get; set; }
 
@@ -126,6 +132,7 @@ namespace Playnite.Atrio
                         settings.ManualGroups = settings.ManualGroups ?? new Dictionary<Guid, string>();
                         settings.DynamicCollections = settings.DynamicCollections ?? new List<Guid>();
                         settings.HomeCollections = settings.HomeCollections ?? new List<Guid>();
+                        settings.BrowserExtensions = settings.BrowserExtensions ?? new List<string>();
                         return settings;
                     }
                 }

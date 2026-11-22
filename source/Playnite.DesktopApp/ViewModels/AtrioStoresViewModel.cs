@@ -48,9 +48,119 @@ namespace Playnite.DesktopApp.ViewModels
         public object Icon { get; set; }
     }
 
+    /// <summary>An extension of the browser on the page of the stores, with its switch.</summary>
+    public class BrowserExtensionItem : ObservableObject
+    {
+        private static readonly ILogger logger = LogManager.GetLogger();
+        private readonly DesktopAppViewModel main;
+
+        public BrowserExtensionInfo Info { get; }
+        public string Name => Info.Name;
+        public string Description => ResourceProvider.GetString(Info.DescriptionKey);
+        public bool Available => Atrio.EdgeBrowser.IsAvailable();
+
+        private string state;
+        public string State
+        {
+            get => state;
+            set
+            {
+                SetValue(ref state, value);
+                OnPropertyChanged(nameof(HasState));
+            }
+        }
+
+        public bool HasState => !State.IsNullOrEmpty();
+
+        public RelayCommand<object> OpenHomepageCommand { get; }
+
+        public BrowserExtensionItem(DesktopAppViewModel main, BrowserExtensionInfo info)
+        {
+            this.main = main;
+            Info = info;
+            OpenHomepageCommand = new RelayCommand<object>(_ => Playnite.Commands.GlobalCommands.NavigateUrl(info.Homepage));
+            State = GetState();
+        }
+
+        public bool IsOn
+        {
+            get => GameUnifier.Current?.Settings.BrowserExtensions?.Contains(Info.Id, StringComparer.OrdinalIgnoreCase) == true;
+            set
+            {
+                var settings = GameUnifier.Current?.Settings;
+                if (settings == null)
+                {
+                    return;
+                }
+
+                settings.BrowserExtensions.RemoveAll(a => string.Equals(a, Info.Id, StringComparison.OrdinalIgnoreCase));
+                if (value)
+                {
+                    settings.BrowserExtensions.Add(Info.Id);
+                }
+
+                settings.Save();
+                OnPropertyChanged();
+                Apply(value);
+            }
+        }
+
+        private string GetState()
+        {
+            if (!Available)
+            {
+                return ResourceProvider.GetString("LOCAtrioExtensionNoEngine");
+            }
+
+            return BrowserExtensions.GetInstalled(Info.Id) != null || !IsOn ? null : ResourceProvider.GetString("LOCAtrioExtensionPending");
+        }
+
+        /// <summary>Gets the copy of the store now, so the browser has it when it opens, and loads it if it's open.</summary>
+        private async void Apply(bool on)
+        {
+            try
+            {
+                if (on && Available)
+                {
+                    State = ResourceProvider.GetString("LOCAtrioExtensionDownloading");
+                    string version = null;
+                    try
+                    {
+                        version = Microsoft.Web.WebView2.Core.CoreWebView2Environment.GetAvailableBrowserVersionString();
+                    }
+                    catch (Exception e) when (!(e is OutOfMemoryException))
+                    {
+                        logger.Debug(e, "Failed to read the version of the engine of Edge.");
+                    }
+
+                    var folder = await BrowserExtensions.EnsureAsync(Info.Id, version, System.Threading.CancellationToken.None);
+                    State = folder == null ? ResourceProvider.GetString("LOCAtrioExtensionFailed") : null;
+                }
+                else
+                {
+                    State = GetState();
+                }
+
+                if (main.BrowserModel != null)
+                {
+                    await main.BrowserModel.RefreshExtensionsAsync();
+                }
+            }
+            catch (Exception e) when (!PlayniteEnvironment.ThrowAllErrors)
+            {
+                logger.Error(e, $"Failed to turn the extension {Info.Name} {(on ? "on" : "off")}.");
+                State = ResourceProvider.GetString("LOCAtrioExtensionFailed");
+            }
+        }
+    }
+
     public class StoresViewModel : ObservableObject
     {
         private readonly DesktopAppViewModel main;
+
+        private List<BrowserExtensionItem> browserExtensionItems;
+        public List<BrowserExtensionItem> BrowserExtensionItems =>
+            browserExtensionItems ?? (browserExtensionItems = BrowserExtensions.Catalog.Select(a => new BrowserExtensionItem(main, a)).ToList());
 
         private List<StoreCard> stores;
         public List<StoreCard> Stores

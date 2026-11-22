@@ -14,8 +14,8 @@ using System.Windows;
 namespace Playnite.DesktopApp.Windows
 {
     /// <summary>
-    /// The trailers of a game of Steam, with sound. The browser of Atrio can't play their sound, so they play in the
-    /// engine of Edge that Windows brings (WebView2); without it there are no trailers, and Atrio says so.
+    /// The trailers of a game of Steam, with sound, in the engine of Edge that Windows brings (WebView2), the one of the
+    /// browser of Atrio; without it there are no trailers, and Atrio says so.
     /// </summary>
     public class TrailerWindow : WindowBase
     {

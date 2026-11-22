@@ -17,7 +17,10 @@ Un solo sitio para los juegos de todas tus tiendas. Atrio es un lanzador portát
 - **Logros en un solo sitio.** Lee los logros de tus tiendas y de RetroAchievements, los enseña en la ficha de cada juego y te avisa cuando desbloqueas uno mientras juegas. Solo los lee: hay que conectar cada cuenta.
 - **Emuladores como una tienda más.** Atrio reconoce 89 emuladores. Cada uno tiene su tarjeta, su filtro en la biblioteca y su icono en las portadas. No incluye emuladores, juegos ni BIOS.
 - **Navegador propio.** Los enlaces de tiendas, noticias y fichas se abren dentro de Atrio, en todas las tiendas.
-  En Ajustes puedes elegir otro navegador. Los tráileres con H.264 no se reproducen en él.
+  Usa el motor de Edge que trae Windows (WebView2), así que los tráileres se ven con sonido. En Ajustes puedes elegir
+  otro navegador.
+- **Extensiones del navegador.** En Tiendas puedes activar SteamDB y Augmented Steam para ver en la tienda de Steam el
+  precio más bajo, los precios de otras tiendas y los jugadores. Se descargan de la Chrome Web Store al activarlas.
 - **Amigos en la ficha.** Con tu sesión de Steam en ese navegador, la ficha enseña qué amigos juegan a cada juego.
 - **Colecciones.** Las llenas tú, con clic derecho, arrastrando o eligiendo juegos de una lista, o se llenan solas
   con unos filtros. Cada una tiene su página y puede salir como estante en Inicio.

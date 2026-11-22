@@ -1679,6 +1679,15 @@ Open new issue on Playnite's GitHub page with a request to fix corruption in you
     <sys:String x:Key="LOCAtrioFreeGamesHint">Atrio asks Steam, Epic and GOG every few hours, without your account. It only opens the page of the game: you take it yourself, with your account.</sys:String>
     <sys:String x:Key="LOCAtrioWishAlertsToggle">Tell me when a game of my wishlist gets cheaper or comes out</sys:String>
     <sys:String x:Key="LOCAtrioWishAlertsHint">Atrio looks at the prices of Steam and GOG twice a day, while it's open.</sys:String>
+    <sys:String x:Key="LOCAtrioExtensionsTitle">Extensions of the browser</sys:String>
+    <sys:String x:Key="LOCAtrioExtensionsHint">Extensions of Chrome for the browser of Atrio. Each one comes from the Chrome Web Store the first time you turn it on and stays up to date by itself.</sys:String>
+    <sys:String x:Key="LOCAtrioExtensionSteamDb">In the store of Steam: the lowest price SteamDB has seen, players right now and their peaks, followers and its rating.</sys:String>
+    <sys:String x:Key="LOCAtrioExtensionAugmentedSteam">In the store of Steam: the best price now in other stores and the historical low, from IsThereAnyDeal, with players and more links.</sys:String>
+    <sys:String x:Key="LOCAtrioExtensionWeb">Website</sys:String>
+    <sys:String x:Key="LOCAtrioExtensionNoEngine">It needs the engine of Edge for apps (WebView2), which Windows 11 brings.</sys:String>
+    <sys:String x:Key="LOCAtrioExtensionPending">It downloads when the browser opens.</sys:String>
+    <sys:String x:Key="LOCAtrioExtensionDownloading">Downloading from the Chrome Web Store…</sys:String>
+    <sys:String x:Key="LOCAtrioExtensionFailed">It couldn't be downloaded. Atrio tries again when the browser opens.</sys:String>
     <sys:String x:Key="LOCAtrioSyncOff">Not synchronizing.</sys:String>
     <sys:String x:Key="LOCAtrioSyncSoon">It synchronizes in a moment.</sys:String>
     <sys:String x:Key="LOCAtrioSyncJustNow">just now</sys:String>

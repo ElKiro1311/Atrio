@@ -1676,6 +1676,15 @@ Abre un nuevo problema en la página de GitHub de Playnite con una solicitud par
     <sys:String x:Key="LOCAtrioFreeGamesHint">Atrio pregunta a Steam, Epic y GOG cada pocas horas, sin usar tu cuenta. Solo abre la página del juego: lo reclamas tú, con tu cuenta.</sys:String>
     <sys:String x:Key="LOCAtrioWishAlertsToggle">Avisar cuando un juego de tu lista de deseos baje de precio o salga</sys:String>
     <sys:String x:Key="LOCAtrioWishAlertsHint">Atrio mira los precios de Steam y GOG dos veces al día, mientras está abierto.</sys:String>
+    <sys:String x:Key="LOCAtrioExtensionsTitle">Extensiones del navegador</sys:String>
+    <sys:String x:Key="LOCAtrioExtensionsHint">Extensiones de Chrome para el navegador de Atrio. Cada una se descarga de la Chrome Web Store la primera vez que la activas y se mantiene al día sola.</sys:String>
+    <sys:String x:Key="LOCAtrioExtensionSteamDb">En la tienda de Steam: el precio más bajo que ha visto SteamDB, los jugadores ahora y sus picos, los seguidores y su nota.</sys:String>
+    <sys:String x:Key="LOCAtrioExtensionAugmentedSteam">En la tienda de Steam: el mejor precio ahora en otras tiendas y el mínimo histórico, de IsThereAnyDeal, con jugadores y más enlaces.</sys:String>
+    <sys:String x:Key="LOCAtrioExtensionWeb">Web</sys:String>
+    <sys:String x:Key="LOCAtrioExtensionNoEngine">Necesita el motor de Edge para aplicaciones (WebView2), que trae Windows 11.</sys:String>
+    <sys:String x:Key="LOCAtrioExtensionPending">Se descargará al abrir el navegador.</sys:String>
+    <sys:String x:Key="LOCAtrioExtensionDownloading">Descargando de la Chrome Web Store…</sys:String>
+    <sys:String x:Key="LOCAtrioExtensionFailed">No se pudo descargar. Atrio lo volverá a intentar al abrir el navegador.</sys:String>
     <sys:String x:Key="LOCAtrioSyncOff">Sin sincronizar.</sys:String>
     <sys:String x:Key="LOCAtrioSyncSoon">Se sincroniza en un momento.</sys:String>
     <sys:String x:Key="LOCAtrioSyncJustNow">ahora mismo</sys:String>
