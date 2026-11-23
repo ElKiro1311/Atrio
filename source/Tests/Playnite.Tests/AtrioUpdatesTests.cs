@@ -55,6 +55,16 @@ namespace Playnite.Tests
             Assert.AreEqual(string.Empty, AtrioUpdates.GetNotes(null, spanish));
         }
 
+        [TestCase("{\r\n  \"Theme\": \"x\",\r\n  \"Language\": \"es_ES\",\r\n  \"Other\": 1\r\n}", "es_ES")]
+        [TestCase("{\n  \"Language\": \"english\"\n}", "english")]
+        [TestCase("{\n  \"OldLanguage\": \"es_ES\",\n  \"Languages\": \"es_ES\"\n}", null)]
+        [TestCase("", null)]
+        [TestCase(null, null)]
+        public void SavedLanguageTest(string config, string expected)
+        {
+            Assert.AreEqual(expected, AtrioInfo.GetSavedLanguage(config));
+        }
+
         [Test]
         public void TagsWithThePhaseAreUnderstoodTest()
         {

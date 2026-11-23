@@ -5,6 +5,7 @@ using System.Globalization;
 using System.IO;
 using System.Security.Cryptography;
 using System.Text;
+using System.Text.RegularExpressions;
 
 namespace Playnite.Atrio
 {
@@ -50,10 +51,30 @@ namespace Playnite.Atrio
             return version + "-" + Phase;
         }
 
-        /// <summary>For the messages that come out before any language is loaded: in English, or in Spanish when Windows is.</summary>
+        /// <summary>
+        /// For the messages that come out before any language is loaded: in the one Atrio is used in or, if it has never
+        /// been opened here, in the one of Windows. Only English and Spanish.
+        /// </summary>
         public static string Say(string english, string spanish)
         {
-            return CultureInfo.CurrentUICulture.TwoLetterISOLanguageName == "es" ? spanish : english;
+            string saved = null;
+            try
+            {
+                saved = File.Exists(PlaynitePaths.ConfigFilePath) ? GetSavedLanguage(File.ReadAllText(PlaynitePaths.ConfigFilePath)) : null;
+            }
+            catch (Exception e) when (e is UnauthorizedAccessException || e is IOException)
+            {
+                // The message has to come out anyway.
+            }
+
+            return (saved ?? CultureInfo.CurrentUICulture.Name).StartsWith("es", StringComparison.OrdinalIgnoreCase) ? spanish : english;
+        }
+
+        /// <summary>The language in a settings file, read without loading the settings.</summary>
+        public static string GetSavedLanguage(string config)
+        {
+            var match = Regex.Match(config ?? string.Empty, "^\\s*\"Language\"\\s*:\\s*\"(?<language>[A-Za-z_]+)\"", RegexOptions.Multiline);
+            return match.Success ? match.Groups["language"].Value : null;
         }
 
         /// <summary>Playnite Achievements: reads the achievements of the stores and of RetroAchievements.</summary>
