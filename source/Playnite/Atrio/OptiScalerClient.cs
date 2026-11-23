@@ -93,6 +93,9 @@ namespace Playnite.Atrio
         private const string OwnMark = "atrio-descargado.txt";
         private const string TrialPrefix = ".prueba-";
         public const string ProjectUrl = "https://github.com/Optiscaler-Client/Optiscaler-Client";
+
+        /// <summary>The games OptiScaler is known to work with, in its wiki.</summary>
+        public const string CompatibilityUrl = "https://github.com/optiscaler/OptiScaler/wiki/Compatibility-List";
         public const string ProgramFile = "OptiscalerClient.exe";
         public const string BridgeFile = "Atrio.OptiScaler.dll";
 
@@ -149,6 +152,24 @@ namespace Playnite.Atrio
         /// <summary>The folder of the data, whichever it is.</summary>
         public static string CurrentDataFolder =>
             DataFolder ?? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "OptiscalerClient");
+
+        /// <summary>
+        /// The list of compatible games, opened at the row of one: it's a long page without sections, and the browser goes
+        /// to the text that comes after the address. A game that isn't in it leaves it at the top.
+        /// </summary>
+        /// <param name="page">Where OptiScaler Client says it is, when it says so.</param>
+        public static string GetCompatibilityUrl(string page, string game)
+        {
+            var url = LinkBrowsers.IsWebAddress(page) ? page : CompatibilityUrl;
+            if (game.IsNullOrWhiteSpace())
+            {
+                return url;
+            }
+
+            // A hyphen means something there, as a comma and an ampersand do.
+            var text = Uri.EscapeDataString(game.Trim()).Replace("-", "%2D");
+            return $"{url}{(url.Contains("#") ? string.Empty : "#")}:~:text={text}";
+        }
 
         public static string FormatVersion(Version version)
         {

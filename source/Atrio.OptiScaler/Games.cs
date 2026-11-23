@@ -41,6 +41,9 @@ namespace Atrio.OptiScaler
         private const string None = "none";
         private const string Auto = "auto";
         private const string DefaultInjection = "dxgi.dll";
+
+        // The folders with its name: in the second one, the packages from the 10 on have everything but the main file and its settings.
+        private static readonly string[] ownFolders = { "D3D12_Optiscaler", "OptiScaler" };
         private const string Components = "ComponentManagementService";
         private const string Installer = "GameInstallationService";
 
@@ -383,8 +386,8 @@ namespace Atrio.OptiScaler
             }
         }
 
-        /// <summary>Everything that the client may write or remove in the folder of the game when it installs this.</summary>
-        private static Plan GetPlan(string folder, Record record, Dictionary<string, object> values)
+        /// <summary>What the client takes for files of OptiScaler when it takes them out.</summary>
+        private static Plan GetPlan(string folder, Record record)
         {
             var plan = new Plan();
             var installer = Client.Type(Installer);
@@ -403,6 +406,13 @@ namespace Atrio.OptiScaler
                 }
             }
 
+            return plan;
+        }
+
+        /// <summary>Everything that the client may write or remove in the folder of the game when it installs this.</summary>
+        private static Plan GetPlan(string folder, Record record, Dictionary<string, object> values)
+        {
+            var plan = GetPlan(folder, record);
             var package = values["cachePath"] as string;
             var injection = values["injectionDllName"] as string;
             var main = new HashSet<string>(InjectionNames().Append("OptiScaler.dll").Append("nvngx.dll"), StringComparer.OrdinalIgnoreCase);
@@ -561,16 +571,89 @@ namespace Atrio.OptiScaler
         /// <summary>The name under which an OptiScaler that was put by hand is in the folder. Null without one.</summary>
         private static string FindByHand(string folder)
         {
-            foreach (var name in string.IsNullOrEmpty(folder) ? new List<string>() : InjectionNames())
+            return string.IsNullOrEmpty(folder) ? null : MainNames().FirstOrDefault(a => IsMain(Path.Combine(folder, a)));
+        }
+
+        /// <summary>The names a game loads OptiScaler by: the ones of the client and the ones that only its own script gives.</summary>
+        private static IEnumerable<string> MainNames()
+        {
+            return InjectionNames().Concat(new[] { "nvngx.dll", "OptiScaler.asi" }).Distinct(StringComparer.OrdinalIgnoreCase);
+        }
+
+        private static bool IsMain(string path)
+        {
+            return File.Exists(path) &&
+                System.Diagnostics.FileVersionInfo.GetVersionInfo(path).ProductName?.StartsWith("OptiScaler", StringComparison.OrdinalIgnoreCase) == true;
+        }
+
+        /// <summary>
+        /// What was put by hand and can only be of OptiScaler: its file, under any of the names it may have, and the ones its
+        /// packages bring in the folder with its own name. The rest could be of the game or of somebody else. Nothing when its
+        /// file isn't there: whatever the game loads it by would be left without the rest.
+        /// </summary>
+        /// <param name="package">The one that takes its place, when there's one.</param>
+        private static List<string> FilesByHand(string folder, string package)
+        {
+            var result = string.IsNullOrEmpty(folder) ? new List<string>() :
+                MainNames().Append("OptiScaler.dll").Select(a => Path.Combine(folder, a)).Where(IsMain).ToList();
+            if (result.Count == 0)
             {
-                var path = Path.Combine(folder, name);
-                if (File.Exists(path) && System.Diagnostics.FileVersionInfo.GetVersionInfo(path).ProductName?.StartsWith("OptiScaler", StringComparison.OrdinalIgnoreCase) == true)
+                return result;
+            }
+
+            var brought = new HashSet<string>(Plan.Files(package).Select(a => Path.GetRelativePath(package, a)).Where(Guests.IsInside), StringComparer.OrdinalIgnoreCase);
+            foreach (var file in ownFolders.SelectMany(a => Plan.Files(Path.Combine(folder, a))))
+            {
+                var name = Path.GetRelativePath(folder, file);
+                if (brought.Contains(name) || Guests.IsPiece(name) || Guests.IsOfTheClient(name))
                 {
-                    return name;
+                    result.Add(file);
                 }
             }
 
-            return null;
+            return result;
+        }
+
+        private static void RemoveByHand(Checkpoint checkpoint, string folder, List<string> files)
+        {
+            Unlock(checkpoint, folder, files.Select(a => Path.GetRelativePath(folder, a)));
+            foreach (var file in files.Where(File.Exists))
+            {
+                File.Delete(file);
+            }
+
+            Checkpoint.RemoveEmpty(ownFolders.Select(a => Path.Combine(folder, a)).SelectMany(a => Plan.Folders(a).Append(a)));
+        }
+
+        private static void Unlock(Checkpoint checkpoint, string folder, IEnumerable<string> names)
+        {
+            var plan = new Plan();
+            foreach (var name in names)
+            {
+                plan.Add(name);
+            }
+
+            checkpoint.Unlock(folder, plan);
+        }
+
+        /// <summary>What is of OptiScaler in the game: what its record says, and what the client puts without writing it down.</summary>
+        private static IEnumerable<string> OwnFiles(object game, string folder)
+        {
+            const string companion = @"OptiScaler\amdxc64.dll";
+            var files = Record.Find(game).Files.ToList();
+            var version = Client.Text(game, "Fsr4ExtraVersion");
+            if (!string.IsNullOrEmpty(folder) && !string.IsNullOrEmpty(version) && Client.CanCall(Components, "GetCachedCustomAmdxc64Path", "version"))
+            {
+                // Only when it's the same one: a person can have put their own.
+                var there = Path.Combine(folder, companion);
+                var kept = Client.Call(Client.New(Components), "GetCachedCustomAmdxc64Path", "version", version) as string;
+                if (File.Exists(there) && !string.IsNullOrEmpty(kept) && File.Exists(kept) && Checkpoint.IsSame(there, kept))
+                {
+                    files.Add(companion);
+                }
+            }
+
+            return files;
         }
 
         /// <summary>The name of the file of OptiScaler that the wiki recommends for the game, as the client chooses it.</summary>
@@ -825,7 +908,7 @@ namespace Atrio.OptiScaler
             var defaults = ReadDefaults(components, gpu, compatibility);
             var record = Record.Find(game);
             var installed = Client.Flag(game, "IsOptiscalerInstalled");
-            var manifest = installed && record.IsWhole ? record.Manifest : null;
+            var manifest = installed && record.IsOfOptiScaler ? record.Manifest : null;
             var directory = FolderOf(game, record);
 
             var frames = FrameChoices(game, gpu, out var recommendation);
@@ -860,6 +943,7 @@ namespace Atrio.OptiScaler
                 ["swapped"] = Client.Flag(game, "IsFsr4DllSwapped"),
                 ["neural"] = Client.Flag(game, "IsDlssNrOnAmdInstalled"),
                 ["compatibility"] = DescribeCompatibility(compatibility),
+                ["list"] = Client.FindType("CompatibilityListService") is Type list ? Client.Text(list, "WikiUrl") : null,
                 ["recommendation"] = recommendation,
                 ["choices"] = new JsonObject
                 {
@@ -1158,14 +1242,8 @@ namespace Atrio.OptiScaler
                 notes.Add("frames");
             }
 
-            var byHand = record.IsWhole ? null : FindByHand(target);
-            var injection = Choice(options, "injection", byHand ?? defaults.Injection);
-            if (byHand != null && !byHand.Equals(injection, StringComparison.OrdinalIgnoreCase))
-            {
-                // The game would load the two of them.
-                throw new ServiceException("byhand", byHand);
-            }
-
+            var byHand = record.IsOfOptiScaler ? null : FindByHand(target);
+            var injection = Choice(options, "injection", byHand != null && InjectionNames().Contains(byHand, StringComparer.OrdinalIgnoreCase) ? byHand : defaults.Injection);
             var spoofing = Choice(options, "spoofing", defaults.Spoofing);
             object profile = null;
             if (Contract.Has("profile"))
@@ -1175,40 +1253,46 @@ namespace Atrio.OptiScaler
             }
 
             string folder = null;
+            Guests guests = null;
+            Extras extras = null;
             var key = Client.Text(game, "InstallPath");
-            for (var attempt = 0; folder == null; attempt++)
+            try
             {
-                var values = new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase)
+                for (var attempt = 0; folder == null; attempt++)
                 {
-                    ["game"] = game,
-                    ["injectionDllName"] = injection,
-                    ["optiscalerVersion"] = version,
-                    ["overrideGameDir"] = target,
-                    ["profile"] = profile,
-                    ["isRdna4"] = Gpu("IsRdna4", gpu),
-                    ["isRdna2"] = Gpu("IsRdna2", gpu),
-                    ["gpu"] = gpu,
-                    ["dxgiSpoofing"] = spoofing,
-                    ["ensureFakenvapiIfMissing"] = nightly
-                };
-                values["cachePath"] = Download(components, version);
-                AddPieces(values, game, components, config, target, gpu, version, nightly);
-
-                // The game may have been opened while it downloaded.
-                CheckFree(target, record);
-                progress("install", version, null);
-                try
-                {
-                    using (new Guests(target, () => Record.Find(game).Files))
+                    var values = new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase)
                     {
+                        ["game"] = game,
+                        ["injectionDllName"] = injection,
+                        ["optiscalerVersion"] = version,
+                        ["overrideGameDir"] = target,
+                        ["profile"] = profile,
+                        ["isRdna4"] = Gpu("IsRdna4", gpu),
+                        ["isRdna2"] = Gpu("IsRdna2", gpu),
+                        ["gpu"] = gpu,
+                        ["dxgiSpoofing"] = spoofing,
+                        ["ensureFakenvapiIfMissing"] = nightly
+                    };
+                    values["cachePath"] = Download(components, version);
+                    AddPieces(values, game, components, config, target, gpu, version, nightly);
+                    extras = extras ?? FetchExtras(game, components, options, defaults, notes);
+
+                    // The game may have been opened while it downloaded.
+                    CheckFree(target, record);
+                    progress("install", version, null);
+                    try
+                    {
+                        guests = new Guests(target, () => OwnFiles(game, target), values["cachePath"] as string);
                         var plan = GetPlan(target, record, values);
+                        var old = byHand == null ? new List<string>() : FilesByHand(target, values["cachePath"] as string);
+                        old.ForEach(a => plan.Add(Path.GetRelativePath(target, a)));
                         using (var checkpoint = Checkpoint.Begin(key, key, target, plan))
                         {
                             checkpoint.Unlock(target, plan);
-                            if (byHand != null)
+                            if (old.Count > 0)
                             {
-                                // It isn't of the game: it would come back when OptiScaler goes out.
-                                File.Delete(Path.Combine(target, byHand));
+                                // They aren't of the game: they would come back when OptiScaler goes out.
+                                RemoveByHand(checkpoint, target, old);
                             }
 
                             folder = CallInstaller(game, "InstallOptiScaler", values) as string ?? target;
@@ -1216,58 +1300,32 @@ namespace Atrio.OptiScaler
                             checkpoint.End();
                         }
                     }
+                    catch (Exception e) when (attempt == 0 && IsBrokenDownload(e) && !Client.Strings(Client.TryGet(components, "CustomVersions")).Contains(version))
+                    {
+                        // Something of the download isn't whole: it's downloaded again, once.
+                        guests?.Dispose();
+                        guests = null;
+                        Discard(values);
+                    }
                 }
-                catch (Exception e) when (attempt == 0 && IsBrokenDownload(e) && !Client.Strings(Client.TryGet(components, "CustomVersions")).Contains(version))
-                {
-                    // Something of the download isn't whole: it's downloaded again, once.
-                    Discard(values);
-                }
-            }
 
-            var fsr4 = Choice(options, "fsr4", defaults.Fsr4);
-            if (fsr4 != None)
+                AddExtras(game, components, config, gpu, folder, extras, spoofing, notes);
+
+                // The install writes them in the file of OptiScaler, but only doing it again leaves them in the record of the game.
+                Try(notes, "settings", () => ApplyChosen(game, gpu, folder, version));
+            }
+            finally
             {
-                Try(notes, "fsr4", () => InstallFsr4(game, components, config, gpu, folder, fsr4));
-            }
-            else
-            {
-                Client.Set(game, "Fsr4ExtraVersion", null);
+                guests?.Dispose();
             }
 
-            var patcher = Choice(options, "patcher", defaults.Patcher);
-            if (patcher == "installed")
-            {
-                patcher = Client.Text(components, "LatestOptiPatcherVersion") ?? None;
-            }
-
-            if (patcher != None && Contract.Has("patcher"))
-            {
-                Try(notes, "patcher", () =>
-                {
-                    var file = Client.Call(components, "DownloadOptiPatcherAsync", "version", patcher, "progress", new Reporter(a => progress("download", "OptiPatcher", a)));
-                    Client.Call(Client.New(Installer), "InstallAsiPlugin", "gameDir", folder, "asiSourcePath", file);
-
-                    // With the patch in place, the client decides again about spoofing.
-                    Client.Call(Client.New(Installer), "ApplySpoofingSettings", "game", game, "spoofingValue", spoofing, "resolvedGameDir", folder);
-                });
-            }
-
-            if (Client.Text(Client.TryGet(game, "FrameGenerationSettings"), "Output") == "XeFg" &&
-                Client.Text(Client.TryGet(game, "FrameGenerationSettings"), "Route") != "Disabled" &&
-                Client.CanCall(Components, "DownloadXeFGUnlockAsync", "version", "progress"))
-            {
-                Try(notes, "xefg", () =>
-                {
-                    var file = Client.Call(
-                        components, "DownloadXeFGUnlockAsync", "version", Client.Text(components, "LatestXeFGUnlockVersion") ?? string.Empty,
-                        "progress", new Reporter(a => progress("download", "XeFG", a)));
-                    Client.Call(Client.New(Installer), "InstallAsiPlugin", "gameDir", folder, "asiSourcePath", file);
-                });
-            }
-
-            // The install writes them in the file of OptiScaler, but only doing it again leaves them in the record of the game.
-            Try(notes, "settings", () => ApplyChosen(game, gpu, folder, version));
             progress("check", null, null);
+            if (extras.Fsr4 != None && Client.Text(game, "Fsr4ExtraVersion") == extras.Fsr4)
+            {
+                // A file of the person that it depends on was aside until now.
+                Try(notes, "fsr4", () => ConfigureFsr4(components, gpu, folder, extras.Fsr4));
+            }
+
             Client.Set(game, "IsOptiscalerInstalled", true);
             Client.Set(game, "OptiscalerVersion", version);
             if (!IniIsRight(folder))
@@ -1285,6 +1343,85 @@ namespace Atrio.OptiScaler
             var result = Describe(game, true, false);
             result["notes"] = Service.Array(notes);
             return result;
+        }
+
+        /// <summary>What goes with OptiScaler. What couldn't be downloaded is as if it wasn't chosen, but it's told.</summary>
+        private sealed class Extras
+        {
+            public bool WantsFsr4;
+            public string Fsr4 = None;
+            public object Patcher;
+            public object Frames;
+        }
+
+        /// <summary>They are downloaded before the game is touched: what is of others in its folder is aside only while it's copied.</summary>
+        private Extras FetchExtras(object game, object components, JsonObject options, Defaults defaults, List<string> notes)
+        {
+            var extras = new Extras();
+            var fsr4 = Choice(options, "fsr4", defaults.Fsr4);
+            extras.WantsFsr4 = fsr4 != None;
+            if (extras.WantsFsr4 && Contract.Has("fsr4"))
+            {
+                Try(notes, "fsr4", () =>
+                {
+                    var reporter = new Reporter(a => progress("download", "FSR 4", a));
+                    Client.Call(components, "DownloadExtrasDllAsync", "version", fsr4, "progress", reporter);
+                    Client.Call(components, "GetExtrasPackagedFileNamesAsync", "version", fsr4, "progress", reporter);
+                    extras.Fsr4 = fsr4;
+                });
+            }
+
+            var patcher = Choice(options, "patcher", defaults.Patcher);
+            if (patcher == "installed")
+            {
+                patcher = Client.Text(components, "LatestOptiPatcherVersion") ?? None;
+            }
+
+            if (patcher != None && Contract.Has("patcher"))
+            {
+                Try(notes, "patcher", () => extras.Patcher = Client.Call(
+                    components, "DownloadOptiPatcherAsync", "version", patcher, "progress", new Reporter(a => progress("download", "OptiPatcher", a))));
+            }
+
+            if (Client.Text(Client.TryGet(game, "FrameGenerationSettings"), "Output") == "XeFg" &&
+                Client.Text(Client.TryGet(game, "FrameGenerationSettings"), "Route") != "Disabled" &&
+                Client.CanCall(Components, "DownloadXeFGUnlockAsync", "version", "progress"))
+            {
+                Try(notes, "xefg", () => extras.Frames = Client.Call(
+                    components, "DownloadXeFGUnlockAsync", "version", Client.Text(components, "LatestXeFGUnlockVersion") ?? string.Empty,
+                    "progress", new Reporter(a => progress("download", "XeFG", a))));
+            }
+
+            return extras;
+        }
+
+        /// <summary>Once OptiScaler is in its place. If something of this can't be, it's told and the rest goes on.</summary>
+        private void AddExtras(object game, object components, object config, object gpu, string folder, Extras extras, string spoofing, List<string> notes)
+        {
+            if (extras.Fsr4 != None)
+            {
+                Try(notes, "fsr4", () => InstallFsr4(game, components, config, gpu, folder, extras.Fsr4));
+            }
+            else if (!extras.WantsFsr4)
+            {
+                Client.Set(game, "Fsr4ExtraVersion", null);
+            }
+
+            if (extras.Patcher != null)
+            {
+                Try(notes, "patcher", () =>
+                {
+                    Client.Call(Client.New(Installer), "InstallAsiPlugin", "gameDir", folder, "asiSourcePath", extras.Patcher);
+
+                    // With the patch in place, the client decides again about spoofing.
+                    Client.Call(Client.New(Installer), "ApplySpoofingSettings", "game", game, "spoofingValue", spoofing, "resolvedGameDir", folder);
+                });
+            }
+
+            if (extras.Frames != null)
+            {
+                Try(notes, "xefg", () => Client.Call(Client.New(Installer), "InstallAsiPlugin", "gameDir", folder, "asiSourcePath", extras.Frames));
+            }
         }
 
         private static void ApplyChosen(object game, object gpu, string folder, string version)
@@ -1312,9 +1449,9 @@ namespace Atrio.OptiScaler
             {
                 action();
             }
-            catch (Exception e) when (!(e is OutOfMemoryException))
+            catch (Exception e) when (!(e is OutOfMemoryException) && !(e is StoppedException))
             {
-                // OptiScaler itself is in place: the client says it the same way, as a warning.
+                // OptiScaler itself goes on: the client says it the same way, as a warning.
                 notes.Add($"{note}: {e.Message}");
             }
         }
@@ -1350,7 +1487,7 @@ namespace Atrio.OptiScaler
             }
 
             progress("install", null, null);
-            using (new Guests(folder, Enumerable.Empty<string>))
+            using (new Guests(folder, Enumerable.Empty<string>, null, true))
             {
                 CallInstaller(game, "ForceFolderCleanup", new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase) { ["game"] = game });
             }
@@ -1541,8 +1678,7 @@ namespace Atrio.OptiScaler
             }
 
             var service = Client.New(Installer);
-            var int8 = Client.CanCall(Components, "GetExtrasDllVariant", "version") && Client.Call(components, "GetExtrasDllVariant", "version", version)?.ToString() == "Int8";
-            var companion = int8 && Client.CanCall(Components, "GetCachedCustomAmdxc64Path", "version") ?
+            var companion = IsInt8(components, version) && Client.CanCall(Components, "GetCachedCustomAmdxc64Path", "version") ?
                 Client.Call(components, "GetCachedCustomAmdxc64Path", "version", version) as string : null;
             var plan = new Plan();
             foreach (var pair in files)
@@ -1577,15 +1713,24 @@ namespace Atrio.OptiScaler
                     Client.Call(service, "InstallCustomAmdxc64", "gameDir", folder, "sourcePath", companion);
                 }
 
-                if (int8 && Client.CanCall(Installer, "ConfigureFsr4IntFallback", "gameDir", "isRdna4", "isRdna2"))
-                {
-                    Client.Call(service, "ConfigureFsr4IntFallback", "gameDir", folder, "isRdna4", Gpu("IsRdna4", gpu), "isRdna2", Gpu("IsRdna2", gpu));
-                }
-
+                ConfigureFsr4(components, gpu, folder, version);
                 checkpoint.End();
             }
 
             Client.Set(game, "Fsr4ExtraVersion", version);
+        }
+
+        private static bool IsInt8(object components, string version)
+        {
+            return Client.CanCall(Components, "GetExtrasDllVariant", "version") && Client.Call(components, "GetExtrasDllVariant", "version", version)?.ToString() == "Int8";
+        }
+
+        private static void ConfigureFsr4(object components, object gpu, string folder, string version)
+        {
+            if (IsInt8(components, version) && Client.CanCall(Installer, "ConfigureFsr4IntFallback", "gameDir", "isRdna4", "isRdna2"))
+            {
+                Client.Call(Client.New(Installer), "ConfigureFsr4IntFallback", "gameDir", folder, "isRdna4", Gpu("IsRdna4", gpu), "isRdna2", Gpu("IsRdna2", gpu));
+            }
         }
 
         /// <summary>Changes the settings of the OptiScaler that is already in the game, without downloading or copying anything.</summary>
@@ -1696,13 +1841,36 @@ namespace Atrio.OptiScaler
                 CheckFree(target, record);
                 progress("uninstall", null, null);
                 var originals = record.IsWhole ? record.Originals : new Dictionary<string, string>();
-                using (new Guests(target, () => Record.Find(game).Files))
-                using (var checkpoint = Checkpoint.Begin(Client.Text(game, "InstallPath"), record.Key, target, new Plan()))
+                var written = record.Files.ToList();
+                using (new Guests(target, () => OwnFiles(game, target)))
                 {
-                    var answer = CallInstaller(game, "UninstallOptiScaler", new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase) { ["game"] = game });
-                    remaining = Client.Strings(Client.TryGet(answer, "RemainingSensitiveFiles"));
-                    checkpoint.PutOriginals(target, originals);
-                    checkpoint.End();
+                    // Without a record, what the client takes out has no copy: it's kept aside until it ends.
+                    var byHand = record.IsOfOptiScaler || !Client.Flag(game, "IsOptiscalerInstalled") ? new List<string>() : FilesByHand(target, null);
+                    var plan = string.IsNullOrEmpty(target) || (record.IsWhole && byHand.Count == 0) ? new Plan() : GetPlan(target, record);
+                    byHand.ForEach(a => plan.Add(Path.GetRelativePath(target, a)));
+                    using (var checkpoint = Checkpoint.Begin(Client.Text(game, "InstallPath"), record.Key, target, plan))
+                    {
+                        // The client can't delete the ones that can only be read, and with its settings there the game still has OptiScaler.
+                        Unlock(checkpoint, target, plan.Names.Select(a => a.Key).Concat(written).Where(Checkpoint.IsOwn));
+                        var answer = CallInstaller(game, "UninstallOptiScaler", new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase) { ["game"] = game });
+                        remaining = Client.Strings(Client.TryGet(answer, "RemainingSensitiveFiles"));
+                        if (byHand.Count > 0)
+                        {
+                            // The client leaves every file a game could have with the same name. These ones are known, and the game
+                            // would go on loading the first. They go after it: it looks at what there is to know the folder.
+                            RemoveByHand(checkpoint, target, byHand);
+                            remaining = remaining.Where(a => !byHand.Contains(Path.Combine(target, a), StringComparer.OrdinalIgnoreCase)).ToList();
+                        }
+
+                        if (record.IsOfOptiScaler)
+                        {
+                            // The client names every one that could be of OptiScaler: the ones it never wrote are of the game.
+                            remaining = remaining.Where(a => written.Contains(a, StringComparer.OrdinalIgnoreCase) || IsMain(Path.Combine(target, a))).ToList();
+                        }
+
+                        checkpoint.PutOriginals(target, originals);
+                        checkpoint.End();
+                    }
                 }
             }
 

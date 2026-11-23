@@ -46,6 +46,7 @@
     <Compile Include="..\..\..\source\Tests\Playnite.Tests\StoreActivityTests.cs" Link="StoreActivityTests.cs" />
     <Compile Include="..\..\..\source\Tests\Playnite.Tests\SteamCardsTests.cs" Link="SteamCardsTests.cs" />
     <Compile Include="..\..\..\source\Tests\Playnite.Tests\OptiScalerClientTests.cs" Link="OptiScalerClientTests.cs" />
+    <Compile Include="..\..\..\source\Tests\Playnite.Tests\OptiScalerVersionsTests.cs" Link="OptiScalerVersionsTests.cs" />
     <Compile Include="..\..\..\source\Tests\Playnite.Tests\PlayerActivityTests.cs" Link="PlayerActivityTests.cs" />
     <Compile Include="..\..\..\source\Tests\Playnite.Tests\_TestTools\TestDateTimes.cs" Link="TestDateTimes.cs" />
     <Reference Include="System.Drawing" />

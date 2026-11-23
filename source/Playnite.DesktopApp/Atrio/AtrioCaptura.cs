@@ -646,6 +646,12 @@ namespace Playnite.DesktopApp.Atrio
                         case "cliente":
                             opti.OpenClientCommand.Execute(null);
                             break;
+                        case "lista":
+                            opti.OpenListCommand.Execute(null);
+                            break;
+                        case "guia":
+                            opti.OpenGuideCommand.Execute(null);
+                            break;
                         case "ventanas":
                         case "cierraventana":
                             // Only the programs that this test started, by the folder of its data.

@@ -1862,6 +1862,9 @@ Abre un nuevo problema en la página de GitHub de Playnite con una solicitud par
     <sys:String x:Key="LOCAtrioBadgeNext">Siguiente: {0} ({1} EXP)</sys:String>
     <sys:String x:Key="LOCAtrioOptiButtonHint">Escalado y generación de fotogramas con OptiScaler</sys:String>
     <sys:String x:Key="LOCAtrioOptiButtonInstalled">OptiScaler {0} está en este juego</sys:String>
+    <sys:String x:Key="LOCAtrioOptiChannel">Tipo de versión</sys:String>
+    <sys:String x:Key="LOCAtrioOptiChannelHint" xml:space="preserve">Estable: las versiones terminadas.&#10;Beta: las que se están probando.&#10;Nightly: se crean cada noche con el código más reciente. Son las más nuevas y las que más pueden fallar.</sys:String>
+    <sys:String x:Key="LOCAtrioOptiChannelstable">Estable</sys:String>
     <sys:String x:Key="LOCAtrioOptiVersion">Versión</sys:String>
     <sys:String x:Key="LOCAtrioOptiVersionHint">La versión de OptiScaler que se pone en el juego.</sys:String>
     <sys:String x:Key="LOCAtrioOptiInjection">Método de inyección</sys:String>
@@ -1884,9 +1887,9 @@ Abre un nuevo problema en la página de GitHub de Playnite con una solicitud par
     <sys:String x:Key="LOCAtrioOptiProfileHint">Un conjunto de ajustes guardado en OptiScaler Client.</sys:String>
     <sys:String x:Key="LOCAtrioOptiNone">Ninguno</sys:String>
     <sys:String x:Key="LOCAtrioOptiLatest">la última</sys:String>
-    <sys:String x:Key="LOCAtrioOptiChannelbeta">beta</sys:String>
-    <sys:String x:Key="LOCAtrioOptiChannelnightly">diaria</sys:String>
-    <sys:String x:Key="LOCAtrioOptiChannelcustom">propia</sys:String>
+    <sys:String x:Key="LOCAtrioOptiChannelbeta">Beta</sys:String>
+    <sys:String x:Key="LOCAtrioOptiChannelnightly">Nightly</sys:String>
+    <sys:String x:Key="LOCAtrioOptiChannelcustom">Propias</sys:String>
     <sys:String x:Key="LOCAtrioOptiPatcherInstalled">Instalado</sys:String>
     <sys:String x:Key="LOCAtrioOptiFramesKeep">Elegida en «Todas las opciones»</sys:String>
     <sys:String x:Key="LOCAtrioOptiOutputDefault">Automático</sys:String>
@@ -1934,6 +1937,7 @@ Abre un nuevo problema en la página de GitHub de Playnite con una solicitud par
     <sys:String x:Key="LOCAtrioOptiErrorpackage">Ese archivo no es uno publicado por OptiScaler Client, o no se pudo preguntar a GitHub: no se ha usado.</sys:String>
     <sys:String x:Key="LOCAtrioOptiInstall">Instalar OptiScaler {0}</sys:String>
     <sys:String x:Key="LOCAtrioOptiReinstall">Instalar otra vez ({0})</sys:String>
+    <sys:String x:Key="LOCAtrioOptiSwitch">Cambiar a {0}</sys:String>
     <sys:String x:Key="LOCAtrioOptiUpdate">Actualizar a {0}</sys:String>
     <sys:String x:Key="LOCAtrioOptiApply">Aplicar los cambios</sys:String>
     <sys:String x:Key="LOCAtrioOptiUninstall">Quitar</sys:String>
@@ -1959,6 +1963,8 @@ Abre un nuevo problema en la página de GitHub de Playnite con una solicitud par
     <sys:String x:Key="LOCAtrioOptiCompatIssues">{0} problemas conocidos</sys:String>
     <sys:String x:Key="LOCAtrioOptiCompatIssueOne">1 problema conocido</sys:String>
     <sys:String x:Key="LOCAtrioOptiCompatPage">Ver su página</sys:String>
+    <sys:String x:Key="LOCAtrioOptiCompatList">Lista de compatibilidad</sys:String>
+    <sys:String x:Key="LOCAtrioOptiCompatListHint">La lista de juegos de OptiScaler: en cuáles funciona y qué tener en cuenta. Se abre en el navegador de Atrio, en este juego si está en ella.</sys:String>
     <sys:String x:Key="LOCAtrioOptiIntro">OptiScaler lleva FSR 4, XeSS, DLSS y generación de fotogramas a juegos que no los traen. Atrio usa OptiScaler Client, un programa aparte y gratuito (GPL-3.0, de Agustinm28), que se baja de su página de GitHub. Ninguno de los dos es oficial.</sys:String>
     <sys:String x:Key="LOCAtrioOptiIntroPage">Ver el programa</sys:String>
     <sys:String x:Key="LOCAtrioOptiDownload">Descargar OptiScaler Client</sys:String>
@@ -2026,7 +2032,6 @@ Abre un nuevo problema en la página de GitHub de Playnite con una solicitud par
     <sys:String x:Key="LOCAtrioOptiTooLate">Ya se estaba poniendo en el juego: se ha dejado acabar.</sys:String>
     <sys:String x:Key="LOCAtrioOptiErrornotsent">OptiScaler Client se cerró antes de empezar. No se ha tocado nada del juego.</sys:String>
     <sys:String x:Key="LOCAtrioOptiErrorhalfpackage">Una instalación anterior se quedó a medias y para deshacerla hace falta OptiScaler {0}, que no se ha podido descargar. Comprueba la conexión.</sys:String>
-    <sys:String x:Key="LOCAtrioOptiErrorbyhand">Ya hay un OptiScaler puesto a mano como {0}. Elige ese archivo o quítalo antes.</sys:String>
     <sys:String x:Key="LOCAtrioOptiReplaceAsk">En {0} hay un OptiScaler puesto a mano. Se sustituye, con sus ajustes, y no volverá si luego quitas OptiScaler. ¿Seguir?</sys:String>
     <sys:String x:Key="LOCAtrioOptiStatusCut">OptiScaler se quedó a medias en este juego</sys:String>
     <sys:String x:Key="LOCAtrioOptiErrorprofile">Ese perfil ya no está.</sys:String>

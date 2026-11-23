@@ -199,6 +199,13 @@
                                                     Visibility="{Binding HasPackage, Converter={StaticResource InvertedBooleanToVisibilityConverter}}" />
                                             <Button Style="{DynamicResource AtrioGhostButton}" MinHeight="36" FontSize="13" Margin="0,0,10,6"
                                                     Content="{DynamicResource LOCAtrioOptiIntroPage}" Command="{Binding ClientPageCommand}" />
+                                            <Button Style="{DynamicResource AtrioGhostButton}" MinHeight="36" FontSize="13" Margin="0,0,10,6"
+                                                    ToolTip="{DynamicResource LOCAtrioOptiCompatListHint}" Command="{Binding OpenListCommand}">
+                                                <StackPanel Orientation="Horizontal">
+                                                    <TextBlock Text="&#xE774;" FontFamily="{DynamicResource AtrioIconFont}" FontSize="13" Margin="0,1,8,0" VerticalAlignment="Center" />
+                                                    <TextBlock Text="{DynamicResource LOCAtrioOptiCompatList}" VerticalAlignment="Center" />
+                                                </StackPanel>
+                                            </Button>
                                         </WrapPanel>
                                     </StackPanel>
 
@@ -265,6 +272,13 @@
                                             <Button Style="{DynamicResource AtrioGhostButton}" MinHeight="36" FontSize="13" Margin="0,0,10,6"
                                                     Content="{DynamicResource LOCAtrioOptiUninstall}" Command="{Binding UninstallCommand}"
                                                     Visibility="{Binding ShowsUninstall, Converter={StaticResource BooleanToVisibilityConverter}}" />
+                                            <Button Style="{DynamicResource AtrioGhostButton}" MinHeight="36" FontSize="13" Margin="0,0,10,6"
+                                                    ToolTip="{DynamicResource LOCAtrioOptiCompatListHint}" Command="{Binding OpenListCommand}">
+                                                <StackPanel Orientation="Horizontal">
+                                                    <TextBlock Text="&#xE774;" FontFamily="{DynamicResource AtrioIconFont}" FontSize="13" Margin="0,1,8,0" VerticalAlignment="Center" />
+                                                    <TextBlock Text="{DynamicResource LOCAtrioOptiCompatList}" VerticalAlignment="Center" />
+                                                </StackPanel>
+                                            </Button>
                                         </WrapPanel>
                                     </StackPanel>
 

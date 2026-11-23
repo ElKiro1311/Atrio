@@ -73,6 +73,12 @@ namespace Atrio.OptiScaler
             },
             new Function
             {
+                // The test versions apart from the finished ones.
+                Name = "channels",
+                Missing = () => Values(Components, "BetaVersions", "NightlyVersions")
+            },
+            new Function
+            {
                 Name = "profile",
                 Missing = () => Methods("ProfileManagementService", "GetAllProfiles", "forceRefresh").
                     Concat(Methods("ProfileManagementService", "GetProfileByName", "name")).

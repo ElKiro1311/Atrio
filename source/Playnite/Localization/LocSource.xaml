@@ -1865,6 +1865,9 @@ Open new issue on Playnite's GitHub page with a request to fix corruption in you
     <sys:String x:Key="LOCAtrioBadgeNext">Next: {0} ({1} XP)</sys:String>
     <sys:String x:Key="LOCAtrioOptiButtonHint">Upscaling and frame generation with OptiScaler</sys:String>
     <sys:String x:Key="LOCAtrioOptiButtonInstalled">OptiScaler {0} is in this game</sys:String>
+    <sys:String x:Key="LOCAtrioOptiChannel">Version type</sys:String>
+    <sys:String x:Key="LOCAtrioOptiChannelHint" xml:space="preserve">Stable: finished versions.&#10;Beta: versions being tested.&#10;Nightly: built every night from the latest code. The newest ones, and the most likely to fail.</sys:String>
+    <sys:String x:Key="LOCAtrioOptiChannelstable">Stable</sys:String>
     <sys:String x:Key="LOCAtrioOptiVersion">Version</sys:String>
     <sys:String x:Key="LOCAtrioOptiVersionHint">The version of OptiScaler that goes into the game.</sys:String>
     <sys:String x:Key="LOCAtrioOptiInjection">File name</sys:String>
@@ -1887,9 +1890,9 @@ Open new issue on Playnite's GitHub page with a request to fix corruption in you
     <sys:String x:Key="LOCAtrioOptiProfileHint">A set of settings saved in OptiScaler Client.</sys:String>
     <sys:String x:Key="LOCAtrioOptiNone">None</sys:String>
     <sys:String x:Key="LOCAtrioOptiLatest">latest</sys:String>
-    <sys:String x:Key="LOCAtrioOptiChannelbeta">beta</sys:String>
-    <sys:String x:Key="LOCAtrioOptiChannelnightly">nightly</sys:String>
-    <sys:String x:Key="LOCAtrioOptiChannelcustom">yours</sys:String>
+    <sys:String x:Key="LOCAtrioOptiChannelbeta">Beta</sys:String>
+    <sys:String x:Key="LOCAtrioOptiChannelnightly">Nightly</sys:String>
+    <sys:String x:Key="LOCAtrioOptiChannelcustom">Your own</sys:String>
     <sys:String x:Key="LOCAtrioOptiPatcherInstalled">Installed</sys:String>
     <sys:String x:Key="LOCAtrioOptiFramesKeep">Chosen in “All options”</sys:String>
     <sys:String x:Key="LOCAtrioOptiOutputDefault">Automatic</sys:String>
@@ -1937,6 +1940,7 @@ Open new issue on Playnite's GitHub page with a request to fix corruption in you
     <sys:String x:Key="LOCAtrioOptiErrorpackage">That file isn't one published by OptiScaler Client, or GitHub couldn't be reached to check it, so it wasn't used.</sys:String>
     <sys:String x:Key="LOCAtrioOptiInstall">Install OptiScaler {0}</sys:String>
     <sys:String x:Key="LOCAtrioOptiReinstall">Reinstall ({0})</sys:String>
+    <sys:String x:Key="LOCAtrioOptiSwitch">Switch to {0}</sys:String>
     <sys:String x:Key="LOCAtrioOptiUpdate">Update to {0}</sys:String>
     <sys:String x:Key="LOCAtrioOptiApply">Apply changes</sys:String>
     <sys:String x:Key="LOCAtrioOptiUninstall">Remove</sys:String>
@@ -1962,6 +1966,8 @@ Open new issue on Playnite's GitHub page with a request to fix corruption in you
     <sys:String x:Key="LOCAtrioOptiCompatIssues">{0} known problems</sys:String>
     <sys:String x:Key="LOCAtrioOptiCompatIssueOne">1 known problem</sys:String>
     <sys:String x:Key="LOCAtrioOptiCompatPage">See its page</sys:String>
+    <sys:String x:Key="LOCAtrioOptiCompatList">Compatibility list</sys:String>
+    <sys:String x:Key="LOCAtrioOptiCompatListHint">OptiScaler's list of games: where it works and what to keep in mind. It opens in Atrio's browser, at this game if it's on the list.</sys:String>
     <sys:String x:Key="LOCAtrioOptiIntro">OptiScaler brings FSR 4, XeSS, DLSS and frame generation to games that don't have them. Atrio uses OptiScaler Client, a separate free program (GPL-3.0, by Agustinm28) that is downloaded from its GitHub page. Neither of them is official.</sys:String>
     <sys:String x:Key="LOCAtrioOptiIntroPage">See the program</sys:String>
     <sys:String x:Key="LOCAtrioOptiDownload">Download OptiScaler Client</sys:String>
@@ -2029,7 +2035,6 @@ Open new issue on Playnite's GitHub page with a request to fix corruption in you
     <sys:String x:Key="LOCAtrioOptiTooLate">It was already being installed, so it was left to finish.</sys:String>
     <sys:String x:Key="LOCAtrioOptiErrornotsent">OptiScaler Client closed before starting. Nothing in the game was touched.</sys:String>
     <sys:String x:Key="LOCAtrioOptiErrorhalfpackage">An earlier install was cut short, and undoing it needs OptiScaler {0}, which couldn't be downloaded. Check your connection.</sys:String>
-    <sys:String x:Key="LOCAtrioOptiErrorbyhand">There's already an OptiScaler installed by hand as {0}. Choose that file name, or remove it first.</sys:String>
     <sys:String x:Key="LOCAtrioOptiReplaceAsk">{0} has an OptiScaler that was installed by hand. It will be replaced, along with its settings, and it won't come back if you remove OptiScaler later. Continue?</sys:String>
     <sys:String x:Key="LOCAtrioOptiStatusCut">OptiScaler was left half installed in this game</sys:String>
     <sys:String x:Key="LOCAtrioOptiErrorprofile">That profile isn't there anymore.</sys:String>

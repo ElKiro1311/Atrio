@@ -4,6 +4,7 @@ using System.Diagnostics;
 using System.Globalization;
 using System.IO;
 using System.Linq;
+using System.Text.RegularExpressions;
 using System.Threading;
 
 namespace Atrio.OptiScaler
@@ -26,6 +27,9 @@ namespace Atrio.OptiScaler
 
         /// <summary>The install ended well: everything can be put back as it was.</summary>
         public bool IsWhole { get; private set; }
+
+        /// <summary>It's of an install of OptiScaler: the client also keeps one when it only replaces the file of FSR 4 of a game.</summary>
+        public bool IsOfOptiScaler => IsWhole && !(Client.TryGet(Manifest, "IncludesOptiscaler") is bool includes && !includes);
 
         /// <summary>An install that was cut in the middle: the originals it had already kept are still there.</summary>
         public bool IsHalf => Manifest != null && !IsWhole;
@@ -180,28 +184,40 @@ namespace Atrio.OptiScaler
     }
 
     /// <summary>
-    /// The files of other mods in the folders that the client removes whole when it takes OptiScaler out or puts another
-    /// version («plugins» and «Licenses», which OptiScaler shares with other mods). They go aside and come back in their place.
+    /// What isn't of OptiScaler in the folders that the client removes whole when it takes it out or puts another version:
+    /// «plugins» and «Licenses», which it shares with other mods, and the one with its name, where a person may have put
+    /// something. It goes aside, without leaving empty folders, and comes back to its place.
     /// </summary>
     internal sealed class Guests : IDisposable
     {
         private const string Prefix = ".atrio-optiscaler-";
         private const string Suffix = ".atrio-";
 
-        // The ones the client itself puts there, which it doesn't write down.
-        private static readonly HashSet<string> ofTheClient = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
-        {
-            "OptiPatcher.asi", "XeFGUnlock.asi", "AMD-NR-bridge.asi"
-        };
+        // What is aside has another name: the client looks in the whole folder of the game for what it brings.
+        private const string Aside = ".aside";
 
-        private static readonly string[] shared = { "plugins", "Licenses", @"OptiScaler\plugins" };
+        // The ones the client itself puts there, which it doesn't write down.
+        private static readonly HashSet<string> ofTheClient = new HashSet<string>(
+            new[] { "OptiPatcher.asi", "XeFGUnlock.asi", "AMD-NR-bridge.asi" }.SelectMany(a => new[] { $@"plugins\{a}", $@"OptiScaler\plugins\{a}" }),
+            StringComparer.OrdinalIgnoreCase);
+
+        // What the packages of OptiScaler bring in the folders that are only of OptiScaler, and what is written there while the
+        // game runs: with these names and in these places. A copy that somebody keeps next to them, or further inside, isn't.
+        private static readonly Regex pieces = new Regex(
+            @"^(OptiScaler\\(amd_fidelityfx_(dx12|vk|(loader|upscaler|framegeneration|denoiser|radiancecache)_(dx12|vk))\.dll|libxess(_dx11|_fg)?\.dll|libxell\.dll|" +
+            @"dlssg_to_fsr3_amd_is_better\.dll|fakenvapi\.(dll|ini|log)|OptiScaler\.(ini|log)|dlss-enabler\.log|Streamlined_fetcher_[a-z]+\.(bat|sh))|" +
+            @"(OptiScaler\\)?D3D12_Optiscaler\\D3D12Core\.dll)$", RegexOptions.IgnoreCase);
+        private static readonly string[] shared = { "plugins", "Licenses", "OptiScaler" };
+
+        // Only other mods: what the person says that has to be cleaned goes away.
+        private static readonly string[] mods = { "plugins", "Licenses", @"OptiScaler\plugins" };
 
         private readonly string folder;
         private readonly Func<IEnumerable<string>> own;
         private readonly string aside;
 
-        /// <summary>The folder of a game, and what is of OptiScaler in it at each moment.</summary>
-        public Guests(string folder, Func<IEnumerable<string>> own)
+        /// <summary>The folder of a game, what is of OptiScaler in it at each moment, and the package that is going in, if there's one.</summary>
+        public Guests(string folder, Func<IEnumerable<string>> own, string package = null, bool onlyMods = false)
         {
             this.folder = folder;
             this.own = own;
@@ -211,22 +227,30 @@ namespace Atrio.OptiScaler
             }
 
             BringBack(folder, own());
-            var known = Names(own());
+            var known = Names(own().Concat(Plan.Files(package).Select(a => Path.GetRelativePath(package, a)).Where(IsInside)));
+            var left = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             try
             {
-                foreach (var file in shared.SelectMany(a => Content(Path.Combine(folder, a))))
+                foreach (var file in (onlyMods ? mods : shared).SelectMany(a => Content(Path.Combine(folder, a))))
                 {
                     var relative = Path.GetRelativePath(folder, file);
-                    if (known.Contains(relative) || ofTheClient.Contains(Path.GetFileName(file)))
+                    if (known.Contains(relative) || IsOfTheClient(relative) || IsPiece(relative))
                     {
                         continue;
                     }
 
                     aside = aside ?? Path.Combine(folder, Prefix + Guid.NewGuid().ToString("N"));
-                    var target = Path.Combine(aside, relative);
+                    var target = Path.Combine(aside, relative + Aside);
                     Directory.CreateDirectory(Path.GetDirectoryName(target));
                     Move(file, target);
+                    for (var parent = Path.GetDirectoryName(relative); !string.IsNullOrEmpty(parent); parent = Path.GetDirectoryName(parent))
+                    {
+                        left.Add(Path.Combine(folder, parent));
+                    }
                 }
+
+                // The client looks at whether the folder with its name is there to know where everything else goes.
+                Checkpoint.RemoveEmpty(left);
             }
             catch
             {
@@ -242,6 +266,24 @@ namespace Atrio.OptiScaler
             {
                 BringBack(folder, own());
             }
+        }
+
+        public static bool IsOfTheClient(string relative)
+        {
+            return ofTheClient.Contains(relative);
+        }
+
+        /// <summary>A file of OptiScaler in a folder that is only of OptiScaler.</summary>
+        public static bool IsPiece(string relative)
+        {
+            return pieces.IsMatch(relative);
+        }
+
+        /// <summary>In a folder that is only of OptiScaler, but for the mods that go in its «plugins».</summary>
+        public static bool IsInside(string relative)
+        {
+            return (relative.StartsWith(@"OptiScaler\", StringComparison.OrdinalIgnoreCase) && !relative.StartsWith(@"OptiScaler\plugins\", StringComparison.OrdinalIgnoreCase)) ||
+                relative.StartsWith(@"D3D12_Optiscaler\", StringComparison.OrdinalIgnoreCase);
         }
 
         private static HashSet<string> Names(IEnumerable<string> names)
@@ -285,7 +327,8 @@ namespace Atrio.OptiScaler
             {
                 foreach (var file in Content(place))
                 {
-                    Try(() => Return(file, Path.Combine(folder, Path.GetRelativePath(place, file))));
+                    var name = Path.GetRelativePath(place, file);
+                    Try(() => Return(file, Path.Combine(folder, name.EndsWith(Aside, StringComparison.Ordinal) ? name.Substring(0, name.Length - Aside.Length) : name)));
                 }
 
                 if (Content(place).Count == 0)

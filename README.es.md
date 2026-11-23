@@ -26,7 +26,8 @@ Un solo sitio para los juegos de todas tus tiendas. Atrio es un lanzador portát
   notas de sus parches, junto a lo que has jugado y los logros que has sacado.
 - **Cromos e insignias de Steam.** La ficha enseña los que tienes, los que te faltan y el nivel de la insignia.
 - **OptiScaler junto a «Jugar».** Con las funciones de [OptiScaler Client](https://github.com/Optiscaler-Client/Optiscaler-Client),
-  que solo se descarga si lo pides. Una versión nueva se prueba antes de usarla: si no encaja, sigue la que funcionaba.
+  que solo se descarga si lo pides. Versiones estables, beta o nightly, y la lista de compatibilidad de OptiScaler a un
+  clic. Una versión nueva del cliente se prueba antes de usarla: si no encaja, sigue la que funcionaba.
 - **Colecciones.** Las llenas tú, con clic derecho, arrastrando o eligiendo juegos de una lista, o se llenan solas
   con unos filtros. Cada una tiene su página y puede salir como estante en Inicio.
 - **Se actualiza sola.** Atrio mira las Releases de este repositorio, sin ninguna cuenta, enseña las novedades y se instala con

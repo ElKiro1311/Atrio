@@ -108,6 +108,18 @@ namespace Playnite.Commands
             OpenLink(url);
         }
 
+        /// <summary>
+        /// Opens a page in the browser of Atrio, whatever is chosen for the links. When it can't open there, it opens like
+        /// any other link.
+        /// </summary>
+        public static void NavigateUrlInside(string url)
+        {
+            if (!Playnite.Atrio.LinkBrowsers.IsWebAddress(url) || InAppBrowser?.Invoke(url) != true)
+            {
+                NavigateUrl(url);
+            }
+        }
+
         private static void OpenLink(string url)
         {
             if (Playnite.Atrio.LinkBrowsers.IsWebAddress(url))

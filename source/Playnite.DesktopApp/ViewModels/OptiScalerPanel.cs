@@ -38,6 +38,9 @@ namespace Playnite.DesktopApp.ViewModels
         /// <summary>Changing it means installing again: the others only change the file of settings.</summary>
         public bool NeedsInstall { get; }
 
+        /// <summary>It isn't an option of OptiScaler: it says what another one offers to choose from.</summary>
+        public bool IsFilter { get; }
+
         /// <summary>What was chosen when it was read.</summary>
         public string Initial { get; private set; }
 
@@ -100,16 +103,18 @@ namespace Playnite.DesktopApp.ViewModels
             }
         }
 
-        public OptiScalerOption(string key, string label, string hint, bool needsInstall, Action<OptiScalerOption> changed)
+        public OptiScalerOption(string key, string label, string hint, bool needsInstall, bool isFilter, Action<OptiScalerOption> changed)
         {
             Key = key;
             Label = label;
             Hint = hint;
             NeedsInstall = needsInstall;
+            IsFilter = isFilter;
             this.changed = changed;
         }
 
-        public void Fill(List<OptiScalerChoice> newChoices, string chosen, bool keepTouched)
+        /// <param name="partial">What is offered is only a part: what was chosen may not be in it, and it's still the start.</param>
+        public void Fill(List<OptiScalerChoice> newChoices, string chosen, bool keepTouched, bool partial = false)
         {
             var wanted = keepTouched && IsTouched ? selected?.Id : chosen;
             if (!keepTouched)
@@ -122,7 +127,7 @@ namespace Playnite.DesktopApp.ViewModels
             selected = newChoices.FirstOrDefault(a => string.Equals(a.Id, wanted, StringComparison.OrdinalIgnoreCase)) ??
                 newChoices.FirstOrDefault(a => string.Equals(a.Id, chosen, StringComparison.OrdinalIgnoreCase)) ??
                 newChoices.FirstOrDefault();
-            if (selected != null && newChoices.All(a => !string.Equals(a.Id, chosen, StringComparison.OrdinalIgnoreCase)))
+            if (!partial && selected != null && newChoices.All(a => !string.Equals(a.Id, chosen, StringComparison.OrdinalIgnoreCase)))
             {
                 // What was chosen isn't offered anymore: what is shown is the start.
                 Initial = selected.Id;
@@ -286,6 +291,7 @@ namespace Playnite.DesktopApp.ViewModels
         public RelayCommand<object> OpenFolderCommand { get; }
         public RelayCommand<object> OpenIniCommand { get; }
         public RelayCommand<object> OpenGuideCommand { get; }
+        public RelayCommand<object> OpenListCommand { get; }
         public RelayCommand<object> CheckUpdatesCommand { get; }
         public RelayCommand<object> StopCommand { get; }
         public RelayCommand<object> RetryCommand { get; }
@@ -460,17 +466,19 @@ namespace Playnite.DesktopApp.ViewModels
             DownloadClientCommand = new RelayCommand<object>(_ => DownloadClient(), _ => !IsWorking);
             UsePackageCommand = new RelayCommand<object>(_ => UsePackage(), _ => !IsWorking);
             InstallCommand = new RelayCommand<object>(_ => Install(null), _ => CanChoose);
-            UpdateCommand = new RelayCommand<object>(_ => Install((string)state?["defaults"]?["version"]), _ => CanChoose);
+            UpdateCommand = new RelayCommand<object>(_ => Update(), _ => CanChoose);
             UninstallCommand = new RelayCommand<object>(_ => Uninstall(), _ => CanChoose);
             AllOptionsCommand = new RelayCommand<object>(_ => OpenWindow(true), _ => copy != null && !IsWorking);
             OpenClientCommand = new RelayCommand<object>(_ => OpenWindow(false), _ => copy != null && !IsWorking);
             OpenFolderCommand = new RelayCommand<object>(_ => OpenPath((string)state?["directory"] ?? (Target == null ? null : GetFolder(Target))));
             OpenIniCommand = new RelayCommand<object>(_ => OpenPath(IniPath), _ => HasIni);
-            OpenGuideCommand = new RelayCommand<object>(_ => GlobalCommands.NavigateUrl(GuideUrl), _ => !GuideUrl.IsNullOrEmpty());
+            OpenGuideCommand = new RelayCommand<object>(_ => GlobalCommands.NavigateUrlInside(GuideUrl), _ => !GuideUrl.IsNullOrEmpty());
+            OpenListCommand = new RelayCommand<object>(_ => GlobalCommands.NavigateUrlInside(ListUrl));
             CheckUpdatesCommand = new RelayCommand<object>(_ => CheckUpdates(true), _ => !IsWorking);
             StopCommand = new RelayCommand<object>(_ => Stop(), _ => CanStop);
             RetryCommand = new RelayCommand<object>(_ => Retry());
             ClientPageCommand = new RelayCommand<object>(_ => GlobalCommands.NavigateUrl(OptiScalerClient.ProjectUrl));
+            AddOption("channel", false, true);
             AddOption("version", true);
             AddOption("injection", true);
             AddOption("output", false);
@@ -484,10 +492,10 @@ namespace Playnite.DesktopApp.ViewModels
             FindTarget();
         }
 
-        private void AddOption(string key, bool needsInstall)
+        private void AddOption(string key, bool needsInstall, bool isFilter = false)
         {
             var name = char.ToUpperInvariant(key[0]) + key.Substring(1);
-            var option = new OptiScalerOption(key, resources.GetString($"LOCAtrioOpti{name}"), resources.GetString($"LOCAtrioOpti{name}Hint"), needsInstall, OptionChanged);
+            var option = new OptiScalerOption(key, resources.GetString($"LOCAtrioOpti{name}"), resources.GetString($"LOCAtrioOpti{name}Hint"), needsInstall, isFilter, OptionChanged);
             options[key] = option;
             Options.Add(option);
         }
@@ -508,6 +516,7 @@ namespace Playnite.DesktopApp.ViewModels
                 Target = found;
                 state = null;
                 asked = false;
+                listRead = false;
                 InstalledVersion = null;
                 IsOpen = false;
                 OnPropertyChanged(nameof(IsAvailable));
@@ -698,7 +707,7 @@ namespace Playnite.DesktopApp.ViewModels
                 asked = false;
             }
 
-            if (Stage == OptiScalerStage.Ready && offered.Count == 0 && Message.IsNullOrEmpty())
+            if (Stage == OptiScalerStage.Ready && versions.Channels.Count == 0 && Message.IsNullOrEmpty())
             {
                 SetMessage(resources.GetString("LOCAtrioOptiErrornoversions"), true);
             }
@@ -748,6 +757,7 @@ namespace Playnite.DesktopApp.ViewModels
             var answer = await AskAsync("state", parameters, TimeSpan.FromSeconds(120), null);
             if (!closing.IsCancellationRequested)
             {
+                listRead |= ask && OptiScalerClient.GetContract(copy)?.Functions.Contains("compatibility") == true;
                 Show(answer, keepTouched);
             }
         }
@@ -797,7 +807,7 @@ namespace Playnite.DesktopApp.ViewModels
                 foreach (var option in Options)
                 {
                     option.IsEnabled = option.Choices.Count > 1;
-                    option.IsShown = option.Choices.Count > (option.Key == "profile" ? 1 : 0);
+                    option.IsShown = option.Choices.Count > (option.Key == "profile" || option.IsFilter ? 1 : 0);
                 }
 
                 ShowDetected(answer);
@@ -821,42 +831,79 @@ namespace Playnite.DesktopApp.ViewModels
             Notify();
         }
 
-        private HashSet<string> offered = new HashSet<string>();
+        private OptiScalerVersions versions = new OptiScalerVersions(null);
 
-        /// <summary>The version to install: one put by hand that isn't published can't be, and the recommended one takes its place.</summary>
+        /// <summary>
+        /// The version to install: the chosen one. One put by hand that isn't published can't be, and the recommended one takes
+        /// its place when it's of the same type, or the newest of that type.
+        /// </summary>
         private string GetVersion()
         {
             var id = options["version"].Selected?.Id;
-            return (bool?)state?["managed"] == true || offered.Contains(id) ? id : (string)state?["defaults"]?["version"] ?? id;
+            if (!IsByHand || versions.Contains(id))
+            {
+                return id;
+            }
+
+            var channel = options["channel"].Selected?.Id;
+            var recommended = (string)state?["defaults"]?["version"];
+            return !recommended.IsNullOrEmpty() && versions.GetChannel(recommended) == channel ? recommended :
+                versions.GetLatest(channel) ?? recommended ?? id;
         }
+
+        /// <summary>The one in the game isn't of Atrio or of the client.</summary>
+        private bool IsByHand => (bool?)state?["installed"] == true && (bool?)state?["managed"] != true;
 
         private void FillVersions(JObject choices, JObject chosen, bool keepTouched)
         {
-            var all = (choices["versions"] as JArray)?.OfType<JObject>().ToList() ?? new List<JObject>();
-            offered = new HashSet<string>(all.Select(a => (string)a["id"]).Where(a => a != null));
-            var current = (string)chosen["version"];
-            var limits = new Dictionary<string, int> { { "stable", 12 }, { "beta", 6 }, { "nightly", 8 }, { "custom", 50 } };
-            var list = new List<OptiScalerChoice>();
-            foreach (var channel in limits)
+            versions = new OptiScalerVersions(choices["versions"] as JArray);
+
+            // A version that the person chose keeps its type too.
+            var picked = keepTouched && options["version"].IsTouched ? options["version"].Selected?.Id : null;
+            var channel = versions.GetChannel(picked ?? (string)chosen["version"]);
+            var channels = versions.Channels.ToList();
+            if (!channels.Contains(channel))
             {
-                foreach (var version in all.Where(a => (string)a["channel"] == channel.Key).Take(channel.Value))
-                {
-                    var id = (string)version["id"];
-                    var latest = (bool?)version["latest"] == true;
-                    var note = channel.Key == "stable" ? (latest ? resources.GetString("LOCAtrioOptiLatest") : null) :
-                        latest ? $"{resources.GetString("LOCAtrioOptiChannel" + channel.Key)}, {resources.GetString("LOCAtrioOptiLatest")}" :
-                        resources.GetString("LOCAtrioOptiChannel" + channel.Key);
-                    list.Add(new OptiScalerChoice { Id = id, Name = note.IsNullOrEmpty() ? id : $"{id}  ({note})" });
-                }
+                // The one in the game is of a type without anything published.
+                channels.Add(channel);
             }
 
-            if (!current.IsNullOrEmpty() && list.All(a => a.Id != current))
+            options["channel"].Fill(Words("Channel", channels), channel, keepTouched);
+            FillVersionsOfChannel(keepTouched);
+        }
+
+        /// <summary>The versions of the chosen type. The one in the game, or the recommended one, is only with the ones of its own.</summary>
+        private void FillVersionsOfChannel(bool keepTouched)
+        {
+            var option = options["version"];
+            var channel = options["channel"].Selected?.Id;
+            var current = (string)state?["chosen"]?["version"];
+            var list = versions.Get(channel).Select(a => new OptiScalerChoice
             {
-                var own = !offered.Contains(current) && (bool?)state?["installed"] == true && (bool?)state?["managed"] != true;
-                list.Insert(0, new OptiScalerChoice { Id = current, Name = own ? $"{current}  ({resources.GetString("LOCAtrioOptiByHand")})" : current });
+                Id = a,
+                Name = versions.IsLatest(a) ? $"{a}  ({resources.GetString("LOCAtrioOptiLatest")})" : a
+            }).ToList();
+            if (!current.IsNullOrEmpty() && !versions.Contains(current) && versions.GetChannel(current) == channel)
+            {
+                list.Insert(0, new OptiScalerChoice { Id = current, Name = IsByHand ? $"{current}  ({resources.GetString("LOCAtrioOptiByHand")})" : current });
             }
 
-            options["version"].Fill(list, current, keepTouched);
+            option.Fill(list, current, keepTouched, true);
+            option.IsEnabled = list.Count > 1;
+        }
+
+        /// <summary>Another type of version: the newest of it is proposed, or the one that is already in the game.</summary>
+        private void UpdateVersions()
+        {
+            filling = true;
+            try
+            {
+                FillVersionsOfChannel(true);
+            }
+            finally
+            {
+                filling = false;
+            }
         }
 
         private Dictionary<string, List<string>> modes = new Dictionary<string, List<string>>();
@@ -974,6 +1021,13 @@ namespace Playnite.DesktopApp.ViewModels
             GpuText = gpu == null ? null : generation.IsNullOrEmpty() ? (string)gpu["name"] : $"{(string)gpu["name"]} ({generation})";
         }
 
+        // The client has already looked for the list on the internet: a game it doesn't find isn't there.
+        private bool listRead;
+
+        /// <summary>The list of games of OptiScaler, at the row of this one. Without it, at the top, and not where it was left by another game.</summary>
+        private string ListUrl => OptiScalerClient.GetCompatibilityUrl(
+            (string)state?["list"], (string)(state?["compatibility"] as JObject)?["name"] ?? (listRead ? null : game.DisplayName));
+
         private void ShowCompatibility(JObject compatibility)
         {
             GuideUrl = (string)compatibility?["url"];
@@ -1025,6 +1079,10 @@ namespace Playnite.DesktopApp.ViewModels
             {
                 UpdateModes();
             }
+            else if (option.Key == "channel")
+            {
+                UpdateVersions();
+            }
 
             UpdateActions();
             Notify();
@@ -1032,13 +1090,11 @@ namespace Playnite.DesktopApp.ViewModels
 
         private bool IsChanged(bool needsInstall)
         {
-            return Options.Any(a => a.NeedsInstall == needsInstall && a.IsChanged);
+            return Options.Any(a => a.NeedsInstall == needsInstall && !a.IsFilter && a.IsChanged);
         }
 
-        private static Version ParseVersion(string text)
-        {
-            return OptiScalerClient.ParseVersion(text);
-        }
+        // The newer one the button proposes.
+        private string updateVersion;
 
         /// <summary>What the main button does: install, apply only the settings, or install again because the files change.</summary>
         private void UpdateActions()
@@ -1049,6 +1105,7 @@ namespace Playnite.DesktopApp.ViewModels
             var hard = IsChanged(true);
             var soft = IsChanged(false);
             UpdateText = null;
+            updateVersion = null;
             ShowsReinstall = false;
             if (!installed)
             {
@@ -1059,20 +1116,20 @@ namespace Playnite.DesktopApp.ViewModels
 
             ShowsInstall = hard || soft;
             ShowsReinstall = !managed && !hard && !soft && !version.IsNullOrEmpty();
-            InstallText = hard || !managed ?
-                string.Format(resources.GetString("LOCAtrioOptiReinstall"), version) :
-                resources.GetString("LOCAtrioOptiApply");
-            var latest = (string)state?["defaults"]?["version"];
-            if (!hard && !soft && managed && ParseVersion(latest) is Version newer && ParseVersion(InstalledVersion) is Version current && newer > current)
+            var same = string.Equals(version, InstalledVersion, StringComparison.OrdinalIgnoreCase) || (bool?)state?["half"] == true;
+            InstallText = managed && !hard ? resources.GetString("LOCAtrioOptiApply") :
+                string.Format(resources.GetString(same ? "LOCAtrioOptiReinstall" : "LOCAtrioOptiSwitch"), version);
+            updateVersion = managed && !hard && !soft ? versions.GetUpdate(InstalledVersion, (string)state?["defaults"]?["version"]) : null;
+            if (updateVersion != null)
             {
-                UpdateText = string.Format(resources.GetString("LOCAtrioOptiUpdate"), latest);
+                UpdateText = string.Format(resources.GetString("LOCAtrioOptiUpdate"), updateVersion);
             }
         }
 
         private JObject GetOptions(bool all)
         {
             var result = new JObject();
-            foreach (var option in Options.Where(a => a.Key != "frames" && a.Key != "mode" && a.Selected != null && (all || a.IsChanged)))
+            foreach (var option in Options.Where(a => a.Key != "frames" && a.Key != "mode" && !a.IsFilter && a.Selected != null && (all || a.IsChanged)))
             {
                 // A value that can't be chosen here (a quality of their own) stays as it is.
                 if (!(option.Key == "quality" && option.Selected.Id == "Custom"))
@@ -1111,6 +1168,14 @@ namespace Playnite.DesktopApp.ViewModels
             }
 
             return true;
+        }
+
+        private void Update()
+        {
+            if (updateVersion != null)
+            {
+                Install(updateVersion);
+            }
         }
 
         private async void Install(string version)

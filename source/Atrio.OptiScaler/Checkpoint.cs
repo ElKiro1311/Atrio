@@ -65,6 +65,22 @@ namespace Atrio.OptiScaler
             return result;
         }
 
+        /// <summary>The folders inside of a folder, without going through links.</summary>
+        public static List<string> Folders(string folder)
+        {
+            var result = new List<string>();
+            if (!string.IsNullOrEmpty(folder) && Directory.Exists(folder) && !IsLink(folder))
+            {
+                foreach (var inside in Directory.GetDirectories(folder).Where(a => !IsLink(a)))
+                {
+                    result.Add(inside);
+                    result.AddRange(Folders(inside));
+                }
+            }
+
+            return result;
+        }
+
         /// <summary>The links to other folders there are inside of a folder.</summary>
         public static List<string> Links(string folder)
         {
