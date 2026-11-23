@@ -18,8 +18,8 @@ namespace Playnite.Tests
         {
             Assert.AreEqual(@"D:\", Storage.GetRoot(@"d:\steam\steamapps\common\Dead Cells"));
             Assert.AreEqual(@"C:\", Storage.GetRoot(@"C:\Games"));
-            Assert.IsNull(Storage.GetRoot(@"\\servidor\juegos\Undertale"));
-            Assert.IsNull(Storage.GetRoot(@"juegos\Undertale"));
+            Assert.IsNull(Storage.GetRoot(@"\\server\games\Undertale"));
+            Assert.IsNull(Storage.GetRoot(@"games\Undertale"));
             Assert.IsNull(Storage.GetRoot(null));
             Assert.IsNull(Storage.GetRoot("  "));
         }
@@ -101,7 +101,7 @@ namespace Playnite.Tests
         [Test]
         public void SequelKeepsItsOwnCapturesTest()
         {
-            var root = Path.Combine(Path.GetTempPath(), "atrio-secuela-" + Guid.NewGuid().ToString("N"));
+            var root = Path.Combine(Path.GetTempPath(), "atrio-sequel-" + Guid.NewGuid().ToString("N"));
             try
             {
                 Directory.CreateDirectory(Path.Combine(root, @"Videos\Captures"));
@@ -127,7 +127,7 @@ namespace Playnite.Tests
         [Test]
         public void FindTest()
         {
-            var root = Path.Combine(Path.GetTempPath(), "atrio-capturas-" + Guid.NewGuid().ToString("N"));
+            var root = Path.Combine(Path.GetTempPath(), "atrio-captures-" + Guid.NewGuid().ToString("N"));
             try
             {
                 string make(string path, DateTime date)
@@ -142,7 +142,7 @@ namespace Playnite.Tests
                 var day = new DateTime(2026, 11, 8, 12, 0, 0);
                 var steam = make(@"steam\userdata\111\760\remote\570\screenshots\20260315_1.jpg", day.AddDays(-3));
                 make(@"steam\userdata\111\760\remote\570\screenshots\thumbnails\20260315_1.jpg", day);
-                make(@"steam\userdata\111\760\remote\999\screenshots\otro.jpg", day);
+                make(@"steam\userdata\111\760\remote\999\screenshots\other.jpg", day);
                 var gameBar = make(@"Videos\Captures\Dota 2 2026-11-08 12-34-56.mp4", day.AddHours(1));
                 make(@"Videos\Captures\Dota 2 notas.txt", day);
                 make(@"Videos\Captures\shopping (900×495) - Google Chrome 2026-09-20 17-39-31.mp4", day);
@@ -151,7 +151,7 @@ namespace Playnite.Tests
                 var medal = make(@"Videos\Medal\Clips\Dota 2\clip.mp4", day.AddHours(3));
                 var amd = make(@"Videos\Radeon ReLive\Dota 2\captura.png", day.AddHours(4));
                 var nvidia = make(@"Videos\Dota 2\nvidia.mp4", day.AddHours(5));
-                make(@"Videos\Valorant\otro.mp4", day);
+                make(@"Videos\Valorant\other.mp4", day);
 
                 var places = new CapturePlaces
                 {

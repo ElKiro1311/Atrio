@@ -1,1 +1,2 @@
-# Complementos que Atrio avisa de quitar por ser dañinos. Un identificador por línea.
+# Add-ons that Atrio warns to remove because they are harmful. One identifier per line.
+# (Where Atrio versions up to 1.14 look for it; newer ones read atrio/addons/blocked.txt: change both.)

@@ -93,7 +93,7 @@ namespace Playnite.Tests
         {
             return new Dictionary<string, string>
             {
-                { "manifest.json", "{ \"manifest_version\": 3, \"name\": \"Prueba\", \"version\": \"" + version + "\" }" },
+                { "manifest.json", "{ \"manifest_version\": 3, \"name\": \"Test\", \"version\": \"" + version + "\" }" },
                 { "scripts/app.js", "console.log('x');" },
                 { "_metadata/verified_contents.json", "[]" }
             };
@@ -117,7 +117,7 @@ namespace Playnite.Tests
             Assert.AreEqual(folder, BrowserExtensions.GetInstalled(id, root));
             var manifest = Newtonsoft.Json.Linq.JObject.Parse(File.ReadAllText(Path.Combine(folder, "manifest.json")));
             Assert.AreEqual(Convert.ToBase64String(key), (string)manifest["key"]);
-            Assert.AreEqual("Prueba", (string)manifest["name"]);
+            Assert.AreEqual("Test", (string)manifest["name"]);
             Assert.IsTrue(File.Exists(Path.Combine(folder, "scripts", "app.js")));
             Assert.IsFalse(Directory.Exists(Path.Combine(folder, "_metadata")), "Chrome refuses a folder with the signatures of the store.");
         }

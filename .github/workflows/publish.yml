@@ -1,0 +1,57 @@
+# Builds a version of Atrio on GitHub and leaves it as a draft in Releases, without using anybody's PC.
+# Nobody sees it until whoever checks it publishes it: gh release edit x.y.z-beta --draft=false
+# Apart from it, the test bench stays (artifact "bench", 7 days); it isn't part of the version.
+name: Publish
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version: the tag, x.y.z-beta (atrio/release-notes/x.y.z.md has to be in main first)'
+        required: true
+      build_only:
+        description: 'Only build and leave the test bench, without creating any version'
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: windows-2022
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: '9.0.x'
+
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.12'
+
+      - name: Build and create the draft version
+        if: ${{ !inputs.build_only }}
+        shell: powershell
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ATRIO_VERSION: ${{ inputs.version }}
+        run: |
+          & .\atrio\tools\publish.ps1 -Version $env:ATRIO_VERSION -Draft
+
+      - name: Test bench
+        shell: powershell
+        run: |
+          & .\atrio\tools\build.ps1 -Bench -Output output\Bench
+          Compress-Archive -Path output\Bench\* -DestinationPath output\Bench.zip
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: bench
+          path: output/Bench.zip
+          retention-days: 7

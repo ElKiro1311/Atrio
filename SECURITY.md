@@ -1,24 +1,26 @@
-# Seguridad
+# Security
 
-## Avisar de un problema
+**English** · [Español](SECURITY.es.md)
 
-Usa [un aviso privado de seguridad](https://github.com/ElKiro1311/Atrio/security/advisories/new) en lugar de una incidencia pública.
+## Reporting a problem
 
-## Riesgos que conviene conocer
+Use [a private security advisory](https://github.com/ElKiro1311/Atrio/security/advisories/new) instead of a public issue.
 
-**Los complementos corren con tus permisos.** Un complemento de Atrio o de Playnite es código que se ejecuta como tú. Instala solo los que te fíes de su autor. Atrio avisa si tienes alguno de `atrio/complementos/bloqueados.txt`.
+## Risks worth knowing
 
-**Las sesiones de las tiendas se guardan en la carpeta de Atrio.** Están en `ExtensionsData`. Si compartes o subes tu carpeta, quítala antes.
+**Add-ons run with your permissions.** An Atrio or Playnite add-on is code that runs as you. Only install those whose author you trust. Atrio warns you if you have any of the ones in `atrio/addons/blocked.txt`.
 
-**El programa no está firmado.** Descárgalo solo de la página de versiones de este repositorio. Las actualizaciones vienen de esa misma página, y Atrio comprueba la huella de cada paquete antes de instalarlo.
+**Store sessions are kept in Atrio's folder.** They are in `ExtensionsData`. If you share or upload your folder, remove it first.
 
-**OptiScaler Client es un programa de otros.** Solo se descarga si lo pides en la ficha de un juego, de su página de GitHub, y Atrio comprueba la huella SHA-256 que da GitHub antes de abrirlo. Un paquete que hayas descargado tú también se comprueba, y si no es uno publicado no se usa; una copia que descomprimas a mano en la carpeta de Atrio se usa tal cual. Corre con tus permisos y cambia archivos de los juegos en los que lo instalas. Atrio lo maneja con un módulo propio por una tubería que solo puede abrir tu usuario. Antes de cambiar un juego guarda lo que va a tocar en la carpeta de datos de OptiScaler Client (subcarpeta `Atrio`) y lo borra al acabar: si algo falla o se corta a medias, el juego vuelve a quedar como estaba. No lo uses en juegos en línea.
+**The program isn't signed.** Download it only from this repository's releases page. Updates come from that same page, and Atrio checks each package's hash before installing it.
 
-**Librerías heredadas.** Atrio mantiene dos librerías antiguas de Playnite porque los complementos y el formato de la biblioteca dependen de ellas:
+**OptiScaler Client is somebody else's program.** It's only downloaded if you ask for it on a game's page, from its GitHub page, and Atrio checks the SHA-256 hash that GitHub gives before opening it. A package you downloaded yourself is checked too, and isn't used unless it's a published one; a copy you unpack by hand into Atrio's folder is used as it is. It runs with your permissions and changes files of the games you install it in. Atrio drives it with a module of its own through a pipe that only your user can open. Before changing a game it saves what it's about to touch in OptiScaler Client's data folder (`Atrio` subfolder) and deletes it when it's done: if something fails or is cut short, the game goes back to how it was. Don't use it in online games.
 
-| Librería | Aviso | Por qué sigue | Alcance |
+**Inherited libraries.** Atrio keeps two old Playnite libraries because add-ons and the library format depend on them:
+
+| Library | Advisory | Why it stays | Scope |
 |---|---|---|---|
-| LiteDB 4.1.4 | Deserialización de datos no fiables (crítico, corregido en 5.0.13) | La versión 5 usa otro formato de archivo: rompería las bibliotecas de Playnite y los complementos | Solo abre la biblioteca local. Quien pueda alterarla ya tiene acceso a tu cuenta |
-| AngleSharp 0.9.9 | Codificación incorrecta al generar HTML (moderado) | Las versiones nuevas cambian la API que usan los complementos | Se usa para leer páginas, no para publicar HTML |
+| LiteDB 4.1.4 | Deserialization of untrusted data (critical, fixed in 5.0.13) | Version 5 uses another file format: it would break Playnite libraries and add-ons | It only opens the local library. Whoever can alter it already has access to your account |
+| AngleSharp 0.9.9 | Wrong encoding when generating HTML (moderate) | Newer versions change the API that add-ons use | It's used to read pages, not to publish HTML |
 
-Newtonsoft.Json sí está actualizada (13.0.3), con redirección para los complementos compilados contra la 10.
+Newtonsoft.Json is up to date (13.0.3), with a redirect for the add-ons built against version 10.

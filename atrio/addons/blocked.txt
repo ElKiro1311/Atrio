@@ -1,0 +1,2 @@
+# Add-ons that Atrio warns to remove because they are harmful. One identifier per line.
+# (The same list is in atrio/complementos/bloqueados.txt, where versions up to 1.14 look for it: change both.)

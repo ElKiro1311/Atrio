@@ -10,6 +10,7 @@ using System.IO.Compression;
 using System.Linq;
 using System.Net.Http;
 using System.Security.Cryptography;
+using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -75,8 +76,9 @@ namespace Playnite.Atrio
         private const string UpdateFolderName = "update";
         private const string PackageFolderName = "p";
         private const string BackupFolderName = "a";
-        private const string DownloadName = "paquete.zip";
+        private const string DownloadName = "package.zip";
         private const string PlanName = "plan.txt";
+        /// <summary>Its name stays in Spanish: one version writes it and the next one reads it.</summary>
         private const string MarkerName = "instalada.txt";
         private const string InstallerName = "Atrio.Updater.exe";
         private const string HashPrefix = "sha256:";
@@ -119,6 +121,25 @@ namespace Playnite.Atrio
             }
 
             return releases.OrderByDescending(a => a.Version).ToList();
+        }
+
+        private static readonly Regex spanishNotes = new Regex(
+            @"<details>\s*<summary>\s*(?:<b>)?\s*Español\s*(?:</b>)?\s*</summary>(?<notes>.*?)</details>",
+            RegexOptions.IgnoreCase | RegexOptions.Singleline);
+
+        /// <summary>
+        /// The notes of a version in one language: they are written in English, with the Spanish ones in a block at the
+        /// end. The notes of the versions before 1.14.1 that have only one language come out as they are.
+        /// </summary>
+        public static string GetNotes(string notes, bool spanish)
+        {
+            var match = spanishNotes.Match(notes ?? string.Empty);
+            if (!match.Success)
+            {
+                return notes ?? string.Empty;
+            }
+
+            return (spanish ? match.Groups["notes"].Value : notes.Remove(match.Index, match.Length)).Trim();
         }
 
         public static List<AtrioRelease> GetNewerReleases(IEnumerable<AtrioRelease> releases, Version current)

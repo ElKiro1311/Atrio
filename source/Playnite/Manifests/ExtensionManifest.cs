@@ -74,6 +74,16 @@ namespace Playnite
             description.DescriptionPath = descriptorPath;
             description.DirectoryPath = Path.GetDirectoryName(descriptorPath);
             description.DirectoryName = Path.GetFileName(description.DirectoryPath);
+            if (description.Id == Atrio.AtrioInfo.AchievementsAddonId)
+            {
+                // Atrio's achievements go by the name of their section, in the language of the application.
+                var name = ResourceProvider.GetString("LOCAtrioAchievements");
+                if (name?.StartsWith("<!", StringComparison.Ordinal) == false)
+                {
+                    description.Name = name;
+                }
+            }
+
             return description;
         }
     }

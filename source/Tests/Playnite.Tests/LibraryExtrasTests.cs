@@ -114,7 +114,7 @@ namespace Playnite.Tests
 
         private static string NewFolder()
         {
-            var folder = Path.Combine(Path.GetTempPath(), "atrio-pruebas-" + Guid.NewGuid().ToString("N"));
+            var folder = Path.Combine(Path.GetTempPath(), "atrio-tests-" + Guid.NewGuid().ToString("N"));
             Directory.CreateDirectory(folder);
             return folder;
         }
@@ -238,7 +238,7 @@ namespace Playnite.Tests
             Assert.AreEqual("name:" + GameCaptures.Normalize("Valorant"), PcGamingWiki.GetKey(new[] { other }, "Valorant"));
 
             // A game added by hand isn't asked for by its name.
-            Assert.IsNull(PcGamingWiki.GetKey(new[] { new Game("Mi juego casero") }, "Mi juego casero"));
+            Assert.IsNull(PcGamingWiki.GetKey(new[] { new Game("My homemade game") }, "My homemade game"));
         }
 
         [Test]

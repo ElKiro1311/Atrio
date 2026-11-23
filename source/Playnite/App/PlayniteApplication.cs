@@ -134,8 +134,10 @@ namespace Playnite
             if (FileSystem.FileExists(PlaynitePaths.SafeStartupFlagFile))
             {
                 if (MessageBox.Show(
-                    "Atrio se cerró de forma inesperada al arrancar. Suele deberse a un tema o complemento de terceros. ¿Quieres iniciar en modo seguro, con los complementos de terceros desactivados?",
-                    "Error al iniciar",
+                    AtrioInfo.Say(
+                        "Atrio closed unexpectedly while starting. It is usually because of a third-party theme or add-on. Do you want to start in safe mode, with third-party add-ons turned off?",
+                        "Atrio se cerró de forma inesperada al arrancar. Suele deberse a un tema o complemento de terceros. ¿Quieres iniciar en modo seguro, con los complementos de terceros desactivados?"),
+                    AtrioInfo.Say("Startup error", "Error al iniciar"),
                     MessageBoxButton.YesNo,
                     MessageBoxImage.Warning) == MessageBoxResult.Yes)
                 {
@@ -1104,7 +1106,9 @@ namespace Playnite
                 catch (Exception exc) when (!PlayniteEnvironment.ThrowAllErrors)
                 {
                     MessageBox.Show(
-                        "Atrio no pudo iniciarse. Cierra las demás instancias e inténtalo de nuevo.",
+                        AtrioInfo.Say(
+                            "Atrio could not start. Close the other instances and try again.",
+                            "Atrio no pudo iniciarse. Cierra las demás instancias e inténtalo de nuevo."),
                         "Startup Error");
                     logger.Error(exc, "Can't process communication with other instances.");
                 }

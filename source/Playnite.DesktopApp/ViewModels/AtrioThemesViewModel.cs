@@ -12,19 +12,19 @@ using System.Windows.Media;
 namespace Playnite.DesktopApp.ViewModels
 {
     /// <summary>
-    /// Optional atrio-tema.yaml file next to theme.yaml. Regular Playnite themes don't have it.
+    /// Optional atrio-theme.yaml file next to theme.yaml. Regular Playnite themes don't have it.
     /// </summary>
     public class AtrioThemeInfo
     {
-        public string Descripcion { get; set; }
-        public string Familia { get; set; }
-        public int Orden { get; set; } = 100;
-        public string Vista { get; set; }
-        public string BarraLateral { get; set; }
-        public string PanelFiltros { get; set; }
-        public double? AnchoPortada { get; set; }
-        public string FuenteTitulos { get; set; }
-        public string FuenteTexto { get; set; }
+        public string Description { get; set; }
+        public string Family { get; set; }
+        public int Order { get; set; } = 100;
+        public string View { get; set; }
+        public string Sidebar { get; set; }
+        public string FilterPanel { get; set; }
+        public double? CoverWidth { get; set; }
+        public string TitleFont { get; set; }
+        public string TextFont { get; set; }
     }
 
     public class ThemeCard
@@ -55,7 +55,7 @@ namespace Playnite.DesktopApp.ViewModels
     public class ThemesViewModel : ObservableObject
     {
         private static readonly ILogger logger = LogManager.GetLogger();
-        private const string ThemeInfoFile = "atrio-tema.yaml";
+        private const string ThemeInfoFile = "atrio-theme.yaml";
         private const string AccentResourceKey = "GlyphColor";
         private const string AccentSoftResourceKey = "HighlightGlyphColor";
 
@@ -122,9 +122,9 @@ namespace Playnite.DesktopApp.ViewModels
                         Id = theme.Id,
                         Name = isClassic ? ResourceProvider.GetString("LOCAtrioThemeClassic") : theme.Name,
                         Author = theme.Author,
-                        Description = Translate(info?.Descripcion) ?? (isClassic ? ResourceProvider.GetString("LOCAtrioThemeClassicDescription") : ResourceProvider.GetString("LOCAtrioThemeThirdParty")),
-                        Family = Translate(info?.Familia) ?? ResourceProvider.GetString("LOCAtrioThemeFamilyOther"),
-                        Order = info?.Orden ?? 1000,
+                        Description = Translate(info?.Description) ?? (isClassic ? ResourceProvider.GetString("LOCAtrioThemeClassicDescription") : ResourceProvider.GetString("LOCAtrioThemeThirdParty")),
+                        Family = Translate(info?.Family) ?? ResourceProvider.GetString("LOCAtrioThemeFamilyOther"),
+                        Order = info?.Order ?? 1000,
                         PreviewPath = GetPreview(theme.DirectoryPath),
                         IsCurrent = theme.Id == main.AppSettings.Theme,
                         Info = info
@@ -145,7 +145,9 @@ namespace Playnite.DesktopApp.ViewModels
 
         private static string GetPreview(string themeDir)
         {
-            foreach (var file in new string[] { "preview.jpg", "preview.png" })
+            // Atrio's themes bring their preview in several languages: the plain one is in English.
+            var language = Localization.CurrentLanguage?.Split('_')[0];
+            foreach (var file in new string[] { $"preview.{language}.jpg", "preview.jpg", "preview.png" })
             {
                 var path = Path.Combine(themeDir, file);
                 if (File.Exists(path))
@@ -181,24 +183,24 @@ namespace Playnite.DesktopApp.ViewModels
                 return;
             }
 
-            if (Enum.TryParse<DesktopView>(info.Vista, out var view))
+            if (Enum.TryParse<DesktopView>(info.View, out var view))
             {
                 settings.ViewSettings.GamesViewType = view;
             }
 
-            if (Enum.TryParse<Dock>(info.BarraLateral, out var sidebar))
+            if (Enum.TryParse<Dock>(info.Sidebar, out var sidebar))
             {
                 settings.SidebarPosition = sidebar;
             }
 
-            if (Enum.TryParse<Dock>(info.PanelFiltros, out var filters))
+            if (Enum.TryParse<Dock>(info.FilterPanel, out var filters))
             {
                 settings.FilterPanelPosition = filters;
             }
 
-            if (info.AnchoPortada != null)
+            if (info.CoverWidth != null)
             {
-                settings.GridItemWidth = info.AnchoPortada.Value;
+                settings.GridItemWidth = info.CoverWidth.Value;
             }
         }
 
@@ -248,14 +250,14 @@ namespace Playnite.DesktopApp.ViewModels
 
                 var info = Playnite.SDK.Data.Serialization.FromYamlFile<AtrioThemeInfo>(infoPath);
                 var folder = new Uri(Path.Combine(theme.DirectoryPath, "Fonts") + Path.DirectorySeparatorChar);
-                if (!info.FuenteTitulos.IsNullOrEmpty())
+                if (!info.TitleFont.IsNullOrEmpty())
                 {
-                    Application.Current.Resources["AtrioDisplayFont"] = new FontFamily(folder, "./#" + info.FuenteTitulos);
+                    Application.Current.Resources["AtrioDisplayFont"] = new FontFamily(folder, "./#" + info.TitleFont);
                 }
 
-                if (!info.FuenteTexto.IsNullOrEmpty())
+                if (!info.TextFont.IsNullOrEmpty())
                 {
-                    Application.Current.Resources["FontFamily"] = new FontFamily(folder, "./#" + info.FuenteTexto);
+                    Application.Current.Resources["FontFamily"] = new FontFamily(folder, "./#" + info.TextFont);
                 }
             }
             catch (Exception e)

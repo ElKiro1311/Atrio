@@ -148,7 +148,7 @@ namespace Playnite.Tests
         [Test]
         public void HistoryFileTest()
         {
-            var folder = Path.Combine(Path.GetTempPath(), "atrio-historial-" + Guid.NewGuid().ToString("N"));
+            var folder = Path.Combine(Path.GetTempPath(), "atrio-history-" + Guid.NewGuid().ToString("N"));
             Directory.CreateDirectory(folder);
             var previous = PlayHistory.FilePath;
             try

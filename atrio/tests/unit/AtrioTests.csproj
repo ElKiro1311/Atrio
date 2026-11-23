@@ -1,0 +1,61 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Atrio's unit tests. They run against a build of Atrio: first run atrio\tools\build.ps1 and then, in this folder,
+       dotnet run -c Release (with the SDK in .tools\dotnet, if there is no other one). -->
+  <PropertyGroup>
+    <TargetFramework>net462</TargetFramework>
+    <PlatformTarget>x86</PlatformTarget>
+    <RuntimeIdentifier>win-x86</RuntimeIdentifier>
+    <LangVersion>12</LangVersion>
+    <IsPackable>false</IsPackable>
+    <OutputType>Exe</OutputType>
+    <NuGetAudit>false</NuGetAudit>
+    <UseWpf>true</UseWpf>
+    <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
+    <AtrioApp Condition="'$(AtrioApp)'==''">..\..\..\output\Atrio</AtrioApp>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="..\..\..\source\Tests\Playnite.Tests\GameUnifierTests.cs" Link="GameUnifierTests.cs" />
+    <Compile Include="..\..\..\source\Tests\Playnite.Tests\SettingsTests.cs" Link="SettingsTests.cs" />
+    <Compile Include="..\..\..\source\Tests\Playnite.Tests\SteamContentTests.cs" Link="SteamContentTests.cs" />
+    <Compile Include="..\..\..\source\Tests\Playnite.Tests\SteamFriendsTests.cs" Link="SteamFriendsTests.cs" />
+    <Compile Include="..\..\..\source\Tests\Playnite.Tests\LinkBrowsersTests.cs" Link="LinkBrowsersTests.cs" />
+    <Compile Include="..\..\..\source\Tests\Playnite.Tests\GameCollectionsTests.cs" Link="GameCollectionsTests.cs" />
+    <Compile Include="..\..\..\source\Tests\Playnite.Tests\AtrioUpdatesTests.cs" Link="AtrioUpdatesTests.cs" />
+    <Compile Include="..\..\..\source\Tests\Playnite.Tests\UpdateInstallerTests.cs" Link="UpdateInstallerTests.cs" />
+    <Compile Include="..\..\..\source\Tests\Playnite.Tests\HeroLayoutTests.cs" Link="HeroLayoutTests.cs" />
+    <Compile Include="..\..\..\source\Tests\Playnite.Tests\DefaultFilterPresetsTests.cs" Link="DefaultFilterPresetsTests.cs" />
+    <Compile Include="..\..\..\source\Tests\Playnite.Tests\SteamDirectInstallTests.cs" Link="SteamDirectInstallTests.cs" />
+    <Compile Include="..\..\..\source\Tests\Playnite.Tests\DirectInstallTests.cs" Link="DirectInstallTests.cs" />
+    <Compile Include="..\..\..\source\Atrio.Updater\UpdateInstaller.cs" Link="UpdateInstaller.cs" />
+    <Compile Include="..\..\..\source\Tests\Playnite.Tests\AchievementListConvertersTests.cs" Link="AchievementListConvertersTests.cs" />
+    <Compile Include="..\..\..\source\Tests\Playnite.Tests\AchievementCardTests.cs" Link="AchievementCardTests.cs" />
+    <Compile Include="..\..\..\source\Tests\Playnite.Tests\AchievementCardChoiceTests.cs" Link="AchievementCardChoiceTests.cs" />
+    <Compile Include="..\..\..\source\Tests\Playnite.Tests\AlmostDoneShelfTests.cs" Link="AlmostDoneShelfTests.cs" />
+    <Compile Include="..\..\..\source\Tests\Playnite.Tests\SteamCollectionsTests.cs" Link="SteamCollectionsTests.cs" />
+    <Compile Include="..\..\..\source\Tests\Playnite.Tests\DirectUninstallTests.cs" Link="DirectUninstallTests.cs" />
+    <Compile Include="..\..\..\source\Tests\Playnite.Tests\OpenGamesTests.cs" Link="OpenGamesTests.cs" />
+    <Compile Include="..\..\..\source\Tests\Playnite.Tests\CouchBrowserTests.cs" Link="CouchBrowserTests.cs" />
+    <Compile Include="..\..\..\source\Tests\Playnite.Tests\StoreUninstallsTests.cs" Link="StoreUninstallsTests.cs" />
+    <Compile Include="..\..\..\source\Tests\Playnite.Tests\OutsidePlayTests.cs" Link="OutsidePlayTests.cs" />
+    <Compile Include="..\..\..\source\Tests\Playnite.Tests\WeekSummaryTests.cs" Link="WeekSummaryTests.cs" />
+    <Compile Include="..\..\..\source\Tests\Playnite.Tests\StorageAndCapturesTests.cs" Link="StorageAndCapturesTests.cs" />
+    <Compile Include="..\..\..\source\Tests\Playnite.Tests\SavesAndTrailersTests.cs" Link="SavesAndTrailersTests.cs" />
+    <Compile Include="..\..\..\source\Tests\Playnite.Tests\LibraryExtrasTests.cs" Link="LibraryExtrasTests.cs" />
+    <Compile Include="..\..\..\source\Tests\Playnite.Tests\FreeGamesTests.cs" Link="FreeGamesTests.cs" />
+    <Compile Include="..\..\..\source\Tests\Playnite.Tests\BrowserExtensionsTests.cs" Link="BrowserExtensionsTests.cs" />
+    <Compile Include="..\..\..\source\Tests\Playnite.Tests\StoreActivityTests.cs" Link="StoreActivityTests.cs" />
+    <Compile Include="..\..\..\source\Tests\Playnite.Tests\SteamCardsTests.cs" Link="SteamCardsTests.cs" />
+    <Compile Include="..\..\..\source\Tests\Playnite.Tests\OptiScalerClientTests.cs" Link="OptiScalerClientTests.cs" />
+    <Compile Include="..\..\..\source\Tests\Playnite.Tests\PlayerActivityTests.cs" Link="PlayerActivityTests.cs" />
+    <Compile Include="..\..\..\source\Tests\Playnite.Tests\_TestTools\TestDateTimes.cs" Link="TestDateTimes.cs" />
+    <Reference Include="System.Drawing" />
+    <Reference Include="System.IO.Compression" />
+    <Reference Include="System.IO.Compression.FileSystem" />
+    <PackageReference Include="NUnit" Version="3.13.2" />
+    <PackageReference Include="NUnitLite" Version="3.13.2" />
+    <Reference Include="Playnite"><HintPath>$(AtrioApp)\Playnite.dll</HintPath></Reference>
+    <Reference Include="Playnite.SDK"><HintPath>$(AtrioApp)\Playnite.SDK.dll</HintPath></Reference>
+    <Reference Include="NLog"><HintPath>$(AtrioApp)\NLog.dll</HintPath></Reference>
+    <Reference Include="Newtonsoft.Json"><HintPath>$(AtrioApp)\Newtonsoft.Json.dll</HintPath></Reference>
+  </ItemGroup>
+</Project>

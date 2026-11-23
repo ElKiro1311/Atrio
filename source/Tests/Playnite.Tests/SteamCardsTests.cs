@@ -178,7 +178,7 @@ namespace Playnite.Tests
         [Test]
         public void TheFileOfTheClientMayHaveAnythingTest()
         {
-            var root = Path.Combine(Path.GetTempPath(), $"atrio-cromos-{Guid.NewGuid():N}");
+            var root = Path.Combine(Path.GetTempPath(), $"atrio-cards-{Guid.NewGuid():N}");
             try
             {
                 var folder = Path.Combine(root, "userdata", "22202", "config", "librarycache");
@@ -227,7 +227,7 @@ namespace Playnite.Tests
         [Test]
         public void ClientFolderTest()
         {
-            var root = Path.Combine(Path.GetTempPath(), $"atrio-cromos-{Guid.NewGuid():N}");
+            var root = Path.Combine(Path.GetTempPath(), $"atrio-cards-{Guid.NewGuid():N}");
             try
             {
                 foreach (var account in new[] { "11", "22202" })

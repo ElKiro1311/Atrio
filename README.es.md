@@ -1,0 +1,102 @@
+# Atrio
+
+[English](README.md) · **Español**
+
+Un solo sitio para los juegos de todas tus tiendas. Atrio es un lanzador portátil para Windows basado en [Playnite](https://github.com/JosefNemec/Playnite): no se instala, no escribe en el registro y guarda todo dentro de su carpeta. La interfaz está en español y en inglés.
+
+![Biblioteca de Atrio con juegos inventados](atrio/screenshots/es/library.jpg)
+
+> Las imágenes usan una biblioteca de ejemplo con juegos que no existen, generada por `atrio/demo/generate.py`.
+
+## Qué aporta
+
+- **Un juego, una entrada.** Si tienes el mismo juego en varias tiendas aparece una sola vez, con el icono de cada tienda en la portada.
+- **Tú eliges desde dónde jugar.** La ficha del juego muestra cada copia, con su botón de jugar o instalar. También puedes fijar una tienda por defecto o separar una copia que no sea el mismo juego.
+- **Instala sin pasar por la tienda.** Atrio da la orden y el juego baja con el porcentaje en el botón. Steam, Xbox, Epic, Amazon e itch.io van solos. EA, Ubisoft y GOG se paran en las condiciones del juego para que las aceptes tú, salvo que actives una opción. La tienda tiene que estar en tu PC con tu cuenta iniciada, y si algo falla se abre como siempre.
+- **Tiendas listas desde el primer arranque.** Steam, Epic, GOG, Xbox, Battle.net, EA, Ubisoft, Rockstar, Riot, Amazon, Humble e itch.io vienen activas. Otras once se activan con un clic y cuatro más se descargan desde la página Tiendas.
+- **Logros en un solo sitio.** Lee los logros de tus tiendas y de RetroAchievements, los enseña en la ficha de cada juego y te avisa cuando desbloqueas uno mientras juegas. Solo los lee: hay que conectar cada cuenta.
+- **Emuladores como una tienda más.** Atrio reconoce 89 emuladores. Cada uno tiene su tarjeta, su filtro en la biblioteca y su icono en las portadas. No incluye emuladores, juegos ni BIOS.
+- **Navegador propio.** Los enlaces de tiendas, noticias y fichas se abren dentro de Atrio, en todas las tiendas.
+  Usa el motor de Edge que trae Windows (WebView2), así que los tráileres se ven con sonido. En Ajustes puedes elegir
+  otro navegador.
+- **Extensiones del navegador.** En Tiendas puedes activar SteamDB y Augmented Steam para ver en la tienda de Steam el
+  precio más bajo, los precios de otras tiendas y los jugadores. Se descargan de la Chrome Web Store al activarlas.
+- **Amigos en la ficha.** Con tu sesión de Steam en ese navegador, la ficha enseña qué amigos juegan a cada juego.
+- **La actividad de cada tienda.** Debajo de cada título sale lo que publica la tienda que usas para ese juego, con las
+  notas de sus parches, junto a lo que has jugado y los logros que has sacado.
+- **Cromos e insignias de Steam.** La ficha enseña los que tienes, los que te faltan y el nivel de la insignia.
+- **OptiScaler junto a «Jugar».** Con las funciones de [OptiScaler Client](https://github.com/Optiscaler-Client/Optiscaler-Client),
+  que solo se descarga si lo pides. Una versión nueva se prueba antes de usarla: si no encaja, sigue la que funcionaba.
+- **Colecciones.** Las llenas tú, con clic derecho, arrastrando o eligiendo juegos de una lista, o se llenan solas
+  con unos filtros. Cada una tiene su página y puede salir como estante en Inicio.
+- **Se actualiza sola.** Atrio mira las Releases de este repositorio, sin ninguna cuenta, enseña las novedades y se instala con
+  un clic. Si algo falla, se queda como estaba, y tu biblioteca y tus ajustes no se tocan.
+- **Interfaz nueva.** Menú arriba y biblioteca a la izquierda, con un selector de tiendas y buscador.
+  Inicio con novedades, juegos recientes y qué jugar después. Ficha con cabecera, barra de juego,
+  actividad y logros, que se adapta desde portátiles hasta pantallas ultrapanorámicas. Siete temas.
+- **Compatible con Playnite.** Atrio carga los complementos y temas de Playnite 10 y puede copiar tu biblioteca sin tocar la original.
+
+## Empezar
+
+1. Descarga `Atrio.zip` de la última versión en [Releases](https://github.com/ElKiro1311/Atrio/releases).
+2. Descomprímelo donde tengas permiso de escritura, por ejemplo en `D:\`: todo queda dentro de una carpeta `Atrio`. Evita `Archivos de programa`.
+3. Abre `Atrio.exe`, dentro de esa carpeta.
+
+El otro paquete de cada versión, `Atrio-<versión>.zip`, es el que usan las actualizaciones automáticas. Tiene lo mismo, sin la carpeta.
+
+Requisitos: Windows 10 o 11. El programa no está firmado, así que Windows puede avisar la primera vez.
+
+Si tienes Playnite, ciérralo antes del primer arranque y Atrio te ofrecerá copiar tu biblioteca, tus imágenes y tus sesiones.
+
+## Compilar
+
+Hace falta Windows, Python 3 y conexión a internet. Si no tienes .NET SDK, el script baja uno a `.tools\` sin instalar nada.
+
+```powershell
+powershell -ExecutionPolicy Bypass -File atrio\tools\build.ps1
+```
+
+El resultado queda en `output\Atrio`. Con `-Zip` crea además el paquete para publicar. Con `-Bench` añade el banco de pruebas fuera de pantalla, descrito en `source\Playnite.DesktopApp\Atrio\AtrioCaptura.cs`.
+
+Para regenerar el logo, la biblioteca de ejemplo o las vistas previas hacen falta Pillow y PyYAML: `python -m pip install --target .tools\py pillow pyyaml`.
+
+Para publicar una versión, escribe sus novedades en `atrio\release-notes\<versión>.md` (primero en inglés y al final un bloque en español, como las demás), súbelas a `main` y ejecuta `atrio\tools\publish.ps1 -Version <versión>-beta` desde una copia limpia, o el flujo «Publish» en GitHub. Compila el paquete y crea la Release, y Atrio la encuentra solo.
+
+| Carpeta | Contenido |
+|---|---|
+| `source/` | El código. Lo propio de Atrio está en las carpetas `Atrio` y en los archivos `Atrio*` |
+| `atrio/themes/` | Temas: `base/`, una carpeta por variante, `variants.py` (colores), `fonts/`, `previews/` |
+| `atrio/addons/` | Lista fijada de complementos con su versión, huella y licencia |
+| `source/local-packages/` | `Playnite.Deps`, las librerías binarias que Playnite solo publica en su propio servidor de paquetes, para compilar sin depender de él |
+| `atrio/tools/` | Scripts de compilación y publicación |
+| `atrio/release-notes/` | Lo que trae cada versión, que Atrio enseña antes de actualizarse |
+| `atrio/demo/` | Generador de la biblioteca de ejemplo |
+| `atrio/tests/` | Banco de pruebas y pruebas unitarias |
+
+Algunos nombres siguen en español porque los leen las copias instaladas: `atrio/complementos/bloqueados.txt`, la versión `complementos`, `atrio-archivos.txt` en el paquete y los archivos de datos de la carpeta de Atrio.
+
+## Lo que Atrio no hace
+
+Atrio no incluye juegos, ROM, BIOS ni claves, ni ayuda a conseguirlos. Tampoco salta ningún DRM: cada juego se abre con su tienda.
+
+Atrio no usa los servidores de Playnite, ni al funcionar ni al compilar. El buscador de complementos lee la [base pública de complementos](https://github.com/JosefNemec/PlayniteAddonDatabase), los complementos oficiales incluidos se actualizan con cada versión de Atrio y el plan B del complemento de Steam está desactivado.
+
+El proveedor de metadatos IGDB no viene incluido porque depende de esos servidores. Quien lo quiera puede instalarlo desde Complementos.
+
+## Créditos y licencias
+
+Atrio es una versión modificada (un *fork*) de [Playnite](https://github.com/JosefNemec/Playnite), de Josef Nemec y colaboradores, y se publica con la misma licencia [MIT](LICENSE.md). Las dependencias de Playnite aparecen en [`source/Playnite/license.txt`](source/Playnite/license.txt).
+
+Es un proyecto independiente: si encuentras un fallo, avisa aquí y no en Playnite.
+
+Los logros se apoyan en [Playnite Achievements](https://github.com/justin-delano/PlayniteAchievements), de Justin Delano (MIT). Atrio lo incluye adaptado: nombre, traducción al español y sin un sonido cuya licencia no consta.
+
+[OptiScaler Client](https://github.com/Optiscaler-Client/Optiscaler-Client), de Agustinm28, es un programa aparte con licencia GPL-3.0. Atrio no lo incluye ni modifica sus archivos: lo descarga de su página cuando el usuario lo pide y, al arrancarlo, carga en él un módulo propio (`source/Atrio.OptiScaler`, con la licencia MIT de Atrio) con el que se entiende. [OptiScaler](https://github.com/optiscaler/OptiScaler) es obra de sus autores. Ninguno de los dos es oficial de las tiendas ni de los fabricantes de tarjetas gráficas.
+
+Los complementos incluidos son obra de sus autores: cada uno figura en [`atrio/addons/list.json`](atrio/addons/list.json) con su licencia, y el paquete lleva el texto de todas en `addon-licenses.txt`. Solo se incluyen los que permiten redistribuirlos.
+
+Las fuentes Poppins y Barlow usan la [SIL Open Font License](atrio/themes/fonts). Los iconos de [IcoFont](https://icofont.com) usan [CC BY 4.0 y SIL OFL](references/Fonts/LICENSE-IcoFont.txt).
+
+Atrio no está afiliado a Playnite, Valve, Epic Games, Microsoft ni a ninguna otra tienda. Los nombres y logotipos son de sus dueños y solo identifican cada tienda. Este repositorio no incluye sus logotipos: los aporta el complemento de cada tienda.
+
+Consulta también la [política de seguridad](SECURITY.es.md).

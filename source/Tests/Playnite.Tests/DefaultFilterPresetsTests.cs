@@ -69,7 +69,7 @@ namespace Playnite.Tests
         [Test]
         public void ANameOfTheUserIsNotTranslated()
         {
-            Assert.AreEqual("Para esta noche", DefaultFilterPresets.GetName(Preset("Para esta noche", SortOrder.Name)));
+            Assert.AreEqual("For tonight", DefaultFilterPresets.GetName(Preset("For tonight", SortOrder.Name)));
             Assert.IsNull(DefaultFilterPresets.GetName(null));
         }
     }

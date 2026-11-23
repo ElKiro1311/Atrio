@@ -55,8 +55,8 @@ namespace Playnite.Tests
         [Test]
         public void ExcerptUnderstandsTagsWithAttributesTest()
         {
-            var post = "[img src=\"{STEAM_CLAN_IMAGE}/1/a.png\"][/img][video mp4=\"a.mp4\" webm=\"a.webm\"][/video][p]Hola[/p] [Patch 1.2 notes]";
-            Assert.AreEqual("Hola [Patch 1.2 notes]", SteamContent.GetExcerpt(post));
+            var post = "[img src=\"{STEAM_CLAN_IMAGE}/1/a.png\"][/img][video mp4=\"a.mp4\" webm=\"a.webm\"][/video][p]Hello[/p] [Patch 1.2 notes]";
+            Assert.AreEqual("Hello [Patch 1.2 notes]", SteamContent.GetExcerpt(post));
         }
 
         [Test]

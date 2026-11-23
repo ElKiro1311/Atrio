@@ -46,7 +46,9 @@ namespace Playnite.DesktopApp
             if (!Playnite.Atrio.AtrioInfo.CanWriteUserData())
             {
                 MessageBox.Show(
-                    "Atrio guarda sus datos en su propia carpeta y aquí no tiene permiso para escribir. Muévelo a otra, por ejemplo D:\\Atrio.\r\rAtrio keeps its data in its own folder and cannot write here. Move it somewhere else, such as D:\\Atrio.",
+                    Playnite.Atrio.AtrioInfo.Say(
+                        "Atrio keeps its data in its own folder and cannot write here. Move it somewhere else, such as D:\\Atrio.",
+                        "Atrio guarda sus datos en su propia carpeta y aquí no tiene permiso para escribir. Muévelo a otra, por ejemplo D:\\Atrio."),
                     "Atrio",
                     MessageBoxButton.OK,
                     MessageBoxImage.Error);
@@ -70,7 +72,9 @@ namespace Playnite.DesktopApp
             if (PlaynitePaths.ProgramPath.Contains(@"temp\rar$", StringComparison.OrdinalIgnoreCase))
             {
                 MessageBox.Show(
-                    "Atrio no puede ejecutarse desde un archivo comprimido temporal.\rExtrae la carpeta completa antes de iniciarlo.",
+                    Playnite.Atrio.AtrioInfo.Say(
+                        "Atrio cannot run from a temporary compressed file.\rExtract the whole folder before starting it.",
+                        "Atrio no puede ejecutarse desde un archivo comprimido temporal.\rExtrae la carpeta completa antes de iniciarlo."),
                     "Startup Error",
                     MessageBoxButton.OK,
                     MessageBoxImage.Error);
@@ -79,7 +83,9 @@ namespace Playnite.DesktopApp
             else if (PlaynitePaths.ProgramPath.Contains("#"))
             {
                 MessageBox.Show(
-                    "Atrio no puede ejecutarse desde esta carpeta porque la ruta contiene el carácter '#'. Usa otra carpeta.",
+                    Playnite.Atrio.AtrioInfo.Say(
+                        "Atrio cannot run from this folder because its path has the character '#'. Use another folder.",
+                        "Atrio no puede ejecutarse desde esta carpeta porque la ruta contiene el carácter '#'. Usa otra carpeta."),
                     "Startup Error",
                     MessageBoxButton.OK,
                     MessageBoxImage.Error);

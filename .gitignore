@@ -287,8 +287,8 @@ source/Playnite.Deps/include_native_x86/*
 launchSettings.json
 
 # Atrio
-/.herramientas/
-/salida/
-/atrio/pruebas/unitarias/bin/
-/atrio/pruebas/unitarias/obj/
+/.tools/
+/output/
+/atrio/tests/unit/bin/
+/atrio/tests/unit/obj/
 __pycache__/

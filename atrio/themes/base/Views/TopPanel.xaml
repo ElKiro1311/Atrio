@@ -1,0 +1,149 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+                    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+                    xmlns:sys="clr-namespace:System;assembly=mscorlib"
+                    mc:Ignorable="d">
+
+    <!-- Every toolbar button says what it does: an icon alone is what made the old bar hard to read. -->
+    <Style x:Key="AtrioBarIcon" TargetType="TextBlock">
+        <Setter Property="FontFamily" Value="{DynamicResource AtrioIconFont}" />
+        <Setter Property="FontSize" Value="14" />
+        <Setter Property="VerticalAlignment" Value="Center" />
+    </Style>
+    <Style x:Key="AtrioBarLabel" TargetType="TextBlock">
+        <Setter Property="FontFamily" Value="{DynamicResource FontFamily}" />
+        <Setter Property="FontSize" Value="13" />
+        <Setter Property="VerticalAlignment" Value="Center" />
+        <Setter Property="Margin" Value="7,0,0,0" />
+    </Style>
+
+    <DataTemplate x:Key="TopPanelGeneralViewSettingsTemplate">
+        <TextBlock Text="&#xE890;" Style="{DynamicResource AtrioBarIcon}" HorizontalAlignment="Center" />
+    </DataTemplate>
+
+    <DataTemplate x:Key="TopPanelFilterPresetsSelectionTemplate">
+        <TextBlock Text="&#xE728;" Style="{DynamicResource AtrioBarIcon}" HorizontalAlignment="Center" />
+    </DataTemplate>
+
+    <DataTemplate x:Key="TopPanelGroupSettingsTemplate">
+        <TextBlock Text="&#xE81E;" Style="{DynamicResource AtrioBarIcon}" HorizontalAlignment="Center" />
+    </DataTemplate>
+
+    <DataTemplate x:Key="TopPanelSortSettingsTemplate">
+        <TextBlock Text="&#xE8CB;" Style="{DynamicResource AtrioBarIcon}" HorizontalAlignment="Center" />
+    </DataTemplate>
+
+    <DataTemplate x:Key="TopPanelSwitchDetailsViewTemplate">
+        <TextBlock Text="&#xE8FD;" Style="{DynamicResource AtrioBarIcon}" FontSize="15" HorizontalAlignment="Center" />
+    </DataTemplate>
+
+    <DataTemplate x:Key="TopPanelSwitchGridViewTemplate">
+        <TextBlock Text="&#xF0E2;" Style="{DynamicResource AtrioBarIcon}" FontSize="15" HorizontalAlignment="Center" />
+    </DataTemplate>
+
+    <DataTemplate x:Key="TopPanelSwitchListViewTemplate">
+        <TextBlock Text="&#xE80A;" Style="{DynamicResource AtrioBarIcon}" FontSize="15" HorizontalAlignment="Center" />
+    </DataTemplate>
+
+    <DataTemplate x:Key="TopPanelUpdateButtonTemplate">
+        <TextBlock Text="&#xE896;" Style="{DynamicResource AtrioBarIcon}" HorizontalAlignment="Center"
+                   Foreground="{DynamicResource WarningBrush}" />
+    </DataTemplate>
+
+    <DataTemplate x:Key="TopPanelExplorerSwitchTemplate">
+        <TextBlock Text="&#xE8A1;" Style="{DynamicResource AtrioBarIcon}" HorizontalAlignment="Center" />
+    </DataTemplate>
+
+    <DataTemplate x:Key="TopPanelSelectRandomGameButtonTemplate">
+        <TextBlock Text="&#xE8B1;" Style="{DynamicResource AtrioBarIcon}" HorizontalAlignment="Center" />
+    </DataTemplate>
+
+    <DataTemplate x:Key="TopPanelViewSelectRandomGameButtonTemplate">
+        <TextBlock Text="&#xE8B1;" Style="{DynamicResource AtrioBarIcon}" HorizontalAlignment="Center" />
+    </DataTemplate>
+
+    <DataTemplate x:Key="TopPanelSearchButtonTemplate">
+        <TextBlock Text="&#xE721;" Style="{DynamicResource AtrioBarIcon}" HorizontalAlignment="Center" />
+    </DataTemplate>
+
+    <!-- The bell is always there. It lights up and counts when there are messages, which open in the popup of the bar. -->
+    <Style x:Key="TopPanelNotificationsToggle" TargetType="ToggleButton">
+        <Setter Property="Focusable" Value="False" />
+        <Setter Property="Cursor" Value="Hand" />
+        <Setter Property="Margin" Value="6,0,0,0" />
+        <Setter Property="VerticalAlignment" Value="Center" />
+        <Setter Property="WindowChrome.IsHitTestVisibleInChrome" Value="True" />
+        <Setter Property="ToolTip" Value="{DynamicResource LOCNotifications}" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="ToggleButton">
+                    <Border x:Name="Fondo" Width="34" Height="34" CornerRadius="@@radius@@" Background="Transparent">
+                        <Grid>
+                            <TextBlock x:Name="Campana" Text="&#xEA8F;" FontFamily="{DynamicResource AtrioIconFont}" FontSize="16"
+                                       Foreground="{DynamicResource GlyphBrush}"
+                                       HorizontalAlignment="Center" VerticalAlignment="Center" />
+                            <Border x:Name="Cuenta" MinWidth="16" Height="16" CornerRadius="8" Padding="4,0,4,0"
+                                    Background="{DynamicResource GlyphBrush}" IsHitTestVisible="False"
+                                    HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,2,1,0">
+                                <TextBlock Text="{Api Notifications.Count}" FontSize="10" FontWeight="Bold"
+                                           Foreground="{DynamicResource TextBrushDark}"
+                                           HorizontalAlignment="Center" VerticalAlignment="Center" />
+                            </Border>
+                        </Grid>
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <DataTrigger Binding="{Api Notifications.Count}" Value="0">
+                            <Setter TargetName="Campana" Property="Foreground" Value="{DynamicResource TextBrushDarker}" />
+                            <Setter TargetName="Cuenta" Property="Visibility" Value="Collapsed" />
+                        </DataTrigger>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="Fondo" Property="Background" Value="{DynamicResource AtrioCardHoverBrush}" />
+                        </Trigger>
+                        <Trigger Property="IsChecked" Value="True">
+                            <Setter TargetName="Fondo" Property="Background" Value="{DynamicResource AtrioCardHoverBrush}" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <Style TargetType="{x:Type TopPanel}">
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="{x:Type TopPanel}">
+                    <StackPanel Orientation="Horizontal" Height="34"
+                                d:DataContext="{x:Static DesignMainViewModel.DesignIntance}">
+                        <StackPanel x:Name="PART_PanelMainItems" Orientation="Horizontal" />
+                        <StackPanel x:Name="PART_PanelMainPluginItems" Orientation="Horizontal" Margin="4,0,0,0" />
+                        <Grid>
+                            <CheckBox x:Name="PART_ToggleNotifications" Style="{DynamicResource TopPanelNotificationsToggle}" />
+                            <!-- Relative and not Bottom: with Windows set for right hand, Bottom flips the popup to the other side. -->
+                            <Popup x:Name="AtrioNotificaciones" Placement="Relative" PlacementTarget="{Binding ElementName=PART_ToggleNotifications}"
+                                   HorizontalOffset="-326" VerticalOffset="40"
+                                   StaysOpen="False" AllowsTransparency="True" PopupAnimation="Fade"
+                                   IsOpen="{Binding IsChecked, ElementName=PART_ToggleNotifications, Mode=TwoWay}">
+                                <Border Margin="12" Width="360" MaxHeight="460" BorderThickness="1"
+                                        CornerRadius="@@cardRadius@@"
+                                        Background="{DynamicResource PopupBackgroundBrush}"
+                                        BorderBrush="{DynamicResource PopupBorderBrush}">
+                                    <Border.Effect>
+                                        <DropShadowEffect BlurRadius="22" ShadowDepth="4" Direction="270" Opacity="0.5" Color="Black" />
+                                    </Border.Effect>
+                                    <NotificationPanel />
+                                </Border>
+                            </Popup>
+                        </Grid>
+                    </StackPanel>
+                    <ControlTemplate.Triggers>
+                        <!-- With the popup open a click on the bell only closes it: otherwise it would open it again. -->
+                        <Trigger SourceName="AtrioNotificaciones" Property="IsOpen" Value="True">
+                            <Setter TargetName="PART_ToggleNotifications" Property="IsHitTestVisible" Value="False" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+</ResourceDictionary>

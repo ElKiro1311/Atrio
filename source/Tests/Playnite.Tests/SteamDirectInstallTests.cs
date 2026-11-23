@@ -123,7 +123,7 @@ namespace Playnite.Tests
         }
 
         [TestCase(null)]
-        [TestCase("token-de-prueba")]
+        [TestCase("test-token")]
         [TestCase("a.%%%.c")]
         [TestCase("a.e30.c")]
         public void AnAccessWithoutAccountIsNotAnError(string access)
@@ -134,7 +134,7 @@ namespace Playnite.Tests
         [Test]
         public void TheOnlySessionIsThisOneWithTheSameAccountHere()
         {
-            var sessions = new List<SteamClientSession> { Session("1", "otro nombre") };
+            var sessions = new List<SteamClientSession> { Session("1", "other name") };
             Assert.AreEqual("1", SteamRemoteInstall.PickSession(sessions, "KIRO-PC", true).client_instanceid);
         }
 

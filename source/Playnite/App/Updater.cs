@@ -59,11 +59,12 @@ namespace Playnite
         /// <summary>What changed since the installed version, the newest first.</summary>
         public List<ReleaseNoteData> GetReleaseNotes()
         {
+            var spanish = Localization.CurrentLanguage?.StartsWith("es", StringComparison.OrdinalIgnoreCase) == true;
             return NewerReleases.Select(a => new ReleaseNoteData
             {
                 Version = a.Version,
                 Label = a.Label,
-                Note = $"<html><head>{NotesStyle}</head><body>{new MarkupConverter().MarkdownToHtml(a.Notes ?? string.Empty)}</body></html>"
+                Note = $"<html><head>{NotesStyle}</head><body>{new MarkupConverter().MarkdownToHtml(AtrioUpdates.GetNotes(a.Notes, spanish))}</body></html>"
             }).ToList();
         }
 

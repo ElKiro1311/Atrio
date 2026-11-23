@@ -27,7 +27,7 @@ namespace Playnite.Tests
         {
             Assert.IsNull(OpenGames.GetFolderKey(null, shared));
             Assert.IsNull(OpenGames.GetFolderKey("  ", shared));
-            Assert.IsNull(OpenGames.GetFolderKey(@"Juegos\Undertale", shared));
+            Assert.IsNull(OpenGames.GetFolderKey(@"Games\Undertale", shared));
             Assert.IsNull(OpenGames.GetFolderKey(@"D:\", shared));
             Assert.IsNull(OpenGames.GetFolderKey(@"C:\Program Files\", shared));
             Assert.IsNull(OpenGames.GetFolderKey(@"c:\users", shared));
@@ -36,7 +36,7 @@ namespace Playnite.Tests
             Assert.IsNull(OpenGames.GetFolderKey(@"D:\SteamLibrary\steamapps\common", shared));
             Assert.IsNull(OpenGames.GetFolderKey(@"C:\XboxGames", shared));
             Assert.AreEqual(@"D:\SteamLibrary\steamapps\common\Undertale\", OpenGames.GetFolderKey(@"D:\SteamLibrary\steamapps\common\Undertale", shared));
-            Assert.AreEqual(@"C:\Program Files\EA Games\Juego\", OpenGames.GetFolderKey(@"C:\Program Files\EA Games\Juego\", shared));
+            Assert.AreEqual(@"C:\Program Files\EA Games\Game\", OpenGames.GetFolderKey(@"C:\Program Files\EA Games\Game\", shared));
             Assert.AreEqual(@"D:\Witcher3\", OpenGames.GetFolderKey(@" D:\Witcher3 ", shared));
         }
 
@@ -48,12 +48,12 @@ namespace Playnite.Tests
             var second = Guid.NewGuid();
             var folders = OpenGames.GetFolders(new[]
             {
-                Game(library, @"D:\Juegos"),
-                Game(first, @"D:\Juegos\Uno"),
-                Game(second, @"D:\Juegos\Dos")
+                Game(library, @"D:\Games"),
+                Game(first, @"D:\Games\Uno"),
+                Game(second, @"D:\Games\Dos")
             }, shared);
 
-            CollectionAssert.AreEquivalent(new[] { @"D:\Juegos\Uno\", @"D:\Juegos\Dos\" }, folders.Select(a => a.Folder));
+            CollectionAssert.AreEquivalent(new[] { @"D:\Games\Uno\", @"D:\Games\Dos\" }, folders.Select(a => a.Folder));
         }
 
         [Test]
@@ -63,11 +63,11 @@ namespace Playnite.Tests
             var extra = Guid.NewGuid();
             var folders = OpenGames.GetFolders(new[]
             {
-                Game(game, @"D:\Juego"),
-                Game(extra, @"D:\Juego\Extra")
+                Game(game, @"D:\Game"),
+                Game(extra, @"D:\Game\Extra")
             }, shared);
 
-            Assert.AreEqual(new[] { @"D:\Juego\Extra\", @"D:\Juego\" }, folders.Select(a => a.Folder).ToArray(), "deepest first");
+            Assert.AreEqual(new[] { @"D:\Game\Extra\", @"D:\Game\" }, folders.Select(a => a.Folder).ToArray(), "deepest first");
         }
 
         [Test]
@@ -75,7 +75,7 @@ namespace Playnite.Tests
         {
             var roms = Enumerable.Range(0, OpenGames.MaxGamesPerFolder + 1).Select(_ => Game(Guid.NewGuid(), @"D:\Roms\SNES")).ToList();
             var twins = new[] { Guid.NewGuid(), Guid.NewGuid() };
-            var folders = OpenGames.GetFolders(roms.Concat(twins.Select(a => Game(a, @"D:\Juego"))), shared);
+            var folders = OpenGames.GetFolders(roms.Concat(twins.Select(a => Game(a, @"D:\Game"))), shared);
 
             Assert.AreEqual(1, folders.Count);
             CollectionAssert.AreEquivalent(twins, folders[0].Games);
@@ -91,8 +91,8 @@ namespace Playnite.Tests
             {
                 Game(game, @"D:\X"),
                 Game(extra, @"D:\X\DLC"),
-                Game(twins[0], @"E:\Doble"),
-                Game(twins[1], @"E:\Doble")
+                Game(twins[0], @"E:\Double"),
+                Game(twins[1], @"E:\Double")
             }, shared);
 
             var open = OpenGames.Match(folders, new[]
@@ -100,7 +100,7 @@ namespace Playnite.Tests
                 Process(10, @"D:\X\DLC\run.exe"),
                 Process(11, @"d:\x\bin\game.exe"),
                 Process(12, @"D:\Xtra\game.exe"),
-                Process(13, @"E:\Doble\juego.exe"),
+                Process(13, @"E:\Double\game.exe"),
                 Process(14, null)
             });
 
@@ -115,14 +115,14 @@ namespace Playnite.Tests
         public void HelpersAreNotTheGameTest()
         {
             Assert.IsTrue(OpenGames.IsHelper(@"C:\GOG Games\Samorost 1\unins000.exe"));
-            Assert.IsTrue(OpenGames.IsHelper(@"D:\Steam\steamapps\common\Juego\_CommonRedist\vcredist\2019\VC_redist.x64.exe"));
-            Assert.IsTrue(OpenGames.IsHelper(@"C:\Program Files\EA Games\Juego\__Installer\Cleanup.exe"));
-            Assert.IsTrue(OpenGames.IsHelper(@"D:\Juego\Redist\DXSETUP.exe"));
-            Assert.IsTrue(OpenGames.IsHelper(@"D:\Juego\Uninstall Juego.exe"));
+            Assert.IsTrue(OpenGames.IsHelper(@"D:\Steam\steamapps\common\Game\_CommonRedist\vcredist\2019\VC_redist.x64.exe"));
+            Assert.IsTrue(OpenGames.IsHelper(@"C:\Program Files\EA Games\Game\__Installer\Cleanup.exe"));
+            Assert.IsTrue(OpenGames.IsHelper(@"D:\Game\Redist\DXSETUP.exe"));
+            Assert.IsTrue(OpenGames.IsHelper(@"D:\Game\Uninstall Game.exe"));
             Assert.IsTrue(OpenGames.IsHelper(null));
-            Assert.IsFalse(OpenGames.IsHelper(@"D:\Juego\Juego.exe"));
-            Assert.IsFalse(OpenGames.IsHelper(@"D:\Juego\Binaries\Win64\Juego-Win64-Shipping.exe"));
-            Assert.IsFalse(OpenGames.IsHelper(@"D:\Juego\UnityCrashHandler64.exe"));
+            Assert.IsFalse(OpenGames.IsHelper(@"D:\Game\Game.exe"));
+            Assert.IsFalse(OpenGames.IsHelper(@"D:\Game\Binaries\Win64\Game-Win64-Shipping.exe"));
+            Assert.IsFalse(OpenGames.IsHelper(@"D:\Game\UnityCrashHandler64.exe"));
         }
 
         [Test]

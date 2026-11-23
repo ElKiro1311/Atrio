@@ -1,6 +1,7 @@
 using Playnite.SDK;
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 using System.Security.Cryptography;
 using System.Text;
@@ -47,6 +48,12 @@ namespace Playnite.Atrio
             }
 
             return version + "-" + Phase;
+        }
+
+        /// <summary>For the messages that come out before any language is loaded: in English, or in Spanish when Windows is.</summary>
+        public static string Say(string english, string spanish)
+        {
+            return CultureInfo.CurrentUICulture.TwoLetterISOLanguageName == "es" ? spanish : english;
         }
 
         /// <summary>Playnite Achievements: reads the achievements of the stores and of RetroAchievements.</summary>
