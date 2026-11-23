@@ -62,6 +62,12 @@ namespace Playnite.Controls
         private readonly Button moreButton;
         public static Func<Button> CreateMoreButton { get; set; }
 
+        /// <summary>Who opens the links. Without it, Windows does.</summary>
+        public Action<string> LinkHandler { get; set; }
+
+        /// <summary>Who gets the pictures. Without it, the component does. One that it doesn't give doesn't show.</summary>
+        public Func<string, Task<BitmapSource>> ImageLoader { get; set; }
+
         public string TemplatePath
         {
             get
@@ -279,6 +285,41 @@ namespace Playnite.Controls
         public HorizontalAlignment HorizontalContentAlignment { get; set; }
         public static readonly DependencyProperty HorizontalContentAlignmentProperty = DependencyProperty.Register("HorizontalContentAlignment", typeof(HorizontalAlignment), typeof(HtmlTextView));
 
+        private async void LoadImage(TheArtOfDev.HtmlRenderer.Core.Entities.HtmlImageLoadEventArgs request)
+        {
+            try
+            {
+                // Never at once: the component is still in the middle of reading the text.
+                await System.Windows.Threading.Dispatcher.Yield(System.Windows.Threading.DispatcherPriority.Background);
+                var picture = await ImageLoader(request.Src) as BitmapImage;
+
+                // Without an answer the component keeps its place waiting for it, and an empty one draws an error.
+                request.Callback(picture ?? nothing.Value);
+            }
+            catch (Exception)
+            {
+                // It's a picture: the text is still there.
+            }
+        }
+
+        private static readonly Lazy<BitmapImage> nothing = new Lazy<BitmapImage>(() =>
+        {
+            var encoder = new PngBitmapEncoder();
+            encoder.Frames.Add(BitmapFrame.Create(BitmapSource.Create(1, 1, 96, 96, PixelFormats.Bgra32, null, new byte[4], 4)));
+            using (var stream = new MemoryStream())
+            {
+                encoder.Save(stream);
+                stream.Position = 0;
+                var image = new BitmapImage();
+                image.BeginInit();
+                image.CacheOption = BitmapCacheOption.OnLoad;
+                image.StreamSource = stream;
+                image.EndInit();
+                image.Freeze();
+                return image;
+            }
+        });
+
         internal void UpdateTextContent()
         {
             currentLoadedLength = loadPartLength;
@@ -323,6 +364,22 @@ namespace Playnite.Controls
         {
             htmlPanel = new HtmlPanel();
             htmlPanel.Background = Brushes.Transparent;
+            htmlPanel.LinkClicked += (_, e) =>
+            {
+                if (LinkHandler != null)
+                {
+                    e.Data.Handled = true;
+                    LinkHandler(e.Data.Link);
+                }
+            };
+            htmlPanel.ImageLoad += (_, e) =>
+            {
+                if (ImageLoader != null)
+                {
+                    e.Data.Handled = true;
+                    LoadImage(e.Data);
+                }
+            };
 
             // Always use LTR because HtmlPanel doesn't support RTL properly
             FlowDirection = FlowDirection.LeftToRight;

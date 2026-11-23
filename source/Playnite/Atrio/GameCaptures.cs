@@ -61,7 +61,7 @@ namespace Playnite.Atrio
         [DllImport("shell32.dll")]
         private static extern int SHGetKnownFolderPath([MarshalAs(UnmanagedType.LPStruct)] Guid id, uint flags, IntPtr token, out IntPtr path);
 
-        private static string GetKnownFolder(Guid id)
+        public static string GetKnownFolder(Guid id)
         {
             try
             {

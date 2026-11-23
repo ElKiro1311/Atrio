@@ -12,6 +12,8 @@ Usa [un aviso privado de seguridad](https://github.com/ElKiro1311/Atrio/security
 
 **El programa no está firmado.** Descárgalo solo de la página de versiones de este repositorio. Las actualizaciones vienen de esa misma página, y Atrio comprueba la huella de cada paquete antes de instalarlo.
 
+**OptiScaler Client es un programa de otros.** Solo se descarga si lo pides en la ficha de un juego, de su página de GitHub, y Atrio comprueba la huella SHA-256 que da GitHub antes de abrirlo. Un paquete que hayas descargado tú también se comprueba, y si no es uno publicado no se usa; una copia que descomprimas a mano en la carpeta de Atrio se usa tal cual. Corre con tus permisos y cambia archivos de los juegos en los que lo instalas. Atrio lo maneja con un módulo propio por una tubería que solo puede abrir tu usuario. Antes de cambiar un juego guarda lo que va a tocar en la carpeta de datos de OptiScaler Client (subcarpeta `Atrio`) y lo borra al acabar: si algo falla o se corta a medias, el juego vuelve a quedar como estaba. No lo uses en juegos en línea.
+
 **Librerías heredadas.** Atrio mantiene dos librerías antiguas de Playnite porque los complementos y el formato de la biblioteca dependen de ellas:
 
 | Librería | Aviso | Por qué sigue | Alcance |

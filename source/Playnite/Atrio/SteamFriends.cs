@@ -121,6 +121,15 @@ namespace Playnite.Atrio
 
         private static volatile SteamSession session;
 
+        /// <summary>What was found the last time, without asking: null when it wasn't asked yet.</summary>
+        public static bool? KnownSession => session == null ? (bool?)null : session.State == SteamFriendsState.Ready;
+
+        /// <summary>Whether the browser of Atrio has a session of Steam, waiting for who is already finding out.</summary>
+        public static async Task<bool> HasSessionAsync(CancellationToken token)
+        {
+            return (await GetSessionAsync(token).ConfigureAwait(false)).State == SteamFriendsState.Ready;
+        }
+
         /// <summary>After a sign in, or a PIN entered in the browser, the next question has to see it.</summary>
         public static void ForgetSession()
         {
@@ -198,7 +207,8 @@ namespace Playnite.Atrio
             }
         }
 
-        private static SteamSessionPage LoadPage(string url)
+        /// <summary>A page with the session of the browser, loaded without showing it.</summary>
+        public static SteamSessionPage LoadPage(string url)
         {
             using (var view = PlayniteApplication.Current.PlayniteApiGlobal.WebViews.CreateOffscreenView())
             {

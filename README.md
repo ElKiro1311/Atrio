@@ -22,6 +22,11 @@ Un solo sitio para los juegos de todas tus tiendas. Atrio es un lanzador portát
 - **Extensiones del navegador.** En Tiendas puedes activar SteamDB y Augmented Steam para ver en la tienda de Steam el
   precio más bajo, los precios de otras tiendas y los jugadores. Se descargan de la Chrome Web Store al activarlas.
 - **Amigos en la ficha.** Con tu sesión de Steam en ese navegador, la ficha enseña qué amigos juegan a cada juego.
+- **La actividad de cada tienda.** Debajo de cada título sale lo que publica la tienda que usas para ese juego, con las
+  notas de sus parches, junto a lo que has jugado y los logros que has sacado.
+- **Cromos e insignias de Steam.** La ficha enseña los que tienes, los que te faltan y el nivel de la insignia.
+- **OptiScaler junto a «Jugar».** Con las funciones de [OptiScaler Client](https://github.com/Optiscaler-Client/Optiscaler-Client),
+  que solo se descarga si lo pides. Una versión nueva se prueba antes de usarla: si no encaja, sigue la que funcionaba.
 - **Colecciones.** Las llenas tú, con clic derecho, arrastrando o eligiendo juegos de una lista, o se llenan solas
   con unos filtros. Cada una tiene su página y puede salir como estante en Inicio.
 - **Se actualiza sola.** Atrio mira las Releases de este repositorio, sin ninguna cuenta, enseña las novedades y se instala con
@@ -83,6 +88,8 @@ Atrio es una versión modificada (un *fork*) de [Playnite](https://github.com/Jo
 Es un proyecto independiente: si encuentras un fallo, avisa aquí y no en Playnite.
 
 Los logros se apoyan en [Playnite Achievements](https://github.com/justin-delano/PlayniteAchievements), de Justin Delano (MIT). Atrio lo incluye adaptado: nombre, traducción al español y sin un sonido cuya licencia no consta.
+
+[OptiScaler Client](https://github.com/Optiscaler-Client/Optiscaler-Client), de Agustinm28, es un programa aparte con licencia GPL-3.0. Atrio no lo incluye ni modifica sus archivos: lo descarga de su página cuando el usuario lo pide y, al arrancarlo, carga en él un módulo propio (`source/Atrio.OptiScaler`, con la licencia MIT de Atrio) con el que se entiende. [OptiScaler](https://github.com/optiscaler/OptiScaler) es obra de sus autores. Ninguno de los dos es oficial de las tiendas ni de los fabricantes de tarjetas gráficas.
 
 Los complementos incluidos son obra de sus autores: cada uno figura en [`atrio/complementos/lista.json`](atrio/complementos/lista.json) con su licencia, y el paquete lleva el texto de todas en `licencias-complementos.txt`. Solo se incluyen los que permiten redistribuirlos.
 

@@ -1,0 +1,23 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    The bridge with OptiScaler Client: it isn't a program and it isn't loaded by Atrio. The runtime of OptiScaler Client
+    (.NET 10 at the time of writing) loads it when Atrio starts that program, as a startup hook. It targets an older
+    version on purpose: it only has to be lower than the one of the client, whichever comes next.
+  -->
+  <PropertyGroup>
+    <OutputType>Library</OutputType>
+    <AssemblyName>Atrio.OptiScaler</AssemblyName>
+    <RootNamespace>Atrio.OptiScaler</RootNamespace>
+    <AssemblyTitle>Atrio</AssemblyTitle>
+    <TargetFramework>net8.0</TargetFramework>
+    <PlatformTarget>AnyCPU</PlatformTarget>
+    <LangVersion>12</LangVersion>
+    <Nullable>disable</Nullable>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <GenerateDependencyFile>false</GenerateDependencyFile>
+    <GenerateRuntimeConfigurationFiles>false</GenerateRuntimeConfigurationFiles>
+    <UseAppHost>false</UseAppHost>
+    <BaseOutputPath>bin</BaseOutputPath>
+  </PropertyGroup>
+</Project>

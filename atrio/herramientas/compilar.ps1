@@ -82,6 +82,13 @@ foreach ($proyecto in $proyectos) {
     & $dotnet @opciones
     if ($LASTEXITCODE -ne 0) { throw "Fallo al compilar $proyecto" }
 }
+
+# El puente con OptiScaler Client no lo carga Atrio: lo carga el .NET de ese programa, por eso es de otra plataforma y
+# va en su carpeta.
+& $dotnet 'build' (Join-Path $fuentes 'Atrio.OptiScaler\Atrio.OptiScaler.csproj') '-nologo' '-c' 'Release' '-v:q' `
+    "-p:OutputPath=$($temporal)Resources\OptiScaler\" '-p:AppendTargetFrameworkToOutputPath=false' "-p:SolutionDir=$fuentes\" `
+    '-p:DebugType=none' '-p:DebugSymbols=false'
+if ($LASTEXITCODE -ne 0) { throw 'Fallo al compilar el puente con OptiScaler Client' }
 } finally {
     [IO.File]::WriteAllText($infoAtrio, $infoOriginal)
 }

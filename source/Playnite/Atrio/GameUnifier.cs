@@ -204,6 +204,12 @@ namespace Playnite.Atrio
             return string.Join("+", platforms.Select(a => a.SpecificationId ?? a.Name).OrderBy(a => a));
         }
 
+        /// <summary>A game of this computer, not of a console.</summary>
+        public static bool IsPc(Game game)
+        {
+            return GetPlatformBucket(game) == PcBucket;
+        }
+
         public static bool IsManualKey(string key)
         {
             return key?.StartsWith(ManualKeyPrefix, StringComparison.Ordinal) == true;

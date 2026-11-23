@@ -105,6 +105,8 @@ namespace Playnite.Atrio
             }
 
             ImageSourceManager.Cache.Clear();
+            WebImage.ForgetMemory();
+            StoreActivity.ForgetMemory();
             var copies = FadeImage.ClearBlurredCopies();
             GCSettings.LargeObjectHeapCompactionMode = GCLargeObjectHeapCompactionMode.CompactOnce;
             GC.Collect();

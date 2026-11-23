@@ -105,6 +105,18 @@
                                     <Button Name="PART_ButtonPlayAction" DockPanel.Dock="Left" MinWidth="160" Style="{DynamicResource AtrioPlayButton}" />
                                     <Button Name="PART_ButtonContextAction" DockPanel.Dock="Left" MinWidth="160" Style="{DynamicResource AtrioPlayButton}" />
 
+                                    <!-- Upscaling and frame generation, for the games installed on this computer -->
+                                    <ToggleButton DockPanel.Dock="Left" Style="{DynamicResource AtrioBarToggle}" Margin="10,0,0,0"
+                                                  IsChecked="{Binding OptiScaler.IsOpen}" ToolTip="{Binding OptiScaler.ButtonHint}"
+                                                  Visibility="{Binding OptiScaler.IsAvailable, Converter={StaticResource BooleanToVisibilityConverter}, FallbackValue=Collapsed}">
+                                        <StackPanel Orientation="Horizontal">
+                                            <TextBlock Text="&#xEC4A;" FontFamily="{DynamicResource AtrioIconFont}" FontSize="15" VerticalAlignment="Center" Margin="0,1,9,0" />
+                                            <TextBlock Text="OptiScaler" VerticalAlignment="Center" />
+                                            <Ellipse Width="8" Height="8" Margin="9,1,0,0" Fill="{DynamicResource AtrioOpenBrush}" VerticalAlignment="Center"
+                                                     Visibility="{Binding OptiScaler.IsInstalled, Converter={StaticResource BooleanToVisibilityConverter}, FallbackValue=Collapsed}" />
+                                        </StackPanel>
+                                    </ToggleButton>
+
                                     <WrapPanel VerticalAlignment="Center" Margin="26,0,0,0">
                                         <StackPanel Margin="0,0,32,0">
                                             <TextBlock Name="PART_ElemLastPlayed" Text="{DynamicResource LOCAtrioLastPlayed}" Style="{DynamicResource AtrioCaption}" />
@@ -141,6 +153,197 @@
                                         </Button>
                                     </WrapPanel>
                                 </DockPanel>
+                            </Border>
+
+                            <!-- What OptiScaler can do in this game, with the functions of OptiScaler Client -->
+                            <Border Margin="28,12,28,0" Style="{DynamicResource AtrioCard}" Padding="20,16,20,18"
+                                    Visibility="{Binding OptiScaler.IsOpen, Converter={StaticResource BooleanToVisibilityConverter}, FallbackValue=Collapsed}">
+                                <StackPanel DataContext="{Binding OptiScaler}">
+                                    <DockPanel>
+                                        <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Top">
+                                            <Button Style="{DynamicResource AtrioGhostButton}" MinHeight="30" FontSize="12" Margin="8,0,0,0"
+                                                    Content="{DynamicResource LOCAtrioOptiOpenIni}" Command="{Binding OpenIniCommand}"
+                                                    Visibility="{Binding HasIni, Converter={StaticResource BooleanToVisibilityConverter}}" />
+                                            <Button Style="{DynamicResource AtrioGhostButton}" MinHeight="30" FontSize="12" Margin="8,0,0,0"
+                                                    Content="{DynamicResource LOCAtrioOptiOpenFolder}" Command="{Binding OpenFolderCommand}" />
+                                            <Button Style="{DynamicResource AtrioGhostButton}" MinHeight="30" FontSize="12" Margin="8,0,0,0"
+                                                    ToolTip="{DynamicResource LOCAtrioOptiAllOptionsHint}" Command="{Binding AllOptionsCommand}">
+                                                <StackPanel Orientation="Horizontal">
+                                                    <TextBlock Text="{DynamicResource LOCAtrioOptiAllOptions}" VerticalAlignment="Center" />
+                                                    <TextBlock Text="&#xE8A7;" FontFamily="{DynamicResource AtrioIconFont}" FontSize="11" Margin="8,1,0,0" VerticalAlignment="Center" />
+                                                </StackPanel>
+                                            </Button>
+                                        </StackPanel>
+                                        <StackPanel>
+                                            <TextBlock Text="OptiScaler" Style="{DynamicResource AtrioSectionTitle}" Margin="0" />
+                                            <WrapPanel Margin="0,3,0,0" Visibility="{Binding ShowsState, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                                <TextBlock Text="{Binding StatusText}" Style="{DynamicResource BaseTextBlockStyle}" FontSize="14" />
+                                                <TextBlock Text="{Binding StatusDetail, StringFormat=' · {0}'}" Style="{DynamicResource AtrioCaption}" FontSize="13" VerticalAlignment="Center"
+                                                           Visibility="{Binding StatusDetail, Converter={StaticResource StringNullOrEmptyToVisibilityConverter}}" />
+                                                <TextBlock Text="{Binding GpuText, StringFormat=' · {0}'}" Style="{DynamicResource AtrioCaption}" FontSize="13" VerticalAlignment="Center"
+                                                           Visibility="{Binding GpuText, Converter={StaticResource StringNullOrEmptyToVisibilityConverter}}" />
+                                            </WrapPanel>
+                                        </StackPanel>
+                                    </DockPanel>
+
+                                    <!-- The first time: what it is, where it comes from and one button -->
+                                    <StackPanel Margin="0,10,0,0" Visibility="{Binding ShowsDownload, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                        <TextBlock Text="{DynamicResource LOCAtrioOptiIntro}" Style="{DynamicResource BaseTextBlockStyle}" FontSize="13" TextWrapping="Wrap"
+                                                   MaxWidth="860" HorizontalAlignment="Left" />
+                                        <WrapPanel Margin="0,14,0,0">
+                                            <Button Style="{DynamicResource AtrioPlayButton}" MinHeight="36" FontSize="13" Padding="18,0,18,0" Margin="0,0,10,6"
+                                                    Content="{Binding PackageText}" Command="{Binding UsePackageCommand}"
+                                                    Visibility="{Binding HasPackage, Converter={StaticResource BooleanToVisibilityConverter}}" />
+                                            <Button Style="{DynamicResource AtrioPlayButton}" MinHeight="36" FontSize="13" Padding="18,0,18,0" Margin="0,0,10,6"
+                                                    Content="{Binding DownloadText}" Command="{Binding DownloadClientCommand}"
+                                                    Visibility="{Binding HasPackage, Converter={StaticResource InvertedBooleanToVisibilityConverter}}" />
+                                            <Button Style="{DynamicResource AtrioGhostButton}" MinHeight="36" FontSize="13" Margin="0,0,10,6"
+                                                    Content="{DynamicResource LOCAtrioOptiIntroPage}" Command="{Binding ClientPageCommand}" />
+                                        </WrapPanel>
+                                    </StackPanel>
+
+                                    <StackPanel Margin="0,10,0,0" Visibility="{Binding ShowsOnlyWindow, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                        <TextBlock Text="{DynamicResource LOCAtrioOptiOnlyWindow}" Style="{DynamicResource BaseTextBlockStyle}" FontSize="13" TextWrapping="Wrap" />
+                                        <Button Style="{DynamicResource AtrioGhostButton}" MinHeight="32" FontSize="12" Margin="0,10,0,0" HorizontalAlignment="Left"
+                                                Content="{DynamicResource LOCAtrioOptiRetry}" Command="{Binding RetryCommand}" />
+                                    </StackPanel>
+
+                                    <!-- What the game has, and what to be careful with -->
+                                    <StackPanel Margin="0,12,0,0" Visibility="{Binding ShowsState, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                        <ItemsControl ItemsSource="{Binding DetectedChips}" Focusable="False"
+                                                      Visibility="{Binding DetectedChips, Converter={StaticResource ICollectionNullOrEmptyToVisibilityConverter}}">
+                                            <ItemsControl.ItemsPanel>
+                                                <ItemsPanelTemplate>
+                                                    <WrapPanel />
+                                                </ItemsPanelTemplate>
+                                            </ItemsControl.ItemsPanel>
+                                            <ItemsControl.ItemTemplate>
+                                                <DataTemplate>
+                                                    <Border Style="{DynamicResource AtrioAchievementChip}">
+                                                        <TextBlock Text="{Binding}" FontSize="12" Foreground="{DynamicResource TextBrush}" FontFamily="{DynamicResource FontFamily}" />
+                                                    </Border>
+                                                </DataTemplate>
+                                            </ItemsControl.ItemTemplate>
+                                        </ItemsControl>
+                                        <TextBlock Text="{DynamicResource LOCAtrioOptiNothingDetected}" Style="{DynamicResource BaseTextBlockStyle}" FontSize="13" TextWrapping="Wrap"
+                                                   Foreground="{DynamicResource WarningBrush}"
+                                                   Visibility="{Binding NothingDetected, Converter={StaticResource BooleanToVisibilityConverter}}" />
+                                        <TextBlock Text="{DynamicResource LOCAtrioOptiAntiCheat}" Style="{DynamicResource BaseTextBlockStyle}" FontSize="13" TextWrapping="Wrap"
+                                                   Foreground="{DynamicResource WarningBrush}" Margin="0,2,0,0"
+                                                   Visibility="{Binding HasAntiCheat, Converter={StaticResource BooleanToVisibilityConverter}}" />
+
+                                        <!-- The options. The ones a newer version adds are in its own window. -->
+                                        <ItemsControl ItemsSource="{Binding Options}" Focusable="False" Margin="0,10,-14,0"
+                                                      IsEnabled="{Binding CanChoose}">
+                                            <ItemsControl.ItemsPanel>
+                                                <ItemsPanelTemplate>
+                                                    <WrapPanel />
+                                                </ItemsPanelTemplate>
+                                            </ItemsControl.ItemsPanel>
+                                            <ItemsControl.ItemTemplate>
+                                                <DataTemplate>
+                                                    <StackPanel Width="212" Margin="0,0,14,12" ToolTip="{Binding Hint}" IsEnabled="{Binding IsEnabled}"
+                                                                Visibility="{Binding IsShown, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                                        <TextBlock Text="{Binding Label}" Style="{DynamicResource AtrioCaption}" Margin="0,0,0,4" />
+                                                        <ComboBox ItemsSource="{Binding Choices}" SelectedItem="{Binding Selected}" DisplayMemberPath="Name"
+                                                                  AutomationProperties.Name="{Binding Label}" />
+                                                    </StackPanel>
+                                                </DataTemplate>
+                                            </ItemsControl.ItemTemplate>
+                                        </ItemsControl>
+
+                                        <WrapPanel>
+                                            <Button Style="{DynamicResource AtrioPlayButton}" MinHeight="36" FontSize="13" Padding="18,0,18,0" Margin="0,0,10,6"
+                                                    Content="{Binding InstallText}" Command="{Binding InstallCommand}"
+                                                    Visibility="{Binding ShowsInstall, Converter={StaticResource BooleanToVisibilityConverter}}" />
+                                            <Button Style="{DynamicResource AtrioPlayButton}" MinHeight="36" FontSize="13" Padding="18,0,18,0" Margin="0,0,10,6"
+                                                    Content="{Binding UpdateText}" Command="{Binding UpdateCommand}"
+                                                    Visibility="{Binding ShowsUpdate, Converter={StaticResource BooleanToVisibilityConverter}}" />
+                                            <Button Style="{DynamicResource AtrioGhostButton}" MinHeight="36" FontSize="13" Margin="0,0,10,6"
+                                                    Content="{Binding InstallText}" Command="{Binding InstallCommand}"
+                                                    Visibility="{Binding ShowsReinstall, Converter={StaticResource BooleanToVisibilityConverter}}" />
+                                            <Button Style="{DynamicResource AtrioGhostButton}" MinHeight="36" FontSize="13" Margin="0,0,10,6"
+                                                    Content="{DynamicResource LOCAtrioOptiUninstall}" Command="{Binding UninstallCommand}"
+                                                    Visibility="{Binding ShowsUninstall, Converter={StaticResource BooleanToVisibilityConverter}}" />
+                                        </WrapPanel>
+                                    </StackPanel>
+
+                                    <StackPanel Margin="0,10,0,0" MaxWidth="620" HorizontalAlignment="Left" MinWidth="320"
+                                                Visibility="{Binding ShowsProgress, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                        <DockPanel>
+                                            <Button DockPanel.Dock="Right" Style="{DynamicResource AtrioLinkButton}" FontSize="12" Margin="14,0,0,0"
+                                                    Content="{DynamicResource LOCAtrioOptiStop}" Command="{Binding StopCommand}"
+                                                    Visibility="{Binding CanStop, Converter={StaticResource BooleanToVisibilityConverter}}" />
+                                            <TextBlock Text="{Binding ProgressText}" Style="{DynamicResource AtrioCaption}" FontSize="13" />
+                                        </DockPanel>
+                                        <ProgressBar Foreground="{DynamicResource GlyphBrush}" Height="4" Maximum="100" Margin="0,6,0,0"
+                                                     IsIndeterminate="{Binding IsIndeterminate}" Value="{Binding Progress, Mode=OneWay}" />
+                                    </StackPanel>
+
+                                    <TextBlock x:Name="OptiMessage" Text="{Binding Message}" FontSize="13" TextWrapping="Wrap" Margin="0,10,0,0"
+                                               Visibility="{Binding Message, Converter={StaticResource StringNullOrEmptyToVisibilityConverter}}">
+                                        <TextBlock.Style>
+                                            <Style TargetType="TextBlock" BasedOn="{StaticResource BaseTextBlockStyle}">
+                                                <Setter Property="Foreground" Value="{DynamicResource GlyphBrush}" />
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding MessageIsProblem}" Value="True">
+                                                        <Setter Property="Foreground" Value="{DynamicResource WarningBrush}" />
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </TextBlock.Style>
+                                    </TextBlock>
+                                    <Button Style="{DynamicResource AtrioGhostButton}" MinHeight="32" FontSize="12" Margin="0,10,0,0" HorizontalAlignment="Left"
+                                            Content="{DynamicResource LOCAtrioOptiRetry}" Command="{Binding RetryCommand}"
+                                            Visibility="{Binding ShowsFailed, Converter={StaticResource BooleanToVisibilityConverter}}" />
+
+                                    <!-- What the list of OptiScaler says of this game -->
+                                    <Border Background="{DynamicResource AtrioCardHoverBrush}" CornerRadius="{DynamicResource AtrioCardRadius}" Padding="14,10,14,12" Margin="0,12,0,0"
+                                            Visibility="{Binding HasCompatibility, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                        <StackPanel>
+                                            <DockPanel>
+                                                <Button DockPanel.Dock="Right" Style="{DynamicResource AtrioLinkButton}" FontSize="12" Content="{DynamicResource LOCAtrioOptiCompatPage}"
+                                                        Command="{Binding OpenGuideCommand}" VerticalAlignment="Center" />
+                                                <StackPanel Orientation="Horizontal">
+                                                    <TextBlock Text="{DynamicResource LOCAtrioOptiCompatTitle}" Style="{DynamicResource AtrioCaption}" VerticalAlignment="Center" />
+                                                    <TextBlock Text="{Binding CompatibilityText}" FontSize="13" FontWeight="SemiBold" Margin="10,0,0,0" VerticalAlignment="Center">
+                                                        <TextBlock.Style>
+                                                            <Style TargetType="TextBlock" BasedOn="{StaticResource BaseTextBlockStyle}">
+                                                                <Style.Triggers>
+                                                                    <DataTrigger Binding="{Binding CompatibilityIsGood}" Value="True">
+                                                                        <Setter Property="Foreground" Value="{DynamicResource AtrioOpenBrush}" />
+                                                                    </DataTrigger>
+                                                                </Style.Triggers>
+                                                            </Style>
+                                                        </TextBlock.Style>
+                                                    </TextBlock>
+                                                </StackPanel>
+                                            </DockPanel>
+                                            <TextBlock Text="{Binding CompatibilityNotes}" Style="{DynamicResource BaseTextBlockStyle}" FontSize="13" TextWrapping="Wrap" Margin="0,6,0,0" LineHeight="20"
+                                                       Visibility="{Binding CompatibilityNotes, Converter={StaticResource StringNullOrEmptyToVisibilityConverter}}" />
+                                        </StackPanel>
+                                    </Border>
+
+                                    <TextBlock Text="{Binding KeptText}" Style="{DynamicResource AtrioCaption}" FontSize="13" TextWrapping="Wrap" Margin="0,12,0,0"
+                                               Visibility="{Binding KeptText, Converter={StaticResource StringNullOrEmptyToVisibilityConverter}}" />
+
+                                    <!-- The program that does it all, and its versions -->
+                                    <DockPanel Margin="0,14,0,0" Visibility="{Binding ClientText, Converter={StaticResource StringNullOrEmptyToVisibilityConverter}}">
+                                        <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+                                            <Button Style="{DynamicResource AtrioLinkButton}" FontSize="12" Margin="18,0,0,0" Content="{DynamicResource LOCAtrioOptiCheck}"
+                                                    Command="{Binding CheckUpdatesCommand}" VerticalAlignment="Center" />
+                                            <Button Style="{DynamicResource AtrioLinkButton}" FontSize="12" Margin="18,0,0,0" Content="{DynamicResource LOCAtrioOptiOpenClient}"
+                                                    Command="{Binding OpenClientCommand}" VerticalAlignment="Center" />
+                                        </StackPanel>
+                                        <WrapPanel VerticalAlignment="Center">
+                                            <TextBlock Text="{Binding ClientText}" Style="{DynamicResource AtrioCaption}" VerticalAlignment="Center" />
+                                            <Button Style="{DynamicResource AtrioLinkButton}" FontSize="12" Margin="12,0,0,0" Content="{Binding ClientUpdateText}"
+                                                    Foreground="{DynamicResource GlyphBrush}" Command="{Binding DownloadClientCommand}" VerticalAlignment="Center"
+                                                    Visibility="{Binding HasClientUpdate, Converter={StaticResource BooleanToVisibilityConverter}}" />
+                                            <TextBlock Text="{DynamicResource LOCAtrioOptiOnlineNote}" Style="{DynamicResource AtrioCaption}" TextWrapping="Wrap" Margin="14,0,0,0" VerticalAlignment="Center" />
+                                        </WrapPanel>
+                                    </DockPanel>
+                                </StackPanel>
                             </Border>
 
                             <!-- One click on Details brings the cover, the description and the facts -->
@@ -365,47 +568,157 @@
                                         </DockPanel>
                                     </Border>
 
-                                    <StackPanel Visibility="{Binding Activity, Converter={StaticResource ICollectionNullOrEmptyToVisibilityConverter}}">
-                                        <TextBlock Text="{DynamicResource LOCAtrioActivity}" Style="{DynamicResource AtrioSectionTitle}" />
-                                        <ItemsControl ItemsSource="{Binding Activity}" Focusable="False">
+                                    <!-- What its store publishes, with the notes of each patch, and what the person did in it, day by day -->
+                                    <StackPanel DataContext="{Binding Feed}">
+                                        <DockPanel Margin="0,0,0,10">
+                                            <WrapPanel DockPanel.Dock="Right" VerticalAlignment="Center">
+                                                <ItemsControl ItemsSource="{Binding Sources}" Focusable="False" Margin="0,0,10,0"
+                                                              Visibility="{Binding HasSources, Converter={StaticResource BooleanToVisibilityConverter}, FallbackValue=Collapsed}">
+                                                    <ItemsControl.ItemsPanel>
+                                                        <ItemsPanelTemplate>
+                                                            <StackPanel Orientation="Horizontal" />
+                                                        </ItemsPanelTemplate>
+                                                    </ItemsControl.ItemsPanel>
+                                                    <ItemsControl.ItemTemplate>
+                                                        <DataTemplate>
+                                                            <RadioButton Style="{DynamicResource AtrioSmallPill}" GroupName="AtrioActivitySource"
+                                                                         Content="{Binding Name}" IsChecked="{Binding IsSelected}" />
+                                                        </DataTemplate>
+                                                    </ItemsControl.ItemTemplate>
+                                                </ItemsControl>
+                                                <StackPanel Orientation="Horizontal"
+                                                            Visibility="{Binding HasPatches, Converter={StaticResource BooleanToVisibilityConverter}, FallbackValue=Collapsed}">
+                                                    <RadioButton Style="{DynamicResource AtrioSmallPill}" GroupName="AtrioActivityFilter"
+                                                                 Content="{DynamicResource LOCAtrioActivityAll}" IsChecked="{Binding ShowsAll}" />
+                                                    <RadioButton Style="{DynamicResource AtrioSmallPill}" GroupName="AtrioActivityFilter" Margin="0"
+                                                                 Content="{DynamicResource LOCAtrioActivityOnlyPatches}" IsChecked="{Binding OnlyPatches}" />
+                                                </StackPanel>
+                                            </WrapPanel>
+                                            <TextBlock Text="{DynamicResource LOCAtrioActivity}" Style="{DynamicResource AtrioSectionTitle}" Margin="0" VerticalAlignment="Center" />
+                                        </DockPanel>
+
+                                        <TextBlock Text="{Binding NoteText}" Style="{DynamicResource AtrioCaption}" TextWrapping="Wrap" Margin="0,0,0,10"
+                                                   Visibility="{Binding NoteText, Converter={StaticResource StringNullOrEmptyToVisibilityConverter}}" />
+
+                                        <ItemsControl ItemsSource="{Binding Entries}" Focusable="False">
                                             <ItemsControl.ItemTemplate>
                                                 <DataTemplate>
-                                                    <Button Cursor="Hand" Focusable="False" Margin="0,0,0,10"
-                                                            Command="{Binding DataContext.OpenPageCommand, RelativeSource={RelativeSource AncestorType={x:Type GameOverview}}}"
-                                                            CommandParameter="{Binding Url}">
-                                                        <Button.Template>
-                                                            <ControlTemplate TargetType="Button">
-                                                                <ContentPresenter />
-                                                            </ControlTemplate>
-                                                        </Button.Template>
-                                                        <Border Style="{DynamicResource AtrioCard}" Padding="12">
+                                                    <StackPanel>
+                                                        <DockPanel Margin="0,6,0,9" Visibility="{Binding HasDay, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                                            <TextBlock DockPanel.Dock="Left" Text="{Binding DayText}" Style="{DynamicResource AtrioCaption}" FontWeight="SemiBold" />
+                                                            <Border Height="1" Background="{DynamicResource AtrioBorderBrush}" Margin="12,2,0,0" VerticalAlignment="Center" />
+                                                        </DockPanel>
+
+                                                        <!-- Something the person did: a line of its own, without a card -->
+                                                        <DockPanel x:Name="Own" Margin="2,0,0,12" Visibility="Collapsed">
+                                                            <TextBlock DockPanel.Dock="Left" Text="{Binding Glyph}" FontFamily="{DynamicResource AtrioIconFont}" FontSize="14" Margin="0,1,10,0"
+                                                                       Foreground="{DynamicResource TextBrushDarker}" VerticalAlignment="Top" />
+                                                            <StackPanel>
+                                                                <TextBlock Text="{Binding Title}" Style="{DynamicResource BaseTextBlockStyle}" FontSize="13" TextWrapping="Wrap" />
+                                                                <ItemsControl ItemsSource="{Binding Achievements}" Focusable="False" Margin="0,6,0,0"
+                                                                              Visibility="{Binding Achievements, Converter={StaticResource ICollectionNullOrEmptyToVisibilityConverter}}">
+                                                                    <ItemsControl.ItemsPanel>
+                                                                        <ItemsPanelTemplate>
+                                                                            <WrapPanel />
+                                                                        </ItemsPanelTemplate>
+                                                                    </ItemsControl.ItemsPanel>
+                                                                    <ItemsControl.ItemTemplate>
+                                                                        <DataTemplate>
+                                                                            <Image Source="{Binding Icon, Converter={StaticResource AchievementIconConverter}}" Width="32" Height="32" Margin="0,0,6,6"
+                                                                                   Stretch="UniformToFill" RenderOptions.BitmapScalingMode="Fant" RoundedClip.Radius="5">
+                                                                                <Image.ToolTip>
+                                                                                    <StackPanel MaxWidth="320">
+                                                                                        <TextBlock Text="{Binding Name}" FontWeight="SemiBold" TextWrapping="Wrap" />
+                                                                                        <TextBlock Text="{Binding Description}" Opacity="0.7" TextWrapping="Wrap" />
+                                                                                    </StackPanel>
+                                                                                </Image.ToolTip>
+                                                                            </Image>
+                                                                        </DataTemplate>
+                                                                    </ItemsControl.ItemTemplate>
+                                                                </ItemsControl>
+                                                            </StackPanel>
+                                                        </DockPanel>
+
+                                                        <Button x:Name="Post" Cursor="Hand" Focusable="False" Margin="0,0,0,12"
+                                                                AutomationProperties.Name="{Binding Title}"
+                                                                Command="{Binding DataContext.Feed.OpenCommand, RelativeSource={RelativeSource AncestorType={x:Type GameOverview}}}"
+                                                                CommandParameter="{Binding}">
+                                                            <Button.Template>
+                                                                <ControlTemplate TargetType="Button">
+                                                                    <Border x:Name="Root" Background="{DynamicResource AtrioCardBrush}" BorderBrush="{DynamicResource AtrioBorderBrush}"
+                                                                            BorderThickness="1" CornerRadius="{DynamicResource AtrioCardRadius}" Padding="12">
+                                                                        <ContentPresenter />
+                                                                    </Border>
+                                                                    <ControlTemplate.Triggers>
+                                                                        <Trigger Property="IsMouseOver" Value="True">
+                                                                            <Setter TargetName="Root" Property="Background" Value="{DynamicResource AtrioCardHoverBrush}" />
+                                                                            <Setter TargetName="Root" Property="BorderBrush" Value="{DynamicResource GlyphBrush}" />
+                                                                        </Trigger>
+                                                                    </ControlTemplate.Triggers>
+                                                                </ControlTemplate>
+                                                            </Button.Template>
                                                             <DockPanel>
-                                                                <Image Source="{Binding ImageUrl, Converter={StaticResource RemoteImageConverter}, ConverterParameter=480}"
-                                                                       Width="220" Height="112" Stretch="UniformToFill" DockPanel.Dock="Left" Margin="0,0,16,0"
+                                                                <Image WebImage.DecodeWidth="400" WebImage.Fallback="{Binding FullImageUrl}" WebImage.Url="{Binding ImageUrl}"
+                                                                       Width="240" Height="135" Stretch="UniformToFill" DockPanel.Dock="Left" Margin="0,0,16,0" VerticalAlignment="Top"
+                                                                       RoundedClip.Radius="5"
                                                                        Visibility="{Binding ImageUrl, Converter={StaticResource StringNullOrEmptyToVisibilityConverter}}" />
-                                                                <StackPanel VerticalAlignment="Center">
-                                                                    <DockPanel>
-                                                                        <TextBlock Text="{Binding DateText}" DockPanel.Dock="Right" Style="{DynamicResource AtrioCaption}" Margin="10,0,0,0" />
-                                                                        <!-- Published after the last time it was played -->
-                                                                        <Border DockPanel.Dock="Left" CornerRadius="4" Padding="6,0,6,1" Margin="0,0,8,0" VerticalAlignment="Center"
-                                                                                Background="{DynamicResource AtrioPlayBrush}"
-                                                                                Visibility="{Binding IsNew, Converter={StaticResource BooleanToVisibilityConverter}}">
-                                                                            <TextBlock Text="{DynamicResource LOCAtrioActivityNew}" FontSize="11" FontWeight="SemiBold" Foreground="{DynamicResource AtrioPlayTextBrush}" />
-                                                                        </Border>
-                                                                        <TextBlock Text="{Binding Label}" Style="{DynamicResource AtrioCaption}" />
+                                                                <DockPanel>
+                                                                    <DockPanel DockPanel.Dock="Bottom" Margin="0,8,0,0">
+                                                                        <StackPanel DockPanel.Dock="Left" Orientation="Horizontal">
+                                                                            <StackPanel Orientation="Horizontal" Margin="0,0,16,0"
+                                                                                        Visibility="{Binding LikesText, Converter={StaticResource StringNullOrEmptyToVisibilityConverter}}">
+                                                                                <TextBlock Text="&#xE8E1;" FontFamily="{DynamicResource AtrioIconFont}" FontSize="12" Foreground="{DynamicResource TextBrushDarker}" VerticalAlignment="Center" />
+                                                                                <TextBlock Text="{Binding LikesText}" Style="{DynamicResource AtrioCaption}" Margin="6,0,0,0" VerticalAlignment="Center" />
+                                                                            </StackPanel>
+                                                                            <StackPanel Orientation="Horizontal"
+                                                                                        Visibility="{Binding CommentsText, Converter={StaticResource StringNullOrEmptyToVisibilityConverter}}">
+                                                                                <TextBlock Text="&#xE8BD;" FontFamily="{DynamicResource AtrioIconFont}" FontSize="12" Foreground="{DynamicResource TextBrushDarker}" VerticalAlignment="Center" />
+                                                                                <TextBlock Text="{Binding CommentsText}" Style="{DynamicResource AtrioCaption}" Margin="6,0,0,0" VerticalAlignment="Center" />
+                                                                            </StackPanel>
+                                                                        </StackPanel>
+                                                                        <TextBlock Text="{Binding ReadText}" Style="{DynamicResource AtrioCaption}" HorizontalAlignment="Right"
+                                                                                   Foreground="{DynamicResource GlyphBrush}" />
                                                                     </DockPanel>
-                                                                    <TextBlock Text="{Binding Title}" Style="{DynamicResource BaseTextBlockStyle}" FontSize="15" FontWeight="SemiBold"
-                                                                               TextWrapping="Wrap" Margin="0,2,0,2" />
-                                                                    <TextBlock Text="{Binding Text}" Style="{DynamicResource AtrioCaption}" TextWrapping="Wrap" MaxHeight="52"
-                                                                               TextTrimming="CharacterEllipsis"
-                                                                               Visibility="{Binding Text, Converter={StaticResource StringNullOrEmptyToVisibilityConverter}}" />
-                                                                </StackPanel>
+                                                                    <StackPanel>
+                                                                        <StackPanel Orientation="Horizontal">
+                                                                            <!-- Published after the last time it was played -->
+                                                                            <Border CornerRadius="4" Padding="6,0,6,1" Margin="0,0,8,0" VerticalAlignment="Center"
+                                                                                    Background="{DynamicResource AtrioPlayBrush}"
+                                                                                    Visibility="{Binding IsNew, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                                                                <TextBlock Text="{DynamicResource LOCAtrioActivityNew}" FontSize="11" FontWeight="SemiBold" Foreground="{DynamicResource AtrioPlayTextBrush}" />
+                                                                            </Border>
+                                                                            <TextBlock x:Name="Kind" Text="{Binding Label}" Style="{DynamicResource AtrioCaption}" FontWeight="SemiBold" />
+                                                                        </StackPanel>
+                                                                        <TextBlock Text="{Binding Title}" Style="{DynamicResource BaseTextBlockStyle}" FontSize="16" FontWeight="SemiBold"
+                                                                                   TextWrapping="Wrap" Margin="0,3,0,3" MaxHeight="48" TextTrimming="CharacterEllipsis" />
+                                                                        <TextBlock Text="{Binding Text}" Style="{DynamicResource AtrioCaption}" FontSize="13" TextWrapping="Wrap" MaxHeight="54" LineHeight="18"
+                                                                                   TextTrimming="CharacterEllipsis"
+                                                                                   Visibility="{Binding Text, Converter={StaticResource StringNullOrEmptyToVisibilityConverter}}" />
+                                                                    </StackPanel>
+                                                                </DockPanel>
                                                             </DockPanel>
-                                                        </Border>
-                                                    </Button>
+                                                        </Button>
+                                                    </StackPanel>
+                                                    <DataTemplate.Triggers>
+                                                        <DataTrigger Binding="{Binding IsPost}" Value="False">
+                                                            <Setter TargetName="Own" Property="Visibility" Value="Visible" />
+                                                            <Setter TargetName="Post" Property="Visibility" Value="Collapsed" />
+                                                        </DataTrigger>
+                                                        <DataTrigger Binding="{Binding IsPatch}" Value="True">
+                                                            <Setter TargetName="Kind" Property="Foreground" Value="{DynamicResource GlyphBrush}" />
+                                                        </DataTrigger>
+                                                    </DataTemplate.Triggers>
                                                 </DataTemplate>
                                             </ItemsControl.ItemTemplate>
                                         </ItemsControl>
+
+                                        <TextBlock Text="{Binding EmptyText}" Style="{DynamicResource AtrioCaption}" TextWrapping="Wrap" Margin="0,4,0,8"
+                                                   Visibility="{Binding EmptyText, Converter={StaticResource StringNullOrEmptyToVisibilityConverter}}" />
+                                        <TextBlock Text="{DynamicResource LOCAtrioActivityLoading}" Style="{DynamicResource AtrioCaption}" HorizontalAlignment="Center" Margin="0,4,0,8"
+                                                   Visibility="{Binding IsLoading, Converter={StaticResource BooleanToVisibilityConverter}, FallbackValue=Collapsed}" />
+                                        <Button Style="{DynamicResource AtrioGhostButton}" MinHeight="34" FontSize="12" HorizontalAlignment="Stretch"
+                                                Content="{DynamicResource LOCAtrioActivityMore}" Command="{Binding MoreCommand}"
+                                                Visibility="{Binding CanLoadMore, Converter={StaticResource BooleanToVisibilityConverter}, FallbackValue=Collapsed}" />
                                     </StackPanel>
                                 </StackPanel>
 
@@ -477,6 +790,92 @@
                                             <Button Style="{DynamicResource AtrioLinkButton}" Content="{DynamicResource LOCAtrioFriendsSeeAll}" FontSize="12"
                                                     HorizontalAlignment="Left" Command="{Binding OpenPageCommand}" CommandParameter="{Binding AllFriendsUrl}"
                                                     Visibility="{Binding HasFriendGroups, Converter={StaticResource BooleanToVisibilityConverter}}" />
+                                        </StackPanel>
+                                    </Border>
+
+                                    <!-- The trading cards of the game on Steam and the badge that is made with them -->
+                                    <Border Style="{DynamicResource AtrioCard}" Margin="0,0,0,14"
+                                            Visibility="{Binding Cards.IsVisible, Converter={StaticResource BooleanToVisibilityConverter}, FallbackValue=Collapsed}">
+                                        <StackPanel DataContext="{Binding Cards}">
+                                            <DockPanel Margin="0,0,0,10">
+                                                <Button DockPanel.Dock="Right" Style="{DynamicResource AtrioIconLinkButton}" VerticalAlignment="Center" Command="{Binding ShowAllCommand}"
+                                                        Visibility="{Binding HasCards, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                                    <StackPanel Orientation="Horizontal">
+                                                        <TextBlock Text="{DynamicResource LOCAtrioCardsSeeAll}" VerticalAlignment="Center" />
+                                                        <TextBlock Text="&#xE76C;" FontFamily="{DynamicResource AtrioIconFont}" FontSize="10" Margin="6,1,0,0" VerticalAlignment="Center" />
+                                                    </StackPanel>
+                                                </Button>
+                                                <TextBlock Text="{DynamicResource LOCAtrioCardsTitle}" Style="{DynamicResource AtrioSectionTitle}" Margin="0" />
+                                            </DockPanel>
+
+                                            <StackPanel Visibility="{Binding IsPrivate, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                                <TextBlock Text="{DynamicResource LOCAtrioCardsPrivate}" Style="{DynamicResource AtrioCaption}" TextWrapping="Wrap" />
+                                                <Button Style="{DynamicResource AtrioGhostButton}" Content="{DynamicResource LOCAtrioCardsSignIn}" Margin="0,10,0,0"
+                                                        HorizontalAlignment="Left" Padding="14,0,14,0" MinHeight="30" FontSize="12" Command="{Binding SignInCommand}" />
+                                            </StackPanel>
+
+                                            <StackPanel Visibility="{Binding HasCards, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                                <DockPanel Margin="0,0,0,10">
+                                                    <Grid DockPanel.Dock="Left" Width="56" Height="56" Margin="0,0,12,0">
+                                                        <Ellipse StrokeThickness="2" StrokeDashArray="3 3" Stroke="{DynamicResource AtrioBorderBrush}" Margin="5"
+                                                                 Visibility="{Binding HasIcon, Converter={StaticResource InvertedBooleanToVisibilityConverter}}" />
+                                                        <Image WebImage.DecodeWidth="112" WebImage.Url="{Binding IconUrl}"
+                                                               Stretch="Uniform" RenderOptions.BitmapScalingMode="HighQuality"
+                                                               Visibility="{Binding HasIcon, Converter={StaticResource BooleanToVisibilityConverter}}" />
+                                                    </Grid>
+                                                    <StackPanel VerticalAlignment="Center">
+                                                        <TextBlock Text="{Binding BadgeTitle}" Style="{DynamicResource BaseTextBlockStyle}" FontSize="15" FontWeight="SemiBold"
+                                                                   TextTrimming="CharacterEllipsis" />
+                                                        <TextBlock Text="{Binding BadgeText}" Style="{DynamicResource AtrioCaption}"
+                                                                   Visibility="{Binding BadgeText, Converter={StaticResource StringNullOrEmptyToVisibilityConverter}}" />
+                                                        <TextBlock Text="{Binding NextText}" Style="{DynamicResource AtrioCaption}" TextTrimming="CharacterEllipsis"
+                                                                   Visibility="{Binding NextText, Converter={StaticResource StringNullOrEmptyToVisibilityConverter}}" />
+                                                    </StackPanel>
+                                                </DockPanel>
+
+                                                <TextBlock Text="{Binding CardsText}" Style="{DynamicResource BaseTextBlockStyle}" FontSize="13" />
+                                                <ProgressBar Foreground="{DynamicResource GlyphBrush}" Height="6" Maximum="100" Value="{Binding Progress, Mode=OneWay}" Margin="0,6,0,0" />
+                                                <TextBlock Text="{Binding DropsText}" Style="{DynamicResource AtrioCaption}" TextWrapping="Wrap" Margin="0,6,0,0"
+                                                           Visibility="{Binding DropsText, Converter={StaticResource StringNullOrEmptyToVisibilityConverter}}" />
+
+                                                <ItemsControl ItemsSource="{Binding FirstTiles}" Focusable="False" Margin="0,12,-6,0">
+                                                    <ItemsControl.ItemsPanel>
+                                                        <ItemsPanelTemplate>
+                                                            <UniformGrid Columns="3" />
+                                                        </ItemsPanelTemplate>
+                                                    </ItemsControl.ItemsPanel>
+                                                    <ItemsControl.ItemTemplate>
+                                                        <DataTemplate>
+                                                            <Button Style="{DynamicResource AtrioPlainButton}" Margin="0,0,6,8" ToolTip="{Binding ToolTip}"
+                                                                    AutomationProperties.Name="{Binding ToolTip}"
+                                                                    Command="{Binding DataContext.Cards.ShowAllCommand, RelativeSource={RelativeSource AncestorType={x:Type GameOverview}}}"
+                                                                    CommandParameter="{Binding}">
+                                                                <Grid>
+                                                                    <Image x:Name="Picture" WebImage.DecodeWidth="220" WebImage.Url="{Binding ImageUrl}"
+                                                                           Height="118" Stretch="Uniform" RenderOptions.BitmapScalingMode="HighQuality" />
+                                                                    <Border CornerRadius="9" Padding="6,0,6,1" Margin="4" Background="{DynamicResource AtrioPlayBrush}"
+                                                                            HorizontalAlignment="Right" VerticalAlignment="Bottom"
+                                                                            Visibility="{Binding CountText, Converter={StaticResource StringNullOrEmptyToVisibilityConverter}}">
+                                                                        <TextBlock Text="{Binding CountText}" FontSize="11" FontWeight="SemiBold" Foreground="{DynamicResource AtrioPlayTextBrush}" />
+                                                                    </Border>
+                                                                </Grid>
+                                                            </Button>
+                                                            <DataTemplate.Triggers>
+                                                                <DataTrigger Binding="{Binding IsOwned}" Value="False">
+                                                                    <Setter TargetName="Picture" Property="Opacity" Value="0.3" />
+                                                                </DataTrigger>
+                                                            </DataTemplate.Triggers>
+                                                        </DataTemplate>
+                                                    </ItemsControl.ItemTemplate>
+                                                </ItemsControl>
+
+                                                <StackPanel Margin="0,4,0,0" Visibility="{Binding CanCraft, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                                    <TextBlock Text="{DynamicResource LOCAtrioCardsCraft}" Style="{DynamicResource BaseTextBlockStyle}" FontSize="13" TextWrapping="Wrap"
+                                                               Foreground="{DynamicResource GlyphBrush}" />
+                                                    <Button Style="{DynamicResource AtrioGhostButton}" Content="{DynamicResource LOCAtrioCardsCraftButton}" Margin="0,8,0,0"
+                                                            HorizontalAlignment="Left" Padding="14,0,14,0" MinHeight="30" FontSize="12" Command="{Binding OpenPageCommand}" />
+                                                </StackPanel>
+                                            </StackPanel>
                                         </StackPanel>
                                     </Border>
 

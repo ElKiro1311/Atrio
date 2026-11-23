@@ -73,6 +73,39 @@ namespace Playnite.DesktopApp.Atrio
         [System.Runtime.InteropServices.DllImport("user32.dll")]
         private static extern bool IsWindowVisible(IntPtr handle);
 
+        [System.Runtime.InteropServices.DllImport("user32.dll")]
+        private static extern bool PostMessage(IntPtr handle, uint message, IntPtr first, IntPtr second);
+
+        [System.Runtime.InteropServices.DllImport("kernel32.dll", CharSet = System.Runtime.InteropServices.CharSet.Unicode)]
+        private static extern bool QueryFullProcessImageName(IntPtr process, int flags, StringBuilder path, ref int size);
+
+        [System.Runtime.InteropServices.DllImport("kernel32.dll")]
+        private static extern IntPtr OpenProcess(int access, bool inherit, int id);
+
+        [System.Runtime.InteropServices.DllImport("kernel32.dll")]
+        private static extern bool CloseHandle(IntPtr handle);
+
+        // A 32-bit program can't look at the modules of a 64-bit one, but it can ask for its path.
+        private static string GetProcessPath(int id)
+        {
+            var process = OpenProcess(0x1000, false, id);
+            if (process == IntPtr.Zero)
+            {
+                return null;
+            }
+
+            try
+            {
+                var size = 1024;
+                var path = new StringBuilder(size);
+                return QueryFullProcessImageName(process, 0, path, ref size) ? path.ToString() : null;
+            }
+            finally
+            {
+                CloseHandle(process);
+            }
+        }
+
         [System.Runtime.InteropServices.DllImport("user32.dll", CharSet = System.Runtime.InteropServices.CharSet.Unicode)]
         private static extern int GetWindowText(IntPtr handle, StringBuilder text, int length);
 
@@ -473,7 +506,222 @@ namespace Playnite.DesktopApp.Atrio
                     playedGame.Playtime += 3600;
                     playedGame.LastActivity = DateTime.Now;
                     model.Database.Games.Update(playedGame);
-                    Log($"jugado: {model.SelectedGameDetails?.PlayedText}, actividad: {model.SelectedGameDetails?.Activity?.Count}");
+                    Log($"jugado: {model.SelectedGameDetails?.PlayedText}, actividad: {model.SelectedGameDetails?.Feed?.Entries.Count}");
+                    break;
+                case "desplaza":
+                    // desplaza <pixels>: the biggest visible scroll of the window goes there.
+                    var scrolls = FindAll<System.Windows.Controls.ScrollViewer>(model.Window.Window).Where(a => a.IsVisible && a.ScrollableHeight > 0).OrderByDescending(a => a.ActualWidth).ToList();
+                    var scroll = scrolls.FirstOrDefault();
+                    scroll?.ScrollToVerticalOffset(double.Parse(argument, System.Globalization.CultureInfo.InvariantCulture));
+                    Log($"desplaza: {(scroll == null ? "sin scroll" : $"{scroll.VerticalOffset} de {scroll.ScrollableHeight}")}");
+                    break;
+                case "jugadahilo":
+                    // jugadahilo: the game of the page as if it was played outside Atrio, which is seen in another thread.
+                    var pageId = model.SelectedGameDetails.Game.Id;
+                    await Task.Run(() =>
+                    {
+                        var elsewhere = model.Database.Games.Get(pageId);
+                        elsewhere.Playtime += 600;
+                        elsewhere.LastActivity = DateTime.Now;
+                        elsewhere.IsInstalled = elsewhere.IsInstalled;
+                        model.Database.Games.Update(elsewhere);
+                    });
+                    Log($"jugado en otro hilo: {model.SelectedGameDetails?.PlayedText}, actividad: {model.SelectedGameDetails?.Feed?.Entries.Count}");
+                    break;
+                case "actividad":
+                    // actividad estado | todo | parches | mas | fuente <n> | abre <n>: what the store of the game publishes.
+                    var feed = model.SelectedGameDetails?.Feed;
+                    var feedParts = argument.Split(new[] { ' ' }, 2);
+                    switch (feedParts[0])
+                    {
+                        case "todo":
+                            feed.ShowsAll = true;
+                            break;
+                        case "parches":
+                            feed.OnlyPatches = true;
+                            break;
+                        case "mas":
+                            feed.MoreCommand.Execute(null);
+                            break;
+                        case "fuente":
+                            feed.Sources[int.Parse(feedParts[1])].IsSelected = true;
+                            break;
+                        case "abre":
+                            feed.OpenCommand.Execute(feed.Entries.Where(a => a.IsPost).ElementAt(int.Parse(feedParts[1])));
+                            break;
+                        case "espera":
+                            for (var i = 0; i < 100 && (feed.IsLoading || i < 12); i++)
+                            {
+                                await Task.Delay(200);
+                            }
+
+                            break;
+                        default:
+                            Log($"actividad {model.SelectedGameDetails?.Game?.Name}: fuentes [{string.Join(", ", feed.Sources.Select(a => a.Name + (a.IsSelected ? "*" : "")))}] " +
+                                $"lineas {feed.Entries.Count}, publicaciones {feed.Entries.Count(a => a.IsPost)}, parches {feed.Entries.Count(a => a.IsPatch)}, propias {feed.Entries.Count(a => !a.IsPost)}, " +
+                                $"mas {feed.CanLoadMore}, nota '{feed.NoteText}', vacio '{feed.EmptyText}'");
+                            foreach (var line in feed.Entries.Take(feedParts.Length > 1 ? int.Parse(feedParts[1]) : 8))
+                            {
+                                Log($"   {(line.HasDay ? line.DayText + " > " : "")}{(line.IsPost ? line.Label : "propia")}{(line.IsNew ? " NUEVO" : "")}: {line.Title} [{line.LikesText}/{line.CommentsText}] {(string.IsNullOrEmpty(line.ImageUrl) ? "sin imagen" : "con imagen")}");
+                            }
+
+                            break;
+                    }
+
+                    break;
+                case "cromos":
+                    // cromos estado | abre [n] | sobra <n> | privado: the trading cards and the badge of the game.
+                    var cardPanel = model.SelectedGameDetails?.Cards;
+                    var cardParts = argument.Split(' ');
+                    switch (cardParts[0])
+                    {
+                        case "abre":
+                            cardPanel.ShowAllCommand.Execute(cardParts.Length > 1 ? cardPanel.Tiles[int.Parse(cardParts[1])] : null);
+                            break;
+                        case "reflectantes":
+                            var cardsWindow = Application.Current.Windows.OfType<Playnite.DesktopApp.Windows.SteamCardsWindow>().First();
+                            ((Playnite.DesktopApp.Windows.SteamCardsModel)cardsWindow.DataContext).ShowsFoil = cardParts.Length == 1 || cardParts[1] == "si";
+                            break;
+                        case "privado":
+                            cardPanel.Show(new Playnite.Atrio.SteamCardsResult { State = Playnite.Atrio.SteamCardsState.Private });
+                            break;
+                        case "sobra":
+                            // The same cards with what only the account says: what is left to get and that the badge can be made.
+                            var full = cardPanel.Result.Badge;
+                            full.DropsLeft = int.Parse(cardParts[1]);
+                            foreach (var card in full.Cards)
+                            {
+                                card.Owned = Math.Max(1, card.Owned);
+                            }
+
+                            cardPanel.Show(cardPanel.Result);
+                            break;
+                        default:
+                            Log(cardPanel == null ? "cromos: sin panel" : $"cromos: visible {cardPanel.IsVisible}, privado {cardPanel.IsPrivate}, estado {cardPanel.Result.State}, '{cardPanel.BadgeTitle}' '{cardPanel.BadgeText}' '{cardPanel.NextText}' '{cardPanel.CardsText}' " +
+                                $"'{cardPanel.DropsText}' fabricar {cardPanel.CanCraft}, icono {cardPanel.HasIcon}: " + string.Join(" | ", cardPanel.Tiles.Select(a => a.ToolTip)));
+                            break;
+                    }
+
+                    break;
+                case "opti":
+                    // opti abre | cierra | estado | pon <option> <value> | instala | actualiza | quita | para | descarga | busca | espera <seconds>
+                    var opti = model.SelectedGameDetails?.OptiScaler;
+                    var optiParts = argument.Split(new[] { ' ' }, 3);
+                    switch (optiParts[0])
+                    {
+                        case "abre":
+                            opti.IsOpen = true;
+                            break;
+                        case "cierra":
+                            opti.IsOpen = false;
+                            break;
+                        case "pon":
+                            var option = opti.Options.First(a => a.Key == optiParts[1]);
+                            option.Selected = option.Choices.First(a => a.Id == optiParts[2]);
+                            break;
+                        case "instala":
+                            _ = Application.Current.Dispatcher.BeginInvoke(new Action(() => opti.InstallCommand.Execute(null)));
+                            break;
+                        case "actualiza":
+                            _ = Application.Current.Dispatcher.BeginInvoke(new Action(() => opti.UpdateCommand.Execute(null)));
+                            break;
+                        case "quita":
+                            _ = Application.Current.Dispatcher.BeginInvoke(new Action(() => opti.UninstallCommand.Execute(null)));
+                            break;
+                        case "para":
+                            opti.StopCommand.Execute(null);
+                            break;
+                        case "descarga":
+                            opti.DownloadClientCommand.Execute(null);
+                            break;
+                        case "busca":
+                            opti.CheckUpdatesCommand.Execute(null);
+                            break;
+                        case "reintenta":
+                            opti.RetryCommand.Execute(null);
+                            break;
+                        case "ventana":
+                            opti.AllOptionsCommand.Execute(null);
+                            break;
+                        case "cliente":
+                            opti.OpenClientCommand.Execute(null);
+                            break;
+                        case "ventanas":
+                        case "cierraventana":
+                            // Only the programs that this test started, by the folder of its data.
+                            var clientFolder = Playnite.Atrio.OptiScalerClient.Root;
+                            foreach (var clientProcess in System.Diagnostics.Process.GetProcessesByName("OptiscalerClient"))
+                            {
+                                var clientPath = GetProcessPath(clientProcess.Id);
+                                if (clientPath == null || !clientPath.StartsWith(clientFolder, StringComparison.OrdinalIgnoreCase))
+                                {
+                                    continue;
+                                }
+
+                                EnumWindows(
+                                    (handle, _) =>
+                                    {
+                                        GetWindowThreadProcessId(handle, out var owner);
+                                        if (owner == clientProcess.Id && IsWindowVisible(handle))
+                                        {
+                                            var caption = new StringBuilder(300);
+                                            GetWindowText(handle, caption, 300);
+                                            Log($"   ventana del cliente {owner}: '{caption}'");
+                                            if (optiParts[0] == "cierraventana")
+                                            {
+                                                PostMessage(handle, 0x0010, IntPtr.Zero, IntPtr.Zero);
+                                            }
+                                        }
+
+                                        return true;
+                                    },
+                                    IntPtr.Zero);
+                            }
+
+                            break;
+                        case "paquete":
+                            Log("opti paquete: " + opti.PackageText);
+                            opti.UsePackageCommand.Execute(null);
+                            break;
+                        case "espera":
+                            // Until it's quiet: not starting, not downloading, not working.
+                            var quiet = System.Diagnostics.Stopwatch.StartNew();
+                            await Task.Delay(400);
+                            while (opti.ShowsProgress && quiet.Elapsed.TotalSeconds < double.Parse(optiParts[1]))
+                            {
+                                await Task.Delay(100);
+                            }
+
+                            Log($"opti quieto tras {quiet.Elapsed.TotalSeconds:0.0} s: {opti.Stage}");
+                            break;
+                        default:
+                            Log($"opti {opti?.Target?.Name}: disponible {opti?.IsAvailable}, etapa {opti?.Stage}, instalado '{opti?.InstalledVersion}', '{opti?.StatusText}' '{opti?.StatusDetail}', boton '{opti?.ButtonHint}', " +
+                                $"chips [{string.Join(", ", opti?.DetectedChips ?? new List<string>())}], gpu '{opti?.GpuText}', instalar {opti?.ShowsInstall} '{opti?.InstallText}', actualizar '{opti?.UpdateText}', quitar {opti?.ShowsUninstall}, " +
+                                $"cliente '{opti?.ClientText}' '{opti?.ClientUpdateText}' '{opti?.DownloadText}', mensaje {(opti?.MessageIsProblem == true ? "(problema) " : "")}'{opti?.Message}', progreso '{opti?.ProgressText}'");
+                            foreach (var one in opti?.Options ?? new List<Playnite.DesktopApp.ViewModels.OptiScalerOption>())
+                            {
+                                Log($"   {one.Key} «{one.Label}»: {one.Selected?.Id} ({one.Selected?.Name}) inicial {one.Initial} cambiada {one.IsChanged} activa {one.IsEnabled}: {string.Join(" / ", one.Choices.Take(14).Select(a => a.Name))}");
+                            }
+
+                            if (opti?.HasCompatibility == true)
+                            {
+                                Log($"   lista: {opti.CompatibilityText} (bien {opti.CompatibilityIsGood}) {opti.CompatibilityNotes} {opti.GuideUrl}");
+                            }
+
+                            break;
+                    }
+
+                    break;
+                case "juegofalso":
+                    // juegofalso <name>|<folder>: an installed game of the test data whose folder holds a fake program.
+                    var fakeParts = argument.Split('|');
+                    foreach (var older in model.Database.Games.Where(a => a.Name == fakeParts[0]).ToList())
+                    {
+                        model.Database.Games.Remove(older);
+                    }
+
+                    model.Database.Games.Add(new Playnite.SDK.Models.Game(fakeParts[0]) { IsInstalled = true, InstallDirectory = fakeParts[1] });
+                    Log($"juego falso '{fakeParts[0]}' en {fakeParts[1]}");
                     break;
                 case "nuevo":
                     model.Database.Games.Add(new Playnite.SDK.Models.Game(argument));

@@ -55,34 +55,6 @@ namespace Playnite.DesktopApp.ViewModels
         public bool IsGood { get; set; }
     }
 
-    public class GameActivityEntry
-    {
-        public DateTime Date { get; set; }
-        public string DateText { get; set; }
-        public string Label { get; set; }
-        public string Title { get; set; }
-        public string Text { get; set; }
-        public string ImageUrl { get; set; }
-        public string Url { get; set; }
-
-        /// <summary>News published after the last time the game was played.</summary>
-        public bool IsNew { get; set; }
-
-        public static GameActivityEntry Create(DateTime date, string label, string title, string text = null, string imageUrl = null, string url = null)
-        {
-            return new GameActivityEntry
-            {
-                Date = date,
-                DateText = date.ToString("d MMMM yyyy", Localization.ApplicationLanguageCultureInfo),
-                Label = label,
-                Title = title,
-                Text = text,
-                ImageUrl = imageUrl,
-                Url = url
-            };
-        }
-    }
-
     public class GameDetailsViewModel : ObservableObject, IDisposable
     {
         private readonly System.Threading.CancellationTokenSource contentToken = new System.Threading.CancellationTokenSource();
@@ -557,13 +529,39 @@ namespace Playnite.DesktopApp.ViewModels
 
         public bool HasLogo => !logoImage.IsNullOrEmpty();
 
-        private List<GameActivityEntry> activity;
-        public List<GameActivityEntry> Activity
+        private ActivityFeed feed;
+
+        /// <summary>The posts and the notes of the patches of the store of the game, with what the person did in it.</summary>
+        public ActivityFeed Feed
         {
-            get => activity;
-            set
+            get => feed;
+            private set
             {
-                activity = value;
+                feed = value;
+                OnPropertyChanged();
+            }
+        }
+
+        private SteamCardsPanel cards;
+
+        /// <summary>The trading cards and the badge of the game on Steam. Null for a game that isn't there.</summary>
+        public SteamCardsPanel Cards
+        {
+            get => cards;
+            private set
+            {
+                cards = value;
+                OnPropertyChanged();
+            }
+        }
+
+        private OptiScalerPanel optiScaler;
+        public OptiScalerPanel OptiScaler
+        {
+            get => optiScaler;
+            private set
+            {
+                optiScaler = value;
                 OnPropertyChanged();
             }
         }
@@ -905,8 +903,6 @@ namespace Playnite.DesktopApp.ViewModels
         public string AllFriendsUrl => $"https://steamcommunity.com/my/friendsthatplay/{steamAppId}";
         public RelayCommand<object> FriendsActionCommand { get; }
 
-        private List<GameActivityEntry> newsActivity = new List<GameActivityEntry>();
-        private List<SteamNewsItem> newsItems = new List<SteamNewsItem>();
         private string steamAppId;
         private string friendsActionUrl;
 
@@ -1239,7 +1235,9 @@ namespace Playnite.DesktopApp.ViewModels
             {
                 LoadCaptures();
                 LoadCompat();
+                LoadFeed(appId);
             }
+
             if (appId != null && DesktopAppViewModel.UsesLibraryPanes)
             {
                 // What is already saved comes with the page: the picture changes straight into the
@@ -1257,6 +1255,34 @@ namespace Playnite.DesktopApp.ViewModels
                 {
                     ReloadFriends();
                 }
+            }
+        }
+
+        /// <summary>The activity, the cards and OptiScaler: what is known comes with the page, and the rest a moment later.</summary>
+        private async void LoadFeed(string appId)
+        {
+            try
+            {
+                var extensions = editor?.Extensions;
+                Feed = new ActivityFeed(game, resources, ids => PlayerActivity.GetAchievementsAsync(extensions, ids), contentToken.Token);
+                OptiScaler = new OptiScalerPanel(game, dialogs, resources);
+                if (appId != null)
+                {
+                    Cards = new SteamCardsPanel(appId, game.DisplayName, resources, contentToken.Token);
+                }
+
+                var recorded = OptiScaler.LoadRecordAsync(KeyboardPause * 2);
+                var loadedCards = Cards?.LoadAsync(KeyboardPause * 4);
+                await Feed.LoadAsync(KeyboardPause);
+                await recorded;
+                if (loadedCards != null)
+                {
+                    await loadedCards;
+                }
+            }
+            catch (Exception e) when (!PlayniteEnvironment.ThrowAllErrors)
+            {
+                logger.Error(e, $"Failed to load the activity of {game.Name}.");
             }
         }
 
@@ -1345,33 +1371,10 @@ namespace Playnite.DesktopApp.ViewModels
                 null;
 
             // «New» is what was published after the last time it was played: playing now takes the mark away.
-            var lastPlayed = game.Copies.Select(a => a.Game.LastActivity).Where(a => a != null).DefaultIfEmpty().Max();
-            newsActivity = newsItems.Select(a =>
-            {
-                var entry = GameActivityEntry.Create(a.Date, resources.GetString("LOCAtrioActivityNews"), a.Title, a.Text, a.ImageUrl, a.Url);
-                entry.IsNew = lastPlayed != null && a.Date > lastPlayed;
-                return entry;
-            }).ToList();
-            Activity = GetLocalActivity().Concat(newsActivity).OrderByDescending(a => a.Date).ToList();
+            Feed?.UpdatePlayed();
         }
 
-        private List<GameActivityEntry> GetLocalActivity()
-        {
-            var list = new List<GameActivityEntry>();
-            if (game.Game.LastActivity != null)
-            {
-                list.Add(GameActivityEntry.Create(game.Game.LastActivity.Value, resources.GetString("LOCAtrioActivityGame"), resources.GetString("LOCAtrioActivityPlayed")));
-            }
-
-            if (game.Game.Added != null)
-            {
-                list.Add(GameActivityEntry.Create(game.Game.Added.Value, resources.GetString("LOCAtrioActivityGame"), resources.GetString("LOCAtrioActivityAdded")));
-            }
-
-            return list;
-        }
-
-        /// <summary>The picture, the logo and the news of Steam arrive after the page is already showing.</summary>
+        /// <summary>The picture and the logo of Steam arrive after the page is already showing.</summary>
         private async void LoadSteamContent(string appId)
         {
             var token = contentToken.Token;
@@ -1380,7 +1383,6 @@ namespace Playnite.DesktopApp.ViewModels
                 await Task.Delay(TimeSpan.FromMilliseconds(KeyboardPause), token);
                 var hero = SteamContent.GetHeroAsync(appId, token);
                 var logo = SteamContent.GetLogoAsync(appId, token);
-                var latestNews = SteamContent.GetNewsAsync(appId, 5, token);
                 var minutes = await Task.Run(() => SteamContent.GetRecentMinutes(appId), token);
                 if (minutes > 0)
                 {
@@ -1392,10 +1394,6 @@ namespace Playnite.DesktopApp.ViewModels
                 HeroOnItsWay = false;
                 HeroImage = await hero;
                 LogoImage = await logo;
-                var news = await latestNews;
-                token.ThrowIfCancellationRequested();
-                newsItems = news;
-                UpdatePlayedContent();
             }
             catch (OperationCanceledException)
             {
@@ -1414,6 +1412,7 @@ namespace Playnite.DesktopApp.ViewModels
             OpenGames.Changed -= OpenGames_Changed;
             SaveBackups.Changed -= SaveBackups_Changed;
             contentToken.Cancel();
+            OptiScaler?.Dispose();
             if (game != null)
             {
                 Game.PropertyChanged -= Game_PropertyChanged;
@@ -1429,13 +1428,35 @@ namespace Playnite.DesktopApp.ViewModels
 
         private void Game_PropertyChanged(object sender, System.ComponentModel.PropertyChangedEventArgs e)
         {
+            // The stores, the add-ons and the watch of the open games change the games from threads of their own.
+            var dispatcher = System.Windows.Application.Current?.Dispatcher;
+            if (dispatcher != null && !dispatcher.CheckAccess())
+            {
+                dispatcher.BeginInvoke(new Action(() => Game_PropertyChanged(sender, e)));
+                return;
+            }
+
+            if (contentToken.IsCancellationRequested)
+            {
+                return;
+            }
+
             if (e.PropertyName == nameof(Playnite.SDK.Models.Game.Playtime) || e.PropertyName == nameof(Playnite.SDK.Models.Game.LastActivity))
             {
                 UpdatePlayedContent();
+                if (e.PropertyName == nameof(Playnite.SDK.Models.Game.Playtime))
+                {
+                    // The time is written when the game closes; the last activity, when it opens.
+                    Cards?.ReloadLater();
+                }
             }
             else if (e.PropertyName == nameof(Playnite.SDK.Models.Game.Links))
             {
                 UpdatePageLinks(SteamContent.GetAppId(game.Copies.Select(a => a.Game)));
+            }
+            else if (e.PropertyName == nameof(Playnite.SDK.Models.Game.IsInstalled) || e.PropertyName == nameof(Playnite.SDK.Models.Game.InstallDirectory))
+            {
+                OptiScaler?.FindTarget();
             }
 
             NotifyStateChange();

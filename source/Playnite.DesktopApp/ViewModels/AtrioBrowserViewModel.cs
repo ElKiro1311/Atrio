@@ -547,6 +547,7 @@ namespace Playnite.DesktopApp.ViewModels
                 visitedSteam = false;
                 SteamFriends.ForgetSession();
                 main.SelectedGameDetails?.ReloadFriends();
+                main.SelectedGameDetails?.Cards?.Reload();
             }
         }
 
