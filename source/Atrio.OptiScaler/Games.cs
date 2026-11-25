@@ -44,8 +44,17 @@ namespace Atrio.OptiScaler
 
         // The folders with its name: in the second one, the packages from the 10 on have everything but the main file and its settings.
         private static readonly string[] ownFolders = { "D3D12_Optiscaler", "OptiScaler" };
+
+        // Where its settings can be. The first one is the one that counts when there are both.
+        private static readonly string[] iniNames = { "OptiScaler.ini", @"OptiScaler\OptiScaler.ini" };
+
+        // The files that tell what a game has.
+        private static readonly HashSet<string> programTypes = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { ".dll", ".exe", ".asi", ".sys", ".msi" };
         private const string Components = "ComponentManagementService";
         private const string Installer = "GameInstallationService";
+        private const string FrameService = "FrameGenerationConfigurationService";
+        private const string OptiFg = "OptiFg";
+        private const string ByHandName = "by hand";
 
         private readonly Func<string, string, double?, bool> tell;
 
@@ -476,40 +485,189 @@ namespace Atrio.OptiScaler
         /// <summary>The value of a key of the OptiScaler.ini of the game. Null when it isn't there.</summary>
         private static string ReadIni(string directory, string section, string key)
         {
-            var path = string.IsNullOrEmpty(directory) ? null :
-                new[] { Path.Combine(directory, "OptiScaler.ini"), Path.Combine(directory, "OptiScaler", "OptiScaler.ini") }.FirstOrDefault(File.Exists);
-            if (path == null)
-            {
-                return null;
-            }
+            return IniFile.Read(IniPath(directory))?.Get(section, key);
+        }
 
-            var inside = false;
-            foreach (var raw in File.ReadLines(path))
-            {
-                var line = raw.Trim();
-                if (line.StartsWith("["))
-                {
-                    inside = line.Equals($"[{section}]", StringComparison.OrdinalIgnoreCase);
-                }
-                else if (inside && line.IndexOf('=') > 0 && line.Substring(0, line.IndexOf('=')).Trim().Equals(key, StringComparison.OrdinalIgnoreCase))
-                {
-                    return line.Substring(line.IndexOf('=') + 1).Trim();
-                }
-            }
-
-            return null;
+        private static IEnumerable<string> IniPaths(string directory)
+        {
+            return string.IsNullOrEmpty(directory) ? Enumerable.Empty<string>() : iniNames.Select(a => Path.Combine(directory, a)).Where(File.Exists);
         }
 
         private static string IniPath(string directory)
         {
-            return string.IsNullOrEmpty(directory) ? null :
-                new[] { Path.Combine(directory, "OptiScaler.ini"), Path.Combine(directory, "OptiScaler", "OptiScaler.ini") }.FirstOrDefault(File.Exists);
+            return IniPaths(directory).FirstOrDefault();
         }
 
-        private static bool HasPatcher(string directory)
+        /// <summary>
+        /// The upscaler OptiScaler takes by itself for each kind of game with this graphics card, with the names of the newest
+        /// versions. Without a name it isn't known, and the one there is counts as chosen.
+        /// </summary>
+        private static Dictionary<string, string> AutomaticUpscalers(object gpu, IniFile settings)
         {
-            return !string.IsNullOrEmpty(directory) &&
-                new[] { directory, Path.Combine(directory, "OptiScaler") }.Any(a => File.Exists(Path.Combine(a, "plugins", "OptiPatcher.asi")));
+            // Up to the 0.9 its file tells the one of DirectX 12. From the 10 on it's FSR 4 wherever it can be.
+            var older = settings?.Default("Upscalers", "Dx12Upscaler") != null;
+            var rtx = Client.Text(gpu, "Name")?.Contains("RTX", StringComparison.OrdinalIgnoreCase) == true;
+            string dx12 = null;
+            switch (Client.Text(gpu, "Vendor"))
+            {
+                case "AMD":
+                    dx12 = Gpu("IsRdna4", gpu) || Gpu("IsRdna3", gpu) ? "ffx" : older ? "xess" : Gpu("IsRdna2", gpu) ? "ffx" : null;
+                    break;
+                case "NVIDIA":
+                    dx12 = rtx ? (older || !Gpu("IsTuringRtx", gpu) ? "dlss" : null) : older ? "xess" : null;
+                    break;
+                case "Intel":
+                    dx12 = "xess";
+                    break;
+            }
+
+            var other = rtx ? "dlss" : "fsr22";
+            var result = new Dictionary<string, string> { ["upscalers|dx11upscaler"] = other, ["upscalers|vulkanupscaler"] = other };
+            if (dx12 != null)
+            {
+                result["upscalers|dx12upscaler"] = dx12;
+            }
+
+            return result;
+        }
+
+        /// <summary>
+        /// What the person changed in the settings of OptiScaler. When it isn't known how they were left, because an earlier
+        /// Atrio or the client by itself did it, what the client may have written isn't taken for theirs.
+        /// </summary>
+        private static List<Setting> OwnOf(object game, Record record, string folder, object gpu)
+        {
+            var now = IniFile.Read(IniPath(folder));
+            if (!record.IsOfOptiScaler)
+            {
+                return OwnSettings.Find(now, null, AutomaticUpscalers(gpu, now));
+            }
+
+            var left = LeftOf(game, record, now);
+            if (left != null)
+            {
+                return OwnSettings.Find(now, left, AutomaticUpscalers(gpu, left));
+            }
+
+            var profile = ProfileSettings(record);
+            return OwnSettings.Find(now, null, AutomaticUpscalers(gpu, now)).
+                Where(a => OwnSettings.OptionOf(a) == null && !OwnSettings.IsOfTheClient(a) && !(profile.TryGetValue(a.Id, out var value) && OwnSettings.IsSame(a, value))).ToList();
+        }
+
+        /// <summary>How the settings of a game were left. Null when it isn't known.</summary>
+        private static IniFile LeftOf(object game, Record record, IniFile now)
+        {
+            return new SettingsStore(Client.Text(game, "InstallPath")).Left(record, now, () => ProfileSettings(record).Keys);
+        }
+
+        /// <summary>What the profile of an install says, which the client wrote too.</summary>
+        private static Dictionary<string, string> ProfileSettings(Record record)
+        {
+            var result = new Dictionary<string, string>();
+            if (Client.Text(record.Manifest, "AppliedProfileName") is string name && name.Length > 0 && Contract.Has("profile"))
+            {
+                var profile = Client.Call(Client.New("ProfileManagementService"), "GetProfileByName", "name", name);
+                foreach (var section in Client.TryGet(profile, "IniSettings") as IEnumerable<KeyValuePair<string, Dictionary<string, string>>> ?? Enumerable.Empty<KeyValuePair<string, Dictionary<string, string>>>())
+                {
+                    foreach (var setting in section.Value)
+                    {
+                        result[Setting.GetId(section.Key, setting.Key)] = setting.Value;
+                    }
+                }
+            }
+
+            return result;
+        }
+
+        /// <summary>An option of the panel stays as the person has it in the settings of the game: it isn't chosen in the panel.</summary>
+        /// <param name="fresh">They start over: only the ones that are told to stay do.</param>
+        private static bool IsOwn(JsonObject options, string option, bool fresh = false)
+        {
+            var value = options?[option] is JsonObject frames ? Parameter(frames, "output") : Parameter(options, option);
+            return value == OwnSettings.Own || (value == null && !fresh);
+        }
+
+        /// <summary>
+        /// With the settings of the new version there, as the client left them, the ones of the person go in: the ones it
+        /// doesn't have wait for another that does.
+        /// </summary>
+        /// <param name="was">The file there was before.</param>
+        private static void KeepSettings(object game, string folder, string package, IniFile was, List<Setting> own, List<Setting> waiting, List<string> notes)
+        {
+            var path = IniPath(folder);
+            var ini = IniFile.Read(path);
+            var record = Record.Find(game);
+            if (ini == null || !record.IsOfOptiScaler)
+            {
+                return;
+            }
+
+            ini.Tidy();
+            var fitting = Fitting(package, was, own, waiting);
+            var mine = fitting.Keys.ToList();
+            var left = mine.Where(a => fitting[a] == null && !Setting.IsAuto(a.Value)).ToList();
+            var clean = IniFile.Parse(ini.ToString());
+            foreach (var setting in fitting.Values.Where(a => a != null))
+            {
+                ini.Set(setting.Section, setting.Key, setting.Value);
+            }
+
+            // If they can't go in, all of them are still waiting.
+            ini.Save(path);
+            new SettingsStore(Client.Text(game, "InstallPath")).Keep(record, clean, left, true);
+            if (mine.Count > left.Count)
+            {
+                notes.Add($"kept: {mine.Count - left.Count}");
+            }
+
+            // The ones that were already waiting were told before.
+            var dropped = left.Where(own.Contains).ToList();
+            if (dropped.Count > 0)
+            {
+                notes.Add($"dropped: {string.Join(", ", dropped.Take(8))}{(dropped.Count > 8 ? $" (+{dropped.Count - 8})" : string.Empty)}");
+            }
+        }
+
+        /// <summary>How each one is written in the version of a package. Null for the ones it doesn't have.</summary>
+        private static Dictionary<Setting, Setting> Fitting(string package, IniFile was, List<Setting> own, List<Setting> waiting)
+        {
+            var version = IniFile.Read(Path.Combine(package ?? string.Empty, iniNames[0]));
+            return Together(own, waiting).ToDictionary(a => a, a => OwnSettings.Fit(a, version, own.Contains(a) ? was : null));
+        }
+
+        private static List<Setting> Together(List<Setting> own, List<Setting> waiting)
+        {
+            return own.Concat(waiting.Where(a => own.All(b => b.Id != a.Id))).ToList();
+        }
+
+        /// <summary>A copy of the settings there are, when they aren't just as they were left.</summary>
+        private static void CopySettings(object game, Record record, string folder, List<string> notes)
+        {
+            Try(notes, "copy", () =>
+            {
+                var now = IniFile.Read(IniPath(folder));
+                if (OwnSettings.IsWorthKeeping(now, record.IsOfOptiScaler ? LeftOf(game, record, now) : null))
+                {
+                    new SettingsStore(Client.Text(game, "InstallPath")).Copy(IniPath(folder), record.IsOfOptiScaler ? Client.Text(record.Manifest, "OptiscalerVersion") : ByHandName);
+                }
+            });
+        }
+
+        /// <summary>The client has its own place for it, where OptiScaler doesn't look.</summary>
+        private static void PlaceHudFix(string folder)
+        {
+            var path = IniPath(folder);
+            var ini = IniFile.Read(path);
+            if (ini?.Get("HUDFix", "HUDFix") is string value && !Setting.IsAuto(value) && ini.Has("OptiFG", "HUDFix") && Setting.IsAuto(ini.Get("OptiFG", "HUDFix")))
+            {
+                ini.Set("OptiFG", "HUDFix", value);
+                ini.Save(path);
+            }
+        }
+
+        private static bool HasPlugin(string directory, string name)
+        {
+            return !string.IsNullOrEmpty(directory) && new[] { directory, Path.Combine(directory, "OptiScaler") }.Any(a => File.Exists(Path.Combine(a, "plugins", name)));
         }
 
         private sealed class Compatibility
@@ -587,20 +745,28 @@ namespace Atrio.OptiScaler
         }
 
         /// <summary>
-        /// What was put by hand and can only be of OptiScaler: its file, under any of the names it may have, and the ones its
-        /// packages bring in the folder with its own name. The rest could be of the game or of somebody else. Nothing when its
-        /// file isn't there: whatever the game loads it by would be left without the rest.
+        /// What was put by hand and is of OptiScaler: its file, under any of the names it may have, the ones that nobody else
+        /// calls that way, the ones its packages bring in the folder with its own name, and the ones that came with all of
+        /// them next to the game. The rest could be of the game or of somebody else. Nothing when its file isn't there:
+        /// whatever the game loads it by would be left without the rest.
         /// </summary>
         /// <param name="package">The one that takes its place, when there's one.</param>
         private static List<string> FilesByHand(string folder, string package)
         {
-            var result = string.IsNullOrEmpty(folder) ? new List<string>() :
+            var result = SureByHand(folder, package);
+            return result.Count == 0 ? result : result.Concat(ByHand.CameTogether(folder, result)).ToList();
+        }
+
+        private static List<string> SureByHand(string folder, string package)
+        {
+            var result = string.IsNullOrEmpty(folder) || !Directory.Exists(folder) ? new List<string>() :
                 MainNames().Append("OptiScaler.dll").Select(a => Path.Combine(folder, a)).Where(IsMain).ToList();
             if (result.Count == 0)
             {
                 return result;
             }
 
+            result.AddRange(Directory.GetFiles(folder).Where(a => ByHand.IsCertain(Path.GetFileName(a))));
             var brought = new HashSet<string>(Plan.Files(package).Select(a => Path.GetRelativePath(package, a)).Where(Guests.IsInside), StringComparer.OrdinalIgnoreCase);
             foreach (var file in ownFolders.SelectMany(a => Plan.Files(Path.Combine(folder, a))))
             {
@@ -611,7 +777,7 @@ namespace Atrio.OptiScaler
                 }
             }
 
-            return result;
+            return result.Distinct(StringComparer.OrdinalIgnoreCase).ToList();
         }
 
         private static void RemoveByHand(Checkpoint checkpoint, string folder, List<string> files)
@@ -622,7 +788,7 @@ namespace Atrio.OptiScaler
                 File.Delete(file);
             }
 
-            Checkpoint.RemoveEmpty(ownFolders.Select(a => Path.Combine(folder, a)).SelectMany(a => Plan.Folders(a).Append(a)));
+            Checkpoint.RemoveEmpty(ownFolders.Append("Licenses").Select(a => Path.Combine(folder, a)).SelectMany(a => Plan.Folders(a).Append(a)));
         }
 
         private static void Unlock(Checkpoint checkpoint, string folder, IEnumerable<string> names)
@@ -756,34 +922,145 @@ namespace Atrio.OptiScaler
             };
         }
 
-        private static JsonArray FrameChoices(object game, object gpu, out JsonObject recommendation)
+        /// <summary>The files of OptiScaler there are in the game, whoever put them.</summary>
+        private static HashSet<string> OfOptiScaler(object game, string folder, Record record)
+        {
+            var result = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            if (!string.IsNullOrEmpty(folder) && Directory.Exists(folder))
+            {
+                result.UnionWith(ownFolders.SelectMany(a => Plan.Files(Path.Combine(folder, a))));
+                result.UnionWith(record.IsWhole ? OwnFiles(game, folder).Select(a => Path.Combine(folder, a)) : Enumerable.Empty<string>());
+                result.UnionWith(record.IsOfOptiScaler ? Enumerable.Empty<string>() : FilesByHand(folder, null));
+            }
+
+            return result;
+        }
+
+        /// <summary>
+        /// What the game has by itself for frame generation. The client looks at the names of the files in its folder, also
+        /// the ones OptiScaler brings: with them there, any game has the frames of FSR 3 and XeSS, and what it wrote then was
+        /// no use and stayed for the next version. It looks at the same names without the ones of OptiScaler.
+        /// </summary>
+        private static object DetectFrames(object game, object gpu, string folder, Record record)
+        {
+            var program = Client.TryGet(game, "ExecutablePath") as string;
+            var root = string.IsNullOrWhiteSpace(program) ? Client.Text(game, "InstallPath") : Path.GetDirectoryName(program) ?? Client.Text(game, "InstallPath");
+            var service = Client.New(FrameService);
+            if (string.IsNullOrEmpty(root) || !Directory.Exists(root))
+            {
+                return Client.Call(service, "DetectCapabilities", "game", game, "gpu", gpu);
+            }
+
+            // The stores write their paths in their own way.
+            root = FullPath(root) + Path.DirectorySeparatorChar;
+            var ours = OfOptiScaler(game, FullPath(folder), record);
+            var search = new EnumerationOptions { RecurseSubdirectories = true, IgnoreInaccessible = true, AttributesToSkip = FileAttributes.ReparsePoint };
+            var names = Directory.EnumerateFiles(root, "*", search).Where(a => programTypes.Contains(Path.GetExtension(a)) && !ours.Contains(a)).
+                Concat(record.IsWhole ? record.Originals.Keys : Enumerable.Empty<string>()).
+                Select(Path.GetFileName).Distinct(StringComparer.OrdinalIgnoreCase).ToList();
+            var before = new[] { "ExecutablePath", "InstallPath", "DlssFrameGenVersion" }.ToDictionary(a => a, a => Client.TryGet(game, a));
+            var place = Path.Combine(Path.GetTempPath(), $"atrio-optiscaler-{Guid.NewGuid():N}");
+            try
+            {
+                Directory.CreateDirectory(place);
+                foreach (var name in names)
+                {
+                    File.WriteAllBytes(Path.Combine(place, name), Array.Empty<byte>());
+                }
+
+                Client.Set(game, "InstallPath", place);
+                Client.Set(game, "ExecutablePath", program == null ? null : string.Empty);
+                if (Client.Text(game, "DlssFrameGenPath") is string path && path.Length > 0 && (ours.Contains(FullPath(path)) || !File.Exists(path)))
+                {
+                    // The client doesn't forget the one that isn't there anymore.
+                    Client.Set(game, "DlssFrameGenVersion", null);
+                }
+
+                return Client.Call(service, "DetectCapabilities", "game", game, "gpu", gpu);
+            }
+            finally
+            {
+                foreach (var value in before)
+                {
+                    Client.Set(game, value.Key, value.Value);
+                }
+
+                try
+                {
+                    Directory.Delete(place, true);
+                }
+                catch (Exception e) when (e is IOException || e is UnauthorizedAccessException)
+                {
+                    Console.Error.WriteLine($"A temporary folder couldn't be removed: {e.Message}");
+                }
+            }
+        }
+
+        private static object TryDetectFrames(object game, object gpu, string folder, Record record)
+        {
+            try
+            {
+                return DetectFrames(game, gpu, folder, record);
+            }
+            catch (Exception e) when (!(e is OutOfMemoryException))
+            {
+                Console.Error.WriteLine($"What the game has for frame generation isn't known: {e.Message}");
+                return null;
+            }
+        }
+
+        private static object Recommend(object capabilities)
+        {
+            return Client.CanCall(FrameService, "GetRecommendation", "c", "@FrameGenerationCapabilities") ?
+                Client.Call(Client.New(FrameService), "GetRecommendation", "c", capabilities) : null;
+        }
+
+        /// <summary>The game has what that way takes the frames from. The client has others that it only does when they are asked for.</summary>
+        private static bool IsUsable(object capabilities, object route)
+        {
+            var routes = Client.Items(Client.TryGet(capabilities, "AvailableRoutes"));
+            return route != null && route.ToString() != "Disabled" && (routes.Count == 0 || routes.Contains(route));
+        }
+
+        private static JsonArray FrameChoices(object capabilities, out JsonObject recommendation)
         {
             recommendation = null;
             var result = new JsonArray();
-            if (!Contract.Has("frames"))
+            if (capabilities == null)
             {
                 return result;
             }
 
             try
             {
-                var service = Client.New("FrameGenerationConfigurationService");
-                var capabilities = Client.Call(service, "DetectCapabilities", "game", game, "gpu", gpu);
-                var proposal = Client.CanCall("FrameGenerationConfigurationService", "GetRecommendation", "c", "@FrameGenerationCapabilities") ?
-                    Client.Call(service, "GetRecommendation", "c", capabilities) : null;
+                var service = Client.New(FrameService);
+                var proposal = Recommend(capabilities);
+                var route = Client.Text(proposal, "Route");
                 if (proposal != null)
                 {
                     recommendation = new JsonObject
                     {
-                        ["route"] = Client.Text(proposal, "Route"),
+                        ["route"] = route,
                         ["output"] = Client.Text(proposal, "Output"),
                         ["level"] = Client.Text(proposal, "Level")
                     };
                 }
 
-                var modesKnown = Client.CanCall(
-                    "FrameGenerationConfigurationService", "GetAvailableMfgModes", "route", "output", "capabilities", "nvngxReplacement", "@FrameGenerationCapabilities");
-                foreach (var output in Client.Items(Client.TryGet(capabilities, "AvailableOutputs")))
+                var outputs = Client.Items(Client.TryGet(capabilities, "AvailableOutputs"));
+                var usable = proposal == null || IsUsable(capabilities, Client.TryGet(proposal, "Route"));
+                if (!usable)
+                {
+                    // There's nothing they could be taken from in this game.
+                    outputs = outputs.Where(a => a.ToString().StartsWith("DlssG", StringComparison.Ordinal)).ToList();
+                }
+                else if (proposal != null)
+                {
+                    // OptiScaler brings these two, whatever the game has.
+                    outputs.AddRange(new[] { "FsrFg", "XeFg" }.Select(a => Client.EnumValue("FrameGenerationOutput", a)).Where(a => a != null && !outputs.Contains(a)));
+                }
+
+                var modesKnown = Client.CanCall(FrameService, "GetAvailableMfgModes", "route", "output", "capabilities", "nvngxReplacement", "@FrameGenerationCapabilities");
+                foreach (var output in outputs)
                 {
                     var effective = output.ToString() == "Auto" && proposal != null ? Client.TryGet(proposal, "Output", output) : output;
                     var modes = modesKnown ?
@@ -792,6 +1069,11 @@ namespace Atrio.OptiScaler
                         new List<string>();
                     result.Add(new JsonObject { ["id"] = output.ToString(), ["modes"] = Service.Array(modes) });
                 }
+
+                if (HasOptiFg && !Client.Flag(capabilities, "IsAntiCheatDetected"))
+                {
+                    result.Add(new JsonObject { ["id"] = OptiFg, ["modes"] = Service.Array(new[] { "X2" }) });
+                }
             }
             catch (Exception e) when (!(e is OutOfMemoryException))
             {
@@ -799,6 +1081,116 @@ namespace Atrio.OptiScaler
             }
 
             return result;
+        }
+
+        /// <summary>The frames out of what the upscaler gets, for the games without frame generation of their own.</summary>
+        private static bool HasOptiFg => Client.EnumValue("FrameGenerationRoute", OptiFg) != null && Client.EnumValue("FrameGenerationOutput", "FsrFg") != null &&
+            Client.FindType("GameFrameGenerationSettings") is Type settings && Client.Has(settings, "AdvancedMode");
+
+        private static object CopyFrames(object original)
+        {
+            var copy = Client.New("GameFrameGenerationSettings");
+            foreach (var property in original.GetType().GetProperties(BindingFlags.Public | BindingFlags.Instance).Where(a => a.CanRead && a.CanWrite && a.Name != "AppliedAtUtc"))
+            {
+                property.SetValue(copy, property.GetValue(original));
+            }
+
+            return copy;
+        }
+
+        /// <summary>The frame generation chosen for a game, and the same one with the way to do it already decided.</summary>
+        private sealed class FramePlan
+        {
+            public object Chosen;
+            public object Applied;
+            public object Capabilities;
+
+            /// <summary>The game has nothing to decide between: it will be off.</summary>
+            public bool IsNothing;
+        }
+
+        /// <summary>Decided here, with what the game has: inside an install the client would do it with what OptiScaler has just brought.</summary>
+        private static FramePlan PlanFrames(object game, object gpu, string folder, Record record)
+        {
+            var plan = new FramePlan { Chosen = Client.TryGet(game, "FrameGenerationSettings") };
+            plan.Applied = plan.Chosen;
+            if (plan.Chosen == null || !Contract.Has("frames"))
+            {
+                return plan;
+            }
+
+            plan.Capabilities = DetectFrames(game, gpu, folder, record);
+            var recommendation = Recommend(plan.Capabilities);
+            if (Client.Text(plan.Chosen, "Route") != "Auto" || recommendation == null || !Client.Has(plan.Chosen, "AdvancedMode") ||
+                !Client.CanCall(FrameService, "ResolveEffectiveRoute", "settings", "recommendation", "capabilities",
+                    "@GameFrameGenerationSettings", "@FrameGenerationRecommendation", "@FrameGenerationCapabilities"))
+            {
+                return plan;
+            }
+
+            var route = Client.Call(Client.New(FrameService), "ResolveEffectiveRoute", "settings", plan.Chosen, "recommendation", recommendation, "capabilities", plan.Capabilities);
+            var output = Client.Text(plan.Chosen, "Output");
+            if (route?.ToString() == "Disabled" || (output == "Auto" && !IsUsable(plan.Capabilities, route)))
+            {
+                plan.Applied = NoFrames();
+                plan.IsNothing = true;
+                return plan;
+            }
+
+            if (!IsUsable(plan.Capabilities, route))
+            {
+                // The client itself says whether it can be.
+                return plan;
+            }
+
+            plan.Applied = CopyFrames(plan.Chosen);
+            Client.Set(plan.Applied, "Route", route);
+            if (output == "Auto")
+            {
+                // That way goes only with its own output.
+                var nukem = route.ToString() == "Nukem" ? Client.EnumValue("FrameGenerationOutput", "Nukem") : null;
+                Client.Set(plan.Applied, "Output", nukem ?? Client.TryGet(recommendation, "Output"));
+            }
+
+            // The client only takes a way that is already decided from its advanced ones.
+            Client.Set(plan.Applied, "AdvancedMode", true);
+            return plan;
+        }
+
+        private static object NoFrames()
+        {
+            var settings = Client.New("GameFrameGenerationSettings");
+            Client.Set(settings, "Route", Client.EnumValue("FrameGenerationRoute", "Disabled"));
+            Client.Set(settings, "Output", Client.EnumValue("FrameGenerationOutput", "Auto"));
+            Client.Set(settings, "MultiFrameMode", Client.EnumValue("MultiFrameGenerationMode", "Auto"));
+            return settings;
+        }
+
+        /// <summary>What stays written of a game is what the person chose, and not how it was decided.</summary>
+        private static void KeepChosenFrames(object game, FramePlan plan)
+        {
+            if (plan.Chosen == null || ReferenceEquals(plan.Chosen, plan.Applied))
+            {
+                return;
+            }
+
+            Client.Set(plan.Chosen, "AppliedAtUtc", Client.TryGet(plan.Applied, "AppliedAtUtc"));
+            Client.Set(game, "FrameGenerationSettings", plan.Chosen);
+            var key = Client.Text(game, "InstallPath");
+            if (!Client.CanCall("BackupStoreService", "LoadManifest", "gameDir") || !Client.CanCall("BackupStoreService", "SaveManifest", "gameDir", "manifest", "@InstallationManifest"))
+            {
+                return;
+            }
+
+            var store = Client.New("BackupStoreService");
+            var manifest = Client.Call(store, "LoadManifest", "gameDir", key);
+            if (manifest != null && Client.Has(manifest, "FrameGenerationRouteApplied"))
+            {
+                Client.Set(manifest, "FrameGenerationRouteApplied", Client.Text(plan.Chosen, "Route"));
+                Client.Set(manifest, "FrameGenerationOutputApplied", Client.Text(plan.Chosen, "Output"));
+                Client.Set(manifest, "MfgModeApplied", Client.Text(plan.Chosen, "MultiFrameMode"));
+                Client.Call(store, "SaveManifest", "gameDir", key, "manifest", manifest);
+            }
         }
 
         private static JsonArray EnumChoices(string type)
@@ -910,8 +1302,13 @@ namespace Atrio.OptiScaler
             var installed = Client.Flag(game, "IsOptiscalerInstalled");
             var manifest = installed && record.IsOfOptiScaler ? record.Manifest : null;
             var directory = FolderOf(game, record);
+            var byHand = installed && manifest == null;
+            var mine = installed ? OwnOf(game, record, directory, gpu) : new List<Setting>();
+            var store = new SettingsStore(Client.Text(game, "InstallPath"));
+            var waiting = installed ? store.Waiting(record) : new List<Setting>();
+            var mineOf = mine.Where(a => OwnSettings.OptionOf(a) != null).GroupBy(OwnSettings.OptionOf).ToDictionary(a => a.Key, a => a.ToList());
 
-            var frames = FrameChoices(game, gpu, out var recommendation);
+            var frames = FrameChoices(Contract.Has("frames") ? TryDetectFrames(game, gpu, directory, record) : null, out var recommendation);
             var result = new JsonObject
             {
                 ["known"] = known,
@@ -959,34 +1356,53 @@ namespace Atrio.OptiScaler
                 }
             };
 
-            var own = Client.TryGet(game, "FrameGenerationSettings");
+            // What the client remembers of a game isn't of the OptiScaler that somebody put by hand after.
+            var settings = byHand ? null : Client.TryGet(game, "FrameGenerationSettings");
             var applied = Client.Text(manifest, "FrameGenerationRouteApplied");
+            var chosenFrames = applied != null ?
+                new JsonObject
+                {
+                    ["route"] = applied,
+                    ["output"] = Client.Text(manifest, "FrameGenerationOutputApplied"),
+                    ["mode"] = Client.Text(manifest, "MfgModeApplied"),
+                    ["advanced"] = Client.Flag(settings, "AdvancedMode"),
+                    ["replacement"] = Client.Text(settings, "NvngxReplacement")
+                } :
+                Frames(installed ? settings : Client.TryGet(config, "DefaultFrameGenerationSettings"));
+            if (mineOf.ContainsKey("frames"))
+            {
+                chosenFrames = chosenFrames ?? new JsonObject();
+                chosenFrames[OwnSettings.Own] = true;
+            }
+
             result["chosen"] = new JsonObject
             {
                 ["version"] = installed && !string.IsNullOrEmpty(Client.Text(game, "OptiscalerVersion")) ? Client.Text(game, "OptiscalerVersion") : defaults.Version,
                 ["injection"] = Client.Text(manifest, "InjectionMethod") is string injection && injection.Length > 0 ? injection :
                     (installed ? FindByHand(directory) : null) ?? defaults.Injection,
                 ["profile"] = Client.Text(manifest, "AppliedProfileName") ?? defaults.Profile,
-                ["spoofing"] = (installed ? ReadIni(directory, "Spoofing", "Dxgi") : null) ?? defaults.Spoofing,
-                ["output"] = installed ?
-                    Client.Text(manifest, "OutputUpscalerBackendApplied") ?? Client.Text(Client.TryGet(game, "OutputUpscalerSettings"), "Backend") ?? "Default" :
-                    defaults.Output,
-                ["quality"] = installed ?
-                    Client.Text(manifest, "UpscalingQualityPresetApplied") ?? Client.Text(Client.TryGet(game, "UpscalingQualitySettings"), "Preset") ?? "GameControlled" :
-                    defaults.Quality,
-                ["frames"] = installed && applied != null ?
-                    new JsonObject
-                    {
-                        ["route"] = applied,
-                        ["output"] = Client.Text(manifest, "FrameGenerationOutputApplied"),
-                        ["mode"] = Client.Text(manifest, "MfgModeApplied"),
-                        ["advanced"] = Client.Flag(own, "AdvancedMode"),
-                        ["replacement"] = Client.Text(own, "NvngxReplacement")
-                    } :
-                    installed ? Frames(own) : Frames(Client.TryGet(config, "DefaultFrameGenerationSettings")),
+                ["spoofing"] = mineOf.ContainsKey("spoofing") ? OwnSettings.Own : (installed ? ReadIni(directory, "Spoofing", "Dxgi") : null) ?? defaults.Spoofing,
+                ["output"] = mineOf.ContainsKey("output") ? OwnSettings.Own : !installed ? defaults.Output : byHand ? "Default" :
+                    Client.Text(manifest, "OutputUpscalerBackendApplied") ?? Client.Text(Client.TryGet(game, "OutputUpscalerSettings"), "Backend") ?? "Default",
+                ["quality"] = mineOf.ContainsKey("quality") ? OwnSettings.Own : !installed ? defaults.Quality : byHand ? "GameControlled" :
+                    Client.Text(manifest, "UpscalingQualityPresetApplied") ?? Client.Text(Client.TryGet(game, "UpscalingQualitySettings"), "Preset") ?? "GameControlled",
+                ["frames"] = chosenFrames,
                 ["fsr4"] = installed || Client.Flag(game, "IsFsr4DllSwapped") ? Client.Text(game, "Fsr4ExtraVersion") ?? None : defaults.Fsr4,
-                ["patcher"] = installed ? (HasPatcher(directory) ? "installed" : None) : defaults.Patcher
+                ["patcher"] = installed ? (HasPlugin(directory, "OptiPatcher.asi") ? "installed" : None) : defaults.Patcher
             };
+            result["own"] = new JsonObject
+            {
+                ["count"] = mine.Count + waiting.Count,
+                ["waiting"] = Service.Array(waiting.Select(OwnSettings.OptionOf).Where(a => a != null).Distinct()),
+                ["options"] = new JsonObject(mineOf.Select(a => KeyValuePair.Create(a.Key, (JsonNode)JsonValue.Create(OwnSettings.Summarize(a.Key, a.Value, IniFile.Read(IniPath(directory))))))),
+                ["copies"] = store.Copies
+            };
+
+            // Nobody wrote them down: whoever takes them out has to say yes to them.
+            result["beside"] = Service.Array(byHand ?
+                FilesByHand(directory, null).Select(a => Path.GetRelativePath(directory, a)).Where(a => a.EndsWith(".dll", StringComparison.OrdinalIgnoreCase)).
+                    Where(a => !a.Contains('\\') && !ByHand.IsCertain(a) && !IsMain(Path.Combine(directory, a))) :
+                Enumerable.Empty<string>());
             result["defaults"] = new JsonObject
             {
                 ["version"] = defaults.Version,
@@ -1082,7 +1498,15 @@ namespace Atrio.OptiScaler
 
             var output = Parameter(frames, "output");
             var mode = Parameter(frames, "mode");
+            if (output == OwnSettings.Own)
+            {
+                // The client writes nothing about it: what goes in is what the person has.
+                Client.Set(game, "FrameGenerationSettings", null);
+                return true;
+            }
+
             var off = output == "Disabled" || string.IsNullOrEmpty(output);
+            var optiFg = output == OptiFg && HasOptiFg;
             var settings = Client.New("GameFrameGenerationSettings");
             foreach (var name in new[] { "StreamlineVersion", "DlssEnablerVersion" })
             {
@@ -1093,9 +1517,15 @@ namespace Atrio.OptiScaler
                 }
             }
 
-            Client.Set(settings, "Route", Client.EnumValue("FrameGenerationRoute", off ? "Disabled" : "Auto"));
-            Client.Set(settings, "Output", Client.EnumValue("FrameGenerationOutput", off ? "Auto" : output) ?? Client.EnumValue("FrameGenerationOutput", "Auto"));
+            Client.Set(settings, "Route", Client.EnumValue("FrameGenerationRoute", off ? "Disabled" : optiFg ? OptiFg : "Auto"));
+            Client.Set(settings, "Output", Client.EnumValue("FrameGenerationOutput", off ? "Auto" : optiFg ? "FsrFg" : output) ?? Client.EnumValue("FrameGenerationOutput", "Auto"));
             Client.Set(settings, "MultiFrameMode", Client.EnumValue("MultiFrameGenerationMode", off ? "Auto" : mode) ?? Client.EnumValue("MultiFrameGenerationMode", "Auto"));
+            if (optiFg)
+            {
+                // The client has it among its advanced ones.
+                Client.Set(settings, "AdvancedMode", true);
+            }
+
             Client.Set(game, "FrameGenerationSettings", settings);
             return true;
         }
@@ -1103,10 +1533,14 @@ namespace Atrio.OptiScaler
         private static void SetQuality(object game, string preset)
         {
             var value = Client.EnumValue("UpscalingQualityPreset", preset);
-            if (value != null)
+            if (value != null || preset == OwnSettings.Own)
             {
-                var settings = Client.New("GameUpscalingQualitySettings");
-                Client.Set(settings, "Preset", value);
+                var settings = value == null ? null : Client.New("GameUpscalingQualitySettings");
+                if (settings != null)
+                {
+                    Client.Set(settings, "Preset", value);
+                }
+
                 Client.Set(game, "UpscalingQualitySettings", settings);
             }
         }
@@ -1114,10 +1548,14 @@ namespace Atrio.OptiScaler
         private static void SetOutput(object game, string backend)
         {
             var value = Client.EnumValue("OutputUpscalerBackend", backend);
-            if (value != null)
+            if (value != null || backend == OwnSettings.Own)
             {
-                var settings = Client.New("GameOutputUpscalerSettings");
-                Client.Set(settings, "Backend", value);
+                var settings = value == null ? null : Client.New("GameOutputUpscalerSettings");
+                if (settings != null)
+                {
+                    Client.Set(settings, "Backend", value);
+                }
+
                 Client.Set(game, "OutputUpscalerSettings", settings);
             }
         }
@@ -1126,38 +1564,32 @@ namespace Atrio.OptiScaler
         /// Whether the client accepts the frame generation chosen for this game. It's asked before: inside an install it
         /// would make the whole install fail.
         /// </summary>
-        private static bool FramesAccepted(object game, object gpu, string version, out string reason)
+        private static bool FramesAccepted(FramePlan plan, string version)
         {
-            reason = null;
-            var settings = Client.TryGet(game, "FrameGenerationSettings");
-            if (settings == null || Client.Text(settings, "Route") == "Disabled")
+            if (plan.Applied == null || Client.Text(plan.Applied, "Route") == "Disabled")
             {
                 return true;
             }
 
             try
             {
-                var service = Client.New("FrameGenerationConfigurationService");
-                var capabilities = Client.Call(service, "DetectCapabilities", "game", game, "gpu", gpu);
-                if (Client.CanCall("FrameGenerationConfigurationService", "BuildIniSettings", "settings", "c", "optiscalerVersion", "@GameFrameGenerationSettings", "@FrameGenerationCapabilities"))
+                if (Client.CanCall(FrameService, "BuildIniSettings", "settings", "c", "optiscalerVersion", "@GameFrameGenerationSettings", "@FrameGenerationCapabilities"))
                 {
-                    Client.Call(service, "BuildIniSettings", "settings", settings, "c", capabilities, "optiscalerVersion", version);
+                    Client.Call(Client.New(FrameService), "BuildIniSettings", "settings", plan.Applied, "c", plan.Capabilities, "optiscalerVersion", version);
                 }
 
                 return true;
             }
-            catch (InvalidOperationException e)
+            catch (InvalidOperationException)
             {
-                reason = e.Message;
                 return false;
             }
         }
 
-        private static void TurnFramesOff(object game)
+        private static FramePlan FramesOff(FramePlan plan)
         {
-            var settings = Client.New("GameFrameGenerationSettings");
-            Client.Set(settings, "Route", Client.EnumValue("FrameGenerationRoute", "Disabled"));
-            Client.Set(game, "FrameGenerationSettings", settings);
+            var settings = NoFrames();
+            return new FramePlan { Chosen = settings, Applied = settings, Capabilities = plan.Capabilities };
         }
 
         private static void Wait(Func<bool> busy)
@@ -1214,14 +1646,41 @@ namespace Atrio.OptiScaler
             CheckFree(target, record);
             if (!Client.Flag(game, "IsOptiscalerInstalled"))
             {
-                CheckLeftovers(game, target, Switch(options, "clean"));
+                CheckLeftovers(game, record, target, Switch(options, "clean"), notes);
             }
 
             var nightly = Client.CanCall(Components, "IsNightlyOptiScalerVersion", "version") &&
                 Client.Call(components, "IsNightlyOptiScalerVersion", "version", version) is bool isNightly && isNightly;
 
+            // What the person changed inside the game goes along, unless they said otherwise here.
+            var byHand = record.IsOfOptiScaler ? null : FindByHand(target);
+            var there = record.IsOfOptiScaler || byHand != null || (Client.Flag(game, "IsOptiscalerInstalled") && IniPath(target) != null);
+            var key = Client.Text(game, "InstallPath");
+            var kept = new SettingsStore(key);
+            var fresh = Parameter(options, "settings") == "fresh";
+            bool stays(Setting setting) => OwnSettings.OptionOf(setting) is string option ? IsOwn(options, option, fresh) : !fresh;
+            IniFile was = null;
+            List<Setting> own = null;
+            List<Setting> waiting = null;
+            void look()
+            {
+                was = IniFile.Read(IniPath(target));
+                own = OwnSettings.Whole(there ? OwnOf(game, record, target, gpu).Where(stays) : Enumerable.Empty<Setting>(), was);
+                waiting = kept.Waiting(record).Where(stays).ToList();
+            }
+
+            look();
+            var enabler = Client.Text(Client.TryGet(game, "FrameGenerationSettings"), "DlssEnablerVersion");
+            if (there && !record.IsOfOptiScaler)
+            {
+                // What the client remembers of the game is of another one that was there before.
+                SetQuality(game, OwnSettings.Own);
+                SetOutput(game, OwnSettings.Own);
+                Client.Set(game, "FrameGenerationSettings", null);
+            }
+
             // What the game keeps from before stays as it is, unless the person chose something else.
-            if (!SetFrames(game, options) && Client.TryGet(game, "FrameGenerationSettings") is null)
+            if (!SetFrames(game, options) && own.All(a => OwnSettings.OptionOf(a) != "frames") && Client.TryGet(game, "FrameGenerationSettings") is null)
             {
                 CopyDefaultFrames(game, config);
             }
@@ -1236,26 +1695,40 @@ namespace Atrio.OptiScaler
                 SetOutput(game, output);
             }
 
-            if (Contract.Has("frames") && !FramesAccepted(game, gpu, version, out _))
+            var frames = PlanFrames(game, gpu, target, record);
+            if (Contract.Has("frames") && !FramesAccepted(frames, version))
             {
-                TurnFramesOff(game);
+                frames = FramesOff(frames);
                 notes.Add("frames");
             }
+            else if (frames.IsNothing)
+            {
+                notes.Add("framesnone");
+            }
 
-            var byHand = record.IsOfOptiScaler ? null : FindByHand(target);
-            var injection = Choice(options, "injection", byHand != null && InjectionNames().Contains(byHand, StringComparer.OrdinalIgnoreCase) ? byHand : defaults.Injection);
-            var spoofing = Choice(options, "spoofing", defaults.Spoofing);
+            Client.Set(game, "FrameGenerationSettings", frames.Applied);
+
+            // What isn't told goes on as it was.
+            var before = record.IsOfOptiScaler ? Client.Text(record.Manifest, "InjectionMethod") : byHand;
+            var injection = Choice(options, "injection", !string.IsNullOrEmpty(before) && InjectionNames().Contains(before, StringComparer.OrdinalIgnoreCase) ? before : defaults.Injection);
+            var spoofing = Choice(options, "spoofing", (there ? was?.Get("Spoofing", "Dxgi") : null) ?? defaults.Spoofing);
+            if (spoofing == OwnSettings.Own || own.Any(a => OwnSettings.OptionOf(a) == "spoofing"))
+            {
+                // The client writes the same in the four: the ones of the person go in after it.
+                spoofing = Auto;
+            }
+
             object profile = null;
             if (Contract.Has("profile"))
             {
-                var name = Choice(options, "profile", defaults.Profile);
+                var name = Choice(options, "profile", (record.IsOfOptiScaler ? Client.Text(record.Manifest, "AppliedProfileName") : null) ?? defaults.Profile);
                 profile = string.IsNullOrEmpty(name) ? null : Client.Call(Client.New("ProfileManagementService"), "GetProfileByName", "name", name);
             }
 
             string folder = null;
+            string package = null;
             Guests guests = null;
             Extras extras = null;
-            var key = Client.Text(game, "InstallPath");
             try
             {
                 for (var attempt = 0; folder == null; attempt++)
@@ -1270,33 +1743,45 @@ namespace Atrio.OptiScaler
                         ["isRdna4"] = Gpu("IsRdna4", gpu),
                         ["isRdna2"] = Gpu("IsRdna2", gpu),
                         ["gpu"] = gpu,
-                        ["dxgiSpoofing"] = spoofing,
-                        ["ensureFakenvapiIfMissing"] = nightly
+                        ["dxgiSpoofing"] = spoofing
                     };
-                    values["cachePath"] = Download(components, version);
-                    AddPieces(values, game, components, config, target, gpu, version, nightly);
-                    extras = extras ?? FetchExtras(game, components, options, defaults, notes);
+                    package = Download(components, version);
+                    values["cachePath"] = package;
+                    var ownFrames = Fitting(package, was, own, waiting).Values.Where(a => a != null && OwnSettings.OptionOf(a) == "frames").ToList();
+                    AddPieces(values, components, config, target, record, version, nightly, frames, ownFrames, enabler);
+                    extras = extras ?? FetchExtras(game, components, options, defaults, record, target, ownFrames, notes);
 
-                    // The game may have been opened while it downloaded.
+                    // The game may have been opened while it downloaded, and even played.
                     CheckFree(target, record);
+                    look();
                     progress("install", version, null);
                     try
                     {
-                        guests = new Guests(target, () => OwnFiles(game, target), values["cachePath"] as string);
+                        var old = byHand == null ? new List<string>() : FilesByHand(target, package);
+                        guests = new Guests(target, () => OwnFiles(game, target).Concat(old.Select(a => Path.GetRelativePath(target, a))), package);
                         var plan = GetPlan(target, record, values);
-                        var old = byHand == null ? new List<string>() : FilesByHand(target, values["cachePath"] as string);
-                        old.ForEach(a => plan.Add(Path.GetRelativePath(target, a)));
+                        old.Select(a => Path.GetRelativePath(target, a)).Concat(iniNames).ToList().ForEach(a => plan.Add(a));
                         using (var checkpoint = Checkpoint.Begin(key, key, target, plan))
                         {
                             checkpoint.Unlock(target, plan);
+                            if (attempt == 0)
+                            {
+                                CopySettings(game, record, target, notes);
+                            }
+
                             if (old.Count > 0)
                             {
                                 // They aren't of the game: they would come back when OptiScaler goes out.
                                 RemoveByHand(checkpoint, target, old);
                             }
 
+                            // Otherwise the client puts all the settings there were over the ones of the new version.
+                            IniPaths(target).ToList().ForEach(File.Delete);
                             folder = CallInstaller(game, "InstallOptiScaler", values) as string ?? target;
                             checkpoint.CheckOriginals();
+
+                            // From here on they are only here, until they go in: if it's cut before, they wait for the next install.
+                            Try(notes, "settings", () => kept.Keep(Record.Find(game), IniFile.Read(IniPath(folder)), Together(own, waiting).Where(a => !Setting.IsAuto(a.Value)), false));
                             checkpoint.End();
                         }
                     }
@@ -1328,11 +1813,21 @@ namespace Atrio.OptiScaler
 
             Client.Set(game, "IsOptiscalerInstalled", true);
             Client.Set(game, "OptiscalerVersion", version);
-            if (!IniIsRight(folder))
+            Try(notes, "ini", () =>
             {
-                notes.Add("ini");
-            }
+                if (!IniIsRight(folder))
+                {
+                    notes.Add("ini");
+                }
+            });
 
+            // From here on the client doesn't write in them: what it checks is only what it wrote.
+            Try(notes, "settings", () => KeepChosenFrames(game, frames));
+            Try(notes, "settings", () =>
+            {
+                PlaceHudFix(folder);
+                KeepSettings(game, folder, package, was, own, waiting, notes);
+            });
             if (Guests.Any(target))
             {
                 notes.Add("guests");
@@ -1355,10 +1850,10 @@ namespace Atrio.OptiScaler
         }
 
         /// <summary>They are downloaded before the game is touched: what is of others in its folder is aside only while it's copied.</summary>
-        private Extras FetchExtras(object game, object components, JsonObject options, Defaults defaults, List<string> notes)
+        private Extras FetchExtras(object game, object components, JsonObject options, Defaults defaults, Record record, string folder, List<Setting> ownFrames, List<string> notes)
         {
             var extras = new Extras();
-            var fsr4 = Choice(options, "fsr4", defaults.Fsr4);
+            var fsr4 = Choice(options, "fsr4", record.IsOfOptiScaler ? Client.Text(game, "Fsr4ExtraVersion") ?? None : defaults.Fsr4);
             extras.WantsFsr4 = fsr4 != None;
             if (extras.WantsFsr4 && Contract.Has("fsr4"))
             {
@@ -1371,7 +1866,7 @@ namespace Atrio.OptiScaler
                 });
             }
 
-            var patcher = Choice(options, "patcher", defaults.Patcher);
+            var patcher = Choice(options, "patcher", record.IsOfOptiScaler ? (HasPlugin(folder, "OptiPatcher.asi") ? "installed" : None) : defaults.Patcher);
             if (patcher == "installed")
             {
                 patcher = Client.Text(components, "LatestOptiPatcherVersion") ?? None;
@@ -1383,9 +1878,9 @@ namespace Atrio.OptiScaler
                     components, "DownloadOptiPatcherAsync", "version", patcher, "progress", new Reporter(a => progress("download", "OptiPatcher", a))));
             }
 
-            if (Client.Text(Client.TryGet(game, "FrameGenerationSettings"), "Output") == "XeFg" &&
-                Client.Text(Client.TryGet(game, "FrameGenerationSettings"), "Route") != "Disabled" &&
-                Client.CanCall(Components, "DownloadXeFGUnlockAsync", "version", "progress"))
+            var settings = Client.TryGet(game, "FrameGenerationSettings");
+            var xeFg = (Client.Text(settings, "Output") == "XeFg" && Client.Text(settings, "Route") != "Disabled") || (ownFrames.Count > 0 && HasPlugin(folder, "XeFGUnlock.asi"));
+            if (xeFg && Client.CanCall(Components, "DownloadXeFGUnlockAsync", "version", "progress"))
             {
                 Try(notes, "xefg", () => extras.Frames = Client.Call(
                     components, "DownloadXeFGUnlockAsync", "version", Client.Text(components, "LatestXeFGUnlockVersion") ?? string.Empty,
@@ -1473,7 +1968,7 @@ namespace Atrio.OptiScaler
                 Client.Strings(Client.Call(service, "ReapplyIniSettings", "gameDir", folder)).Count == 0;
         }
 
-        private void CheckLeftovers(object game, string folder, bool clean)
+        private void CheckLeftovers(object game, Record record, string folder, bool clean, List<string> notes)
         {
             if (string.IsNullOrEmpty(folder) || !Client.CanCall(Installer, "HasCorruptArtifacts", "gameDir") ||
                 !(Client.Call(Client.Type(Installer), "HasCorruptArtifacts", "gameDir", folder) is bool leftovers) || !leftovers)
@@ -1487,6 +1982,7 @@ namespace Atrio.OptiScaler
             }
 
             progress("install", null, null);
+            CopySettings(game, record, folder, notes);
             using (new Guests(folder, Enumerable.Empty<string>, null, true))
             {
                 CallInstaller(game, "ForceFolderCleanup", new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase) { ["game"] = game });
@@ -1502,13 +1998,7 @@ namespace Atrio.OptiScaler
             }
 
             // A copy: the client writes on it when it applies it.
-            var copy = Client.New("GameFrameGenerationSettings");
-            foreach (var property in original.GetType().GetProperties(BindingFlags.Public | BindingFlags.Instance).Where(a => a.CanRead && a.CanWrite && a.Name != "AppliedAtUtc"))
-            {
-                property.SetValue(copy, property.GetValue(original));
-            }
-
-            Client.Set(game, "FrameGenerationSettings", copy);
+            Client.Set(game, "FrameGenerationSettings", CopyFrames(original));
         }
 
         private string Download(object components, string version)
@@ -1524,23 +2014,24 @@ namespace Atrio.OptiScaler
         }
 
         /// <summary>What goes next to OptiScaler depending on its version and on the frame generation of the game.</summary>
-        private void AddPieces(Dictionary<string, object> values, object game, object components, object config, string folder, object gpu, string version, bool nightly)
+        private void AddPieces(
+            Dictionary<string, object> values, object components, object config, string folder, Record record, string version, bool nightly, FramePlan plan, List<Setting> ownFrames, string enabler)
         {
-            var frames = Client.TryGet(game, "FrameGenerationSettings");
+            var frames = plan.Applied;
             var active = frames != null && Client.Text(frames, "Route") != "Disabled";
-            if (active && Client.CanCall("FrameGenerationConfigurationService", "RequiresStreamline", "settings", "capabilities", "optiscalerVersion", "@GameFrameGenerationSettings", "@FrameGenerationCapabilities"))
+            var asked = active && Client.CanCall(FrameService, "RequiresStreamline", "settings", "capabilities", "optiscalerVersion", "@GameFrameGenerationSettings", "@FrameGenerationCapabilities") &&
+                Client.Call(Client.New(FrameService), "RequiresStreamline", "settings", frames, "capabilities", plan.Capabilities, "optiscalerVersion", version) is bool needed && needed;
+
+            // What the person chose inside the game goes on having what it needs.
+            bool uses(string name, params string[] chosen) => ownFrames.Any(a => a.Key.Equals(name, StringComparison.OrdinalIgnoreCase) && chosen.Contains(a.Value, StringComparer.OrdinalIgnoreCase));
+            if (asked || uses("FGOutput", "dlssg", "dlssgwithnvngx"))
             {
-                var configuration = Client.New("FrameGenerationConfigurationService");
-                var capabilities = Client.Call(configuration, "DetectCapabilities", "game", game, "gpu", gpu);
-                if (Client.Call(configuration, "RequiresStreamline", "settings", frames, "capabilities", capabilities, "optiscalerVersion", version) is bool needed && needed)
-                {
-                    var streamline = Client.Text(frames, "StreamlineVersion");
-                    progress("download", "Streamline", null);
-                    values["installStreamline"] = true;
-                    values["streamlineCachePath"] = Client.Call(
-                        components, "DownloadStreamlineAsync", "version", string.IsNullOrEmpty(streamline) ? Client.Text(components, "LatestStreamlineVersion") ?? string.Empty : streamline,
-                        "progress", new Reporter(a => progress("download", "Streamline", a)));
-                }
+                var streamline = Client.Text(frames, "StreamlineVersion");
+                progress("download", "Streamline", null);
+                values["installStreamline"] = true;
+                values["streamlineCachePath"] = Client.Call(
+                    components, "DownloadStreamlineAsync", "version", string.IsNullOrEmpty(streamline) ? Client.Text(components, "LatestStreamlineVersion") ?? string.Empty : streamline,
+                    "progress", new Reporter(a => progress("download", "Streamline", a)));
             }
 
             if (active && Client.Text(frames, "Output") == "DlssG" && Client.Text(frames, "NvngxReplacement") is string replacement &&
@@ -1548,11 +2039,18 @@ namespace Atrio.OptiScaler
             {
                 AddEnabler(values, components, Client.Text(frames, "DlssEnablerVersion"));
             }
+            else if (uses("FGNvngxReplacement", "Arturs", "Combo") && !string.IsNullOrEmpty(enabler))
+            {
+                AddEnabler(values, components, enabler);
+            }
 
             var bundled = BringsPieces(version);
             if (nightly)
             {
-                if (string.IsNullOrEmpty(folder) || !File.Exists(Path.Combine(folder, "fakenvapi.dll")))
+                // The one there is goes away with the OptiScaler it came with.
+                var fake = string.IsNullOrEmpty(folder) ? null : Path.Combine(folder, "fakenvapi.dll");
+                var stays = fake != null && File.Exists(fake) && record.IsOfOptiScaler && !record.Files.Contains("fakenvapi.dll", StringComparer.OrdinalIgnoreCase);
+                if (!stays && Mentions(values["cachePath"] as string, "fakenvapi.dll"))
                 {
                     progress("download", "Fakenvapi", null);
                     values["installFakenvapi"] = true;
@@ -1563,6 +2061,20 @@ namespace Atrio.OptiScaler
             {
                 AddOldPieces(values, components, config);
             }
+        }
+
+        /// <summary>Whether OptiScaler itself looks for a file. It stopped looking for some when it took them inside.</summary>
+        private static bool Mentions(string package, string name)
+        {
+            var main = Plan.Files(package).FirstOrDefault(a => Path.GetFileName(a).Equals("OptiScaler.dll", StringComparison.OrdinalIgnoreCase)) ??
+                Plan.Files(package).FirstOrDefault(a => MainNames().Contains(Path.GetFileName(a), StringComparer.OrdinalIgnoreCase));
+            if (main == null)
+            {
+                return true;
+            }
+
+            ReadOnlySpan<byte> content = File.ReadAllBytes(main);
+            return content.IndexOf(System.Text.Encoding.ASCII.GetBytes(name)) >= 0 || content.IndexOf(System.Text.Encoding.Unicode.GetBytes(name)) >= 0;
         }
 
         private void AddEnabler(Dictionary<string, object> values, object components, string version)
@@ -1758,56 +2270,78 @@ namespace Atrio.OptiScaler
 
             var config = Client.TryGet(Client.New(Components), "Config");
             var gpu = PreferredGpu(config);
-            var folder = FolderOf(game, Record.Find(game));
+            var record = Record.Find(game);
+            var folder = FolderOf(game, record);
             var version = Client.Text(game, "OptiscalerVersion");
             var notes = new List<string>();
             var spoofingBefore = ReadIni(folder, "Spoofing", "Dxgi") ?? Auto;
             progress("install", null, null);
+
+            // The way the game writes them, the client wouldn't find the ones it changes and would add them again.
+            var path = IniPath(folder);
+            var before = IniFile.Read(path);
+            if (before != null)
+            {
+                var written = before.ToString();
+                before.Tidy();
+                if (before.ToString() != written)
+                {
+                    before.Save(path);
+                }
+            }
+
+            var chosen = OwnSettings.Options.Where(a => !IsOwn(options, a)).ToList();
+
+            // The ones of the person, and every one of the options in which they changed something.
+            var mine = OwnOf(game, record, folder, gpu).Where(a => !chosen.Contains(OwnSettings.OptionOf(a))).ToList();
+            var own = mine.Select(OwnSettings.OptionOf).Where(a => a != null).Distinct().ToList();
+            var back = mine.Where(a => OwnSettings.OptionOf(a) == null).
+                Concat(own.SelectMany(OwnSettings.OfOption).Where(a => before.Has(a.Section, a.Key)).Select(a => new Setting(a.Section, a.Key, before.Get(a.Section, a.Key)))).ToList();
             if (Parameter(options, "profile") is string profileName && Contract.Has("profile"))
             {
                 var profile = Client.Call(Client.New("ProfileManagementService"), "GetProfileByName", "name", profileName) ??
                     throw new ServiceException("profile", $"There is no profile called {profileName}.");
+                CopySettings(game, record, folder, notes);
                 Client.Call(service, "ApplyProfileSettings", "game", game, "profile", profile, "resolvedGameDir", folder);
 
                 // A profile writes over the settings of the game, which go after it: the client does it in this order.
+                var frames = PlanFrames(game, gpu, folder, record);
+                Client.Set(game, "FrameGenerationSettings", frames.Applied);
                 ApplyChosen(game, gpu, folder, version);
-                if (Contract.Has("spoofing") && !(options["spoofing"] is JsonValue))
+                KeepChosenFrames(game, frames);
+                PlaceHudFix(folder);
+                if (Contract.Has("spoofing") && !(options["spoofing"] is JsonValue) && !own.Contains("spoofing"))
                 {
                     Client.Call(service, "ApplySpoofingSettings", "game", game, "spoofingValue", spoofingBefore, "resolvedGameDir", folder);
                 }
+
+                // And so do the ones that are as the person has them inside the game.
+                Write(path, back);
             }
 
-            if (Parameter(options, "spoofing") is string spoofing && Contract.Has("spoofing"))
+            if (Parameter(options, "spoofing") is string spoofing && spoofing != OwnSettings.Own && Contract.Has("spoofing"))
             {
                 Client.Call(service, "ApplySpoofingSettings", "game", game, "spoofingValue", spoofing, "resolvedGameDir", folder);
             }
 
-            if (Parameter(options, "output") is string output && Contract.Has("output"))
+            if (Parameter(options, "output") is string output && output != OwnSettings.Own && Contract.Has("output"))
             {
                 SetOutput(game, output);
-                Client.Call(service, "ApplyOutputUpscalerSettings", "game", game, "resolvedGameDir", folder);
+                FromScratch(path, "output", () => Client.Call(service, "ApplyOutputUpscalerSettings", "game", game, "resolvedGameDir", folder));
             }
 
-            if (Parameter(options, "quality") is string quality && Contract.Has("quality"))
+            if (Parameter(options, "quality") is string quality && quality != OwnSettings.Own && Contract.Has("quality"))
             {
                 SetQuality(game, quality);
                 Client.Call(service, "ApplyUpscalingQualitySettings", "game", game, "resolvedGameDir", folder);
             }
 
-            if (options["frames"] is JsonObject && Contract.Has("frames"))
+            if (options["frames"] is JsonObject && Contract.Has("frames") && !ApplyFrames(game, options, gpu, folder, record, version, notes))
             {
-                var before = Client.TryGet(game, "FrameGenerationSettings");
-                SetFrames(game, options);
-                if (FramesAccepted(game, gpu, version, out _))
-                {
-                    Client.Call(service, "ApplyFrameGenerationSettings", "game", game, "resolvedGameDir", folder, "gpu", gpu, "optiscalerVersion", version);
-                }
-                else
-                {
-                    Client.Set(game, "FrameGenerationSettings", before);
-                    notes.Add("framesbefore");
-                }
+                chosen.Remove("frames");
             }
+
+            new SettingsStore(Client.Text(game, "InstallPath")).Update(Record.Find(game), before, IniFile.Read(path), chosen);
 
             // What was changed inside the game since the install stays: only what was chosen now is written.
             Save(game, true);
@@ -1816,9 +2350,71 @@ namespace Atrio.OptiScaler
             return result;
         }
 
+        /// <summary>
+        /// The client only writes some of the settings of an option, depending on what is chosen, and takes the others from
+        /// what there was: automatic would go on being what it was before.
+        /// </summary>
+        private static void FromScratch(string path, string option, Action apply)
+        {
+            var before = IniFile.Read(path);
+            Write(path, OwnSettings.OfOption(option).Where(a => before?.Has(a.Section, a.Key) == true));
+            try
+            {
+                apply();
+            }
+            catch (Exception e) when (before != null && !(e is OutOfMemoryException))
+            {
+                before.Save(path);
+                throw;
+            }
+        }
+
+        private static void Write(string path, IEnumerable<Setting> settings)
+        {
+            var ini = IniFile.Read(path);
+            var all = settings.ToList();
+            if (ini != null && all.Count > 0)
+            {
+                all.ForEach(a => ini.Set(a.Section, a.Key, a.Value));
+                ini.Save(path);
+            }
+        }
+
+        /// <summary>False when the frame generation stays as it was.</summary>
+        private static bool ApplyFrames(object game, JsonObject options, object gpu, string folder, Record record, string version, List<string> notes)
+        {
+            var before = Client.TryGet(game, "FrameGenerationSettings");
+            SetFrames(game, options);
+            var plan = PlanFrames(game, gpu, folder, record);
+            if (plan.Chosen == null)
+            {
+                return false;
+            }
+
+            if (!FramesAccepted(plan, version))
+            {
+                Client.Set(game, "FrameGenerationSettings", before);
+                notes.Add("framesbefore");
+                return false;
+            }
+
+            Client.Set(game, "FrameGenerationSettings", plan.Applied);
+            FromScratch(IniPath(folder), "frames", () => Client.Call(
+                Client.New(Installer), "ApplyFrameGenerationSettings", "game", game, "resolvedGameDir", folder, "gpu", gpu, "optiscalerVersion", version));
+            PlaceHudFix(folder);
+            KeepChosenFrames(game, plan);
+            if (plan.IsNothing)
+            {
+                notes.Add("framesnone");
+            }
+
+            return true;
+        }
+
         public JsonObject Uninstall(JsonObject parameters)
         {
             touched = false;
+            var notes = new List<string>();
             var game = FindOrCreate(parameters, out var known);
             var remaining = Recover(game, "uninstall");
             var record = Record.Find(game);
@@ -1842,10 +2438,15 @@ namespace Atrio.OptiScaler
                 progress("uninstall", null, null);
                 var originals = record.IsWhole ? record.Originals : new Dictionary<string, string>();
                 var written = record.Files.ToList();
-                using (new Guests(target, () => OwnFiles(game, target)))
+                var byHand = record.IsOfOptiScaler || !Client.Flag(game, "IsOptiscalerInstalled") ? new List<string>() : FilesByHand(target, null);
+                if (Client.Flag(game, "IsOptiscalerInstalled"))
+                {
+                    CopySettings(game, record, target, notes);
+                }
+
+                using (new Guests(target, () => OwnFiles(game, target).Concat(byHand.Select(a => Path.GetRelativePath(target, a)))))
                 {
                     // Without a record, what the client takes out has no copy: it's kept aside until it ends.
-                    var byHand = record.IsOfOptiScaler || !Client.Flag(game, "IsOptiscalerInstalled") ? new List<string>() : FilesByHand(target, null);
                     var plan = string.IsNullOrEmpty(target) || (record.IsWhole && byHand.Count == 0) ? new Plan() : GetPlan(target, record);
                     byHand.ForEach(a => plan.Add(Path.GetRelativePath(target, a)));
                     using (var checkpoint = Checkpoint.Begin(Client.Text(game, "InstallPath"), record.Key, target, plan))
@@ -1879,6 +2480,7 @@ namespace Atrio.OptiScaler
             {
                 Client.Set(game, "IsOptiscalerInstalled", false);
                 Client.Set(game, "OptiscalerVersion", null);
+                Try(notes, "settings", new SettingsStore(Client.Text(game, "InstallPath")).Forget);
             }
 
             Client.Set(game, "Fsr4ExtraVersion", null);
@@ -1887,7 +2489,12 @@ namespace Atrio.OptiScaler
             var result = Describe(game, known, false);
             result["remaining"] = Service.Array(remaining);
             result["undone"] = undone;
-            result["notes"] = Service.Array(Guests.Any(target) ? new[] { "guests" } : new string[0]);
+            if (Guests.Any(target))
+            {
+                notes.Add("guests");
+            }
+
+            result["notes"] = Service.Array(notes);
             return result;
         }
     }

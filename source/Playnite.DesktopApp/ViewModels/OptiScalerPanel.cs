@@ -1,3 +1,4 @@
+using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using Playnite.Atrio;
 using Playnite.Commands;
@@ -6,6 +7,7 @@ using Playnite.SDK.Models;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Threading;
@@ -122,7 +124,8 @@ namespace Playnite.DesktopApp.ViewModels
                 IsTouched = false;
             }
 
-            Initial = chosen;
+            // Without anything to choose from there's nothing chosen either.
+            Initial = newChoices.Count == 0 ? null : chosen;
             Choices = newChoices;
             selected = newChoices.FirstOrDefault(a => string.Equals(a.Id, wanted, StringComparison.OrdinalIgnoreCase)) ??
                 newChoices.FirstOrDefault(a => string.Equals(a.Id, chosen, StringComparison.OrdinalIgnoreCase)) ??
@@ -249,6 +252,9 @@ namespace Playnite.DesktopApp.ViewModels
     {
         private static readonly ILogger logger = LogManager.GetLogger();
         private const string Keep = "keep";
+        private const string Own = "own";
+        private const string Fresh = "fresh";
+        private const string OptiFg = "OptiFg";
         private const string None = "none";
         private const string Stopped = "stopped";
 
@@ -290,6 +296,7 @@ namespace Playnite.DesktopApp.ViewModels
         public RelayCommand<object> OpenClientCommand { get; }
         public RelayCommand<object> OpenFolderCommand { get; }
         public RelayCommand<object> OpenIniCommand { get; }
+        public RelayCommand<object> OpenCopiesCommand { get; }
         public RelayCommand<object> OpenGuideCommand { get; }
         public RelayCommand<object> OpenListCommand { get; }
         public RelayCommand<object> CheckUpdatesCommand { get; }
@@ -446,6 +453,13 @@ namespace Playnite.DesktopApp.ViewModels
         public bool ShowsUninstall { get; private set; }
         public bool HasIni => !IniPath.IsNullOrEmpty();
         private string IniPath => (string)state?["ini"];
+
+        /// <summary>The person changed something in the settings of OptiScaler, or it's waiting for a version that has it.</summary>
+        private bool HasOwn => (int?)state?["own"]?["count"] > 0;
+
+        /// <summary>Copies of the settings that were replaced or taken out.</summary>
+        public bool HasCopies => !CopiesPath.IsNullOrEmpty();
+        private string CopiesPath => (string)state?["own"]?["copies"];
         public string ClientText { get; private set; }
 
         /// <summary>A newer copy is there and isn't used: why.</summary>
@@ -472,6 +486,7 @@ namespace Playnite.DesktopApp.ViewModels
             OpenClientCommand = new RelayCommand<object>(_ => OpenWindow(false), _ => copy != null && !IsWorking);
             OpenFolderCommand = new RelayCommand<object>(_ => OpenPath((string)state?["directory"] ?? (Target == null ? null : GetFolder(Target))));
             OpenIniCommand = new RelayCommand<object>(_ => OpenPath(IniPath), _ => HasIni);
+            OpenCopiesCommand = new RelayCommand<object>(_ => OpenPath(CopiesPath), _ => HasCopies);
             OpenGuideCommand = new RelayCommand<object>(_ => GlobalCommands.NavigateUrlInside(GuideUrl), _ => !GuideUrl.IsNullOrEmpty());
             OpenListCommand = new RelayCommand<object>(_ => GlobalCommands.NavigateUrlInside(ListUrl));
             CheckUpdatesCommand = new RelayCommand<object>(_ => CheckUpdates(true), _ => !IsWorking);
@@ -489,6 +504,7 @@ namespace Playnite.DesktopApp.ViewModels
             AddOption("patcher", true);
             AddOption("spoofing", false);
             AddOption("profile", false);
+            AddOption("settings", true);
             FindTarget();
         }
 
@@ -793,17 +809,22 @@ namespace Playnite.DesktopApp.ViewModels
 
                 FillVersions(choices, chosen, keepTouched);
                 options["injection"].Fill(Strings(choices["injections"]).Select(a => new OptiScalerChoice { Id = a, Name = a }).ToList(), (string)chosen["injection"], keepTouched);
-                options["output"].Fill(Words("Output", Strings(choices["outputs"])), (string)chosen["output"], keepTouched);
-                options["quality"].Fill(
-                    Words("Quality", Strings(choices["qualities"]).Where(a => a != "Custom" || (string)chosen["quality"] == "Custom")),
-                    (string)chosen["quality"], keepTouched);
-                options["spoofing"].Fill(Words("Spoofing", Strings(choices["spoofing"])), (string)chosen["spoofing"], keepTouched);
+                FillWithOwn("output", Words("Output", Strings(choices["outputs"])), chosen, keepTouched);
+                FillWithOwn("quality", Words("Quality", Strings(choices["qualities"]).Where(a => a != "Custom" || (string)chosen["quality"] == "Custom")), chosen, keepTouched);
+                FillWithOwn("spoofing", Words("Spoofing", Strings(choices["spoofing"])), chosen, keepTouched);
                 options["profile"].Fill(
                     (choices["profiles"] as JArray)?.OfType<JObject>().Select(a => new OptiScalerChoice { Id = (string)a["id"], Name = (string)a["id"] }).ToList() ?? new List<OptiScalerChoice>(),
                     (string)chosen["profile"], keepTouched);
                 FillFrames(choices, chosen, keepTouched);
                 FillFsr4(choices, chosen, keepTouched);
                 FillPatcher(choices, chosen, keepTouched);
+
+                // Only when the person changed something in the settings of the game there's something to say about it.
+                options["settings"].Fill(HasOwn ? Words("Settings", new[] { Keep, Fresh }) : new List<OptiScalerChoice>(), Keep, keepTouched);
+                if (!keepTouched)
+                {
+                    startedOver.Clear();
+                }
                 foreach (var option in Options)
                 {
                     option.IsEnabled = option.Choices.Count > 1;
@@ -826,9 +847,65 @@ namespace Playnite.DesktopApp.ViewModels
                 filling = false;
             }
 
+            if (keepTouched && options["settings"].Selected?.Id == Fresh)
+            {
+                UpdateOwn(true);
+            }
+
             UpdateModes();
             UpdateActions();
             Notify();
+        }
+
+        /// <summary>An option that the person has set inside the game: it's one more thing to choose, and what is chosen.</summary>
+        private void FillWithOwn(string key, List<OptiScalerChoice> list, JObject chosen, bool keepTouched)
+        {
+            if ((string)chosen[key] == Own)
+            {
+                list.Insert(0, OwnChoice(key));
+            }
+
+            options[key].Fill(list, (string)chosen[key], keepTouched);
+        }
+
+        private OptiScalerChoice OwnChoice(string key)
+        {
+            var summary = GetOwnName(key, (string)state["own"]?["options"]?[key]);
+            return new OptiScalerChoice
+            {
+                Id = Own,
+                Name = summary.IsNullOrEmpty() ? resources.GetString("LOCAtrioOptiOwn") : string.Format(resources.GetString("LOCAtrioOptiOwnValue"), summary)
+            };
+        }
+
+        // The words of OptiScaler for what its menu calls otherwise.
+        private static readonly Dictionary<string, string> ownNames = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+        {
+            { "fsr21", "FSR 2.1" }, { "fsr21_12", "FSR 2.1" }, { "fsr22", "FSR 2.2" }, { "fsr22_12", "FSR 2.2" }, { "fsr31", "FSR 3" },
+            { "ffx", "FSR 3/4" }, { "ffx_12", "FSR 3/4" }, { "xess", "XeSS" }, { "xess_12", "XeSS" }, { "dlss", "DLSS" }, { "dlss_12", "DLSS" },
+            { "upscaler", "OptiFG" }, { "fsrfg", "FSR" }, { "fsrfg30", "FSR 3.0" }, { "xefg", "XeSS" }, { "dlssg", "DLSS" }, { "nukems", "Nukem" }, { "nvngxfg", "Nukem" }
+        };
+
+        /// <summary>What there is, in a few words. Null when there's nothing short to say.</summary>
+        private string GetOwnName(string key, string summary)
+        {
+            if (summary.IsNullOrEmpty())
+            {
+                return null;
+            }
+
+            if (key == "spoofing")
+            {
+                return summary == "auto" ? null : Word("Spoofing", summary);
+            }
+
+            if (key == "quality")
+            {
+                return double.TryParse(summary, NumberStyles.Float, CultureInfo.InvariantCulture, out var ratio) ? ratio.ToString("0.00", CultureInfo.InvariantCulture) + "×" : null;
+            }
+
+            var names = summary.Split('>', ',').Select(a => ownNames.TryGetValue(a, out var name) ? name : a).ToList();
+            return names.Contains("nofg", StringComparer.OrdinalIgnoreCase) ? Word("Frames", "Disabled") : string.Join(key == "frames" ? " → " : ", ", names.Distinct());
         }
 
         private OptiScalerVersions versions = new OptiScalerVersions(null);
@@ -915,15 +992,22 @@ namespace Playnite.DesktopApp.ViewModels
             var output = (string)frames?["output"];
             var replacement = (string)frames?["replacement"];
             var off = frames == null || route.IsNullOrEmpty() || route == "Disabled";
+            var plain = replacement.IsNullOrEmpty() || replacement == "None";
+            var optiFg = !off && plain && route == OptiFg && output == "FsrFg";
 
             // Choosing the way by hand, or going through DLSS Enabler, is done in the window of the client: here it's only kept.
-            var special = !off && ((bool?)frames["advanced"] == true || (!replacement.IsNullOrEmpty() && replacement != "None") ||
+            var special = !off && !optiFg && ((bool?)frames["advanced"] == true || !plain ||
                 (route != "Auto" && output != "Nukem") || output == "DlssG" || output == "DlssGWithNvngx");
+            var own = !special && (bool?)frames?[Own] == true;
             modes = new Dictionary<string, List<string>>();
             var list = new List<OptiScalerChoice>();
             if (special)
             {
                 list.Add(new OptiScalerChoice { Id = Keep, Name = resources.GetString("LOCAtrioOptiFramesKeep") });
+            }
+            else if (own)
+            {
+                list.Add(OwnChoice("frames"));
             }
 
             list.Add(new OptiScalerChoice { Id = "Disabled", Name = Word("Frames", "Disabled") });
@@ -939,8 +1023,8 @@ namespace Playnite.DesktopApp.ViewModels
                 list.Add(new OptiScalerChoice { Id = id, Name = Word("Frames", id) });
             }
 
-            options["frames"].Fill(list, special ? Keep : off ? "Disabled" : output, keepTouched);
-            initialMode = special || off ? null : (string)frames["mode"];
+            options["frames"].Fill(list, special ? Keep : own ? Own : off ? "Disabled" : optiFg ? OptiFg : output, keepTouched);
+            initialMode = special || own || off ? null : (string)frames["mode"];
             if (!keepTouched || !options["mode"].IsTouched)
             {
                 options["mode"].Fill(new List<OptiScalerChoice>(), null, false);
@@ -1083,9 +1167,40 @@ namespace Playnite.DesktopApp.ViewModels
             {
                 UpdateVersions();
             }
+            else if (option.Key == "settings")
+            {
+                UpdateOwn(false);
+            }
 
             UpdateActions();
             Notify();
+        }
+
+        // What took the place of «as set in the game» in each option.
+        private readonly Dictionary<string, string> startedOver = new Dictionary<string, string>();
+
+        /// <summary>Starting over, nothing stays as it's set in the game, unless it's chosen to afterwards.</summary>
+        /// <param name="again">It was already starting over, and the game was read again.</param>
+        private void UpdateOwn(bool again)
+        {
+            var fresh = options["settings"].Selected?.Id == Fresh;
+            foreach (var option in Options.Where(a => a.Choices.Count > 1 && a.Choices[0].Id == Own))
+            {
+                if (fresh && option.Selected?.Id == Own && !(again && option.IsTouched))
+                {
+                    startedOver[option.Key] = option.Choices[1].Id;
+                    option.Selected = option.Choices[1];
+                }
+                else if (!fresh && startedOver.TryGetValue(option.Key, out var other) && option.Selected?.Id == other)
+                {
+                    option.Selected = option.Choices[0];
+                }
+            }
+
+            if (!fresh)
+            {
+                startedOver.Clear();
+            }
         }
 
         private bool IsChanged(bool needsInstall)
@@ -1129,19 +1244,23 @@ namespace Playnite.DesktopApp.ViewModels
         private JObject GetOptions(bool all)
         {
             var result = new JObject();
+
+            // What the person set inside the game and this version doesn't have comes back in one that does, unless they choose otherwise.
+            var waiting = all && options["settings"].Selected?.Id != Fresh ? Strings(state?["own"]?["waiting"]) : new List<string>();
             foreach (var option in Options.Where(a => a.Key != "frames" && a.Key != "mode" && !a.IsFilter && a.Selected != null && (all || a.IsChanged)))
             {
                 // A value that can't be chosen here (a quality of their own) stays as it is.
                 if (!(option.Key == "quality" && option.Selected.Id == "Custom"))
                 {
-                    result[option.Key] = option.Key == "version" ? GetVersion() : option.Selected.Id;
+                    result[option.Key] = option.Key == "version" ? GetVersion() : waiting.Contains(option.Key) && !option.IsTouched ? Own : option.Selected.Id;
                 }
             }
 
             var frames = options["frames"].Selected?.Id;
             if (frames != null && frames != Keep && (all || options["frames"].IsChanged || options["mode"].IsChanged))
             {
-                result["frames"] = new JObject { ["output"] = frames, ["mode"] = options["mode"].Selected?.Id };
+                var stays = waiting.Contains("frames") && !options["frames"].IsTouched && !options["mode"].IsTouched;
+                result["frames"] = new JObject { ["output"] = stays ? Own : frames, ["mode"] = options["mode"].Selected?.Id };
             }
 
             return result;
@@ -1178,9 +1297,64 @@ namespace Playnite.DesktopApp.ViewModels
             }
         }
 
+        /// <summary>
+        /// The game may have been played since it was read, or its settings changed in their file: what wasn't chosen here goes
+        /// on as it is now. As it's the beginning of a change, it goes on even if the page isn't showing anymore. False when it
+        /// can't be known.
+        /// </summary>
+        private async Task<bool> LookAgainAsync()
+        {
+            var target = Target;
+            SetMessage(null, false);
+            ReportStep(new OptiScalerProgress { Step = "look" });
+            stopping = false;
+            Stage = OptiScalerStage.Working;
+            try
+            {
+                var parameters = GetGame();
+                parameters["force"] = true;
+                var answer = await AskAsync("state", parameters, TimeSpan.FromSeconds(120), _ => { });
+                if (Target != target)
+                {
+                    // It's another copy of the game now, or none.
+                    Stage = OptiScalerStage.Ready;
+                    return false;
+                }
+
+                Show(answer, true);
+                Stage = OptiScalerStage.Ready;
+                return true;
+            }
+            catch (Exception e) when (!(e is OutOfMemoryException))
+            {
+                Fail(e, OptiScalerStage.Ready);
+                TellAfterwards();
+                return false;
+            }
+        }
+
+        /// <summary>The game has closed: its settings may be other ones.</summary>
+        public async void ReadAfterPlaying()
+        {
+            if (!IsOpen || Stage != OptiScalerStage.Ready || state == null || IsGameOpen)
+            {
+                return;
+            }
+
+            try
+            {
+                await ReadStateAsync(true, false, true);
+            }
+            catch (Exception e) when (!(e is OutOfMemoryException))
+            {
+                // It's read again before changing anything.
+                logger.Debug($"The game couldn't be looked at after it closed: {e.Message}");
+            }
+        }
+
         private async void Install(string version)
         {
-            if (!CanChoose || !IsFree())
+            if (!CanChoose || !IsFree() || !await LookAgainAsync())
             {
                 return;
             }
@@ -1192,15 +1366,16 @@ namespace Playnite.DesktopApp.ViewModels
                 return;
             }
 
-            if (installed && (bool?)state?["managed"] != true && (bool?)state?["half"] != true && !Confirm("LOCAtrioOptiReplaceAsk", game.DisplayName))
+            if (installed && (bool?)state?["managed"] != true && (bool?)state?["half"] != true && !Confirm("LOCAtrioOptiReplaceAsk", game.DisplayName, GetReplaced() + GetBeside()))
             {
                 return;
             }
 
-            var chosen = GetOptions(!onlySettings);
-            if (version != null)
+            // After one that was cut in the middle, what there was before isn't known here: what isn't chosen now goes on as it was.
+            var chosen = GetOptions(!onlySettings && (bool?)state?["half"] != true);
+            if (!onlySettings)
             {
-                chosen["version"] = version;
+                chosen["version"] = version ?? GetVersion();
             }
 
             await WorkAsync(onlySettings ? "apply" : "install", chosen, TimeSpan.FromMinutes(30), answer =>
@@ -1219,7 +1394,7 @@ namespace Playnite.DesktopApp.ViewModels
                 var parts = note.Split(new[] { ':' }, 2);
                 var text = resources.GetString($"LOCAtrioOptiNote{parts[0]}");
                 notes.Add(text.IsNullOrEmpty() || text.Contains("LOCAtrioOptiNote") ? note : string.Format(text, parts.Last().Trim()));
-                if (parts.Length > 1)
+                if (parts.Length > 1 && parts[0] != "kept")
                 {
                     logger.Warn($"OptiScaler Client: {note}");
                 }
@@ -1228,11 +1403,24 @@ namespace Playnite.DesktopApp.ViewModels
             return notes.Count == 0 ? string.Empty : "\n" + string.Join("\n", notes);
         }
 
+        /// <summary>What happens with the settings of the OptiScaler that was put by hand.</summary>
+        private string GetReplaced()
+        {
+            return !HasOwn ? string.Empty : " " + resources.GetString(options["settings"].Selected?.Id == Fresh ? "LOCAtrioOptiReplaceFresh" : "LOCAtrioOptiReplaceKeep");
+        }
+
+        /// <summary>The files a game could have too that came with the OptiScaler that was put by hand: they go out with it.</summary>
+        private string GetBeside()
+        {
+            var files = Strings(state?["beside"]);
+            return files.Count == 0 ? string.Empty : "\n\n" + string.Format(resources.GetString("LOCAtrioOptiBeside"), string.Join(", ", files));
+        }
+
         private async void Uninstall()
         {
             // What was put by hand has no copy of what was there before.
             var managed = (bool?)state?["managed"] == true || (bool?)state?["half"] == true || InstalledVersion == null;
-            if (!CanChoose || !IsFree() || !Confirm(managed ? "LOCAtrioOptiUninstallAsk" : "LOCAtrioOptiUninstallManualAsk", game.DisplayName))
+            if (!CanChoose || !IsFree() || !Confirm(managed ? "LOCAtrioOptiUninstallAsk" : "LOCAtrioOptiUninstallManualAsk", game.DisplayName, GetBeside()))
             {
                 return;
             }
@@ -1269,6 +1457,7 @@ namespace Playnite.DesktopApp.ViewModels
             Stage = OptiScalerStage.Working;
             try
             {
+                var folder = GetFolder(Target);
                 var answer = await RunAsync(method, chosen, limit);
                 if (answer == null)
                 {
@@ -1276,6 +1465,9 @@ namespace Playnite.DesktopApp.ViewModels
                     return;
                 }
 
+                // With this, what was done can be followed one day after.
+                logger.Info($"OptiScaler: {method} in {folder}: {(string)answer["version"] ?? "none"}, with {chosen?.ToString(Formatting.None) ?? "{}"}, " +
+                    $"notes [{string.Join("; ", Strings(answer["notes"]))}], left [{string.Join(", ", Strings(answer["remaining"]))}].");
                 Show(answer, false);
                 Stage = OptiScalerStage.Ready;
                 done(answer);
@@ -1632,7 +1824,7 @@ namespace Playnite.DesktopApp.ViewModels
                 nameof(Stage), nameof(ShowsDownload), nameof(ShowsState), nameof(ShowsProgress), nameof(ShowsOnlyWindow), nameof(ShowsFailed), nameof(IsWorking),
                 nameof(CanChoose), nameof(StatusText), nameof(StatusDetail), nameof(DetectedChips), nameof(GpuText), nameof(HasAntiCheat), nameof(NothingDetected),
                 nameof(CompatibilityText), nameof(CompatibilityIsGood), nameof(CompatibilityNotes), nameof(HasCompatibility), nameof(GuideUrl), nameof(InstallText),
-                nameof(ShowsInstall), nameof(ShowsReinstall), nameof(PackageText), nameof(HasPackage), nameof(UpdateText), nameof(ShowsUpdate), nameof(ShowsUninstall), nameof(HasIni), nameof(ClientText), nameof(KeptText), nameof(ClientUpdateText),
+                nameof(ShowsInstall), nameof(ShowsReinstall), nameof(PackageText), nameof(HasPackage), nameof(UpdateText), nameof(ShowsUpdate), nameof(ShowsUninstall), nameof(HasIni), nameof(HasCopies), nameof(ClientText), nameof(KeptText), nameof(ClientUpdateText),
                 nameof(HasClientUpdate), nameof(DownloadText)
             })
             {

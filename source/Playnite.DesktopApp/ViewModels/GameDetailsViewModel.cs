@@ -1192,6 +1192,7 @@ namespace Playnite.DesktopApp.ViewModels
             DirectInstallProgress.Changed += DirectInstallProgress_Changed;
             OpenGames.Changed += OpenGames_Changed;
             SaveBackups.Changed += SaveBackups_Changed;
+            wasRunning = IsRunning;
         }
 
         private void OpenGames_Changed(object sender, OpenGamesChangedEventArgs e)
@@ -1462,8 +1463,16 @@ namespace Playnite.DesktopApp.ViewModels
             NotifyStateChange();
         }
 
+        private bool wasRunning;
+
         private void NotifyStateChange()
         {
+            if (wasRunning && !IsRunning)
+            {
+                OptiScaler?.ReadAfterPlaying();
+            }
+
+            wasRunning = IsRunning;
             OnPropertyChanged(nameof(IsRunning));
             OnPropertyChanged(nameof(CanStop));
             OnPropertyChanged(nameof(IsInstalling));

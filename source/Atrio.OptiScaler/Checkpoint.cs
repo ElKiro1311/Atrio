@@ -132,13 +132,20 @@ namespace Atrio.OptiScaler
             this.storeKey = storeKey;
         }
 
-        private static string Root => Path.Combine(
+        /// <summary>The folder of Atrio among the data of the client.</summary>
+        public static string Root => Path.Combine(
             Contract.DataFolder() ?? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Atrio.OptiScaler"), "Atrio");
+
+        /// <summary>A name for a game that fits in any folder.</summary>
+        public static string NameOf(string key)
+        {
+            var bytes = SHA1.HashData(Encoding.UTF8.GetBytes(Path.GetFullPath(key).TrimEnd('\\', '/').ToLowerInvariant()));
+            return Convert.ToHexString(bytes).Substring(0, 16);
+        }
 
         private static string Place(string key)
         {
-            var bytes = SHA1.HashData(Encoding.UTF8.GetBytes(Path.GetFullPath(key).TrimEnd('\\', '/').ToLowerInvariant()));
-            return Path.Combine(Root, Convert.ToHexString(bytes).Substring(0, 16));
+            return Path.Combine(Root, NameOf(key));
         }
 
         /// <summary>The folder where the client keeps the originals of a game.</summary>

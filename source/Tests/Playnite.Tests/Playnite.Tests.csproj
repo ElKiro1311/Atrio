@@ -27,6 +27,7 @@
   <ItemGroup>
     <Compile Include="..\TestApp\TestAppProcInfo.cs" Link="_TestTools\TestAppProcInfo.cs" /> 
     <Compile Include="..\..\Atrio.Updater\UpdateInstaller.cs" Link="_TestTools\UpdateInstaller.cs" />
+    <Compile Include="..\..\Atrio.OptiScaler\Settings.cs" Link="_TestTools\OptiScalerSettings.cs" />
   </ItemGroup>
 
   <ItemGroup>

@@ -1872,9 +1872,9 @@ Abre un nuevo problema en la página de GitHub de Playnite con una solicitud par
     <sys:String x:Key="LOCAtrioOptiOutput">Escalador</sys:String>
     <sys:String x:Key="LOCAtrioOptiOutputHint">Lo que dibuja la imagen al final, pida lo que pida el juego.</sys:String>
     <sys:String x:Key="LOCAtrioOptiQuality">Calidad</sys:String>
-    <sys:String x:Key="LOCAtrioOptiQualityHint">El tamaño al que dibuja el juego antes de escalar.</sys:String>
+    <sys:String x:Key="LOCAtrioOptiQualityHint" xml:space="preserve">El tamaño al que dibuja el juego antes de escalar.&#10;«La del juego»: lo decide la opción del propio juego.&#10;Cualquier otra manda sobre ella. «Nativa» dibuja todos los píxeles y es la que más gasta.</sys:String>
     <sys:String x:Key="LOCAtrioOptiFrames">Generación de fotogramas</sys:String>
-    <sys:String x:Key="LOCAtrioOptiFramesHint">Añade fotogramas intermedios. El juego tiene que permitirlo.</sys:String>
+    <sys:String x:Key="LOCAtrioOptiFramesHint" xml:space="preserve">Añade fotogramas intermedios.&#10;«Automática» usa lo que trae el juego para eso.&#10;OptiFG sirve también en los juegos que no traen nada: con DirectX 12 y, en las versiones nightly, DirectX 11 y Vulkan.</sys:String>
     <sys:String x:Key="LOCAtrioOptiMode">Multiplicador</sys:String>
     <sys:String x:Key="LOCAtrioOptiModeHint">Cuántos fotogramas salen de cada uno que dibuja el juego.</sys:String>
     <sys:String x:Key="LOCAtrioOptiFsr4">Archivo de FSR 4</sys:String>
@@ -1899,12 +1899,12 @@ Abre un nuevo problema en la página de GitHub de Playnite con una solicitud par
     <sys:String x:Key="LOCAtrioOptiOutputXeSS">XeSS</sys:String>
     <sys:String x:Key="LOCAtrioOptiOutputDlss">DLSS</sys:String>
     <sys:String x:Key="LOCAtrioOptiQualityGameControlled">La del juego</sys:String>
-    <sys:String x:Key="LOCAtrioOptiQualityNativeAa">Nativa</sys:String>
-    <sys:String x:Key="LOCAtrioOptiQualityUltraQuality">Ultra calidad</sys:String>
-    <sys:String x:Key="LOCAtrioOptiQualityQuality">Calidad</sys:String>
-    <sys:String x:Key="LOCAtrioOptiQualityBalanced">Equilibrado</sys:String>
-    <sys:String x:Key="LOCAtrioOptiQualityPerformance">Rendimiento</sys:String>
-    <sys:String x:Key="LOCAtrioOptiQualityUltraPerformance">Ultra rendimiento</sys:String>
+    <sys:String x:Key="LOCAtrioOptiQualityNativeAa">Nativa (1.00×)</sys:String>
+    <sys:String x:Key="LOCAtrioOptiQualityUltraQuality">Ultra calidad (1.30×)</sys:String>
+    <sys:String x:Key="LOCAtrioOptiQualityQuality">Calidad (1.50×)</sys:String>
+    <sys:String x:Key="LOCAtrioOptiQualityBalanced">Equilibrado (1.70×)</sys:String>
+    <sys:String x:Key="LOCAtrioOptiQualityPerformance">Rendimiento (2.00×)</sys:String>
+    <sys:String x:Key="LOCAtrioOptiQualityUltraPerformance">Ultra rendimiento (3.00×)</sys:String>
     <sys:String x:Key="LOCAtrioOptiQualityCustom">Personalizada</sys:String>
     <sys:String x:Key="LOCAtrioOptiSpoofingauto">Automático</sys:String>
     <sys:String x:Key="LOCAtrioOptiSpoofingtrue">Sí</sys:String>
@@ -1931,7 +1931,7 @@ Abre un nuevo problema en la página de GitHub de Playnite con una solicitud par
     <sys:String x:Key="LOCAtrioOptiStatusAs">Como {0}</sys:String>
     <sys:String x:Key="LOCAtrioOptiStatusManual">Puesto a mano</sys:String>
     <sys:String x:Key="LOCAtrioOptiByHand">a mano</sys:String>
-    <sys:String x:Key="LOCAtrioOptiUninstallManualAsk" xml:space="preserve">Este OptiScaler se puso a mano en {0}. Se quitan los archivos que se sabe que son suyos, pero no hay copia de lo que hubiera antes.&#10;&#10;¿Quitarlo?</sys:String>
+    <sys:String x:Key="LOCAtrioOptiUninstallManualAsk" xml:space="preserve">Este OptiScaler se puso a mano en {0}. Se quitan los archivos que se sabe que son suyos, pero no hay copia de lo que hubiera antes.{1}&#10;&#10;¿Quitarlo?</sys:String>
     <sys:String x:Key="LOCAtrioOptiUninstalledManual">OptiScaler quitado.</sys:String>
     <sys:String x:Key="LOCAtrioOptiUsePackage">Usar {0}, que ya has descargado</sys:String>
     <sys:String x:Key="LOCAtrioOptiErrorpackage">Ese archivo no es uno publicado por OptiScaler Client, o no se pudo preguntar a GitHub: no se ha usado.</sys:String>
@@ -2032,9 +2032,25 @@ Abre un nuevo problema en la página de GitHub de Playnite con una solicitud par
     <sys:String x:Key="LOCAtrioOptiTooLate">Ya se estaba poniendo en el juego: se ha dejado acabar.</sys:String>
     <sys:String x:Key="LOCAtrioOptiErrornotsent">OptiScaler Client se cerró antes de empezar. No se ha tocado nada del juego.</sys:String>
     <sys:String x:Key="LOCAtrioOptiErrorhalfpackage">Una instalación anterior se quedó a medias y para deshacerla hace falta OptiScaler {0}, que no se ha podido descargar. Comprueba la conexión.</sys:String>
-    <sys:String x:Key="LOCAtrioOptiReplaceAsk">En {0} hay un OptiScaler puesto a mano. Se sustituye, con sus ajustes, y no volverá si luego quitas OptiScaler. ¿Seguir?</sys:String>
+    <sys:String x:Key="LOCAtrioOptiReplaceAsk" xml:space="preserve">En {0} hay un OptiScaler puesto a mano. Se sustituye y no volverá si luego quitas OptiScaler.{1}&#10;&#10;¿Seguir?</sys:String>
     <sys:String x:Key="LOCAtrioOptiStatusCut">OptiScaler se quedó a medias en este juego</sys:String>
     <sys:String x:Key="LOCAtrioOptiErrorprofile">Ese perfil ya no está.</sys:String>
+    <sys:String x:Key="LOCAtrioOptiReplaceKeep">Tus ajustes pasan al nuevo, hasta donde los tenga.</sys:String>
+    <sys:String x:Key="LOCAtrioOptiReplaceFresh">Tus ajustes no pasan al nuevo, pero queda una copia en «Ajustes anteriores».</sys:String>
+    <sys:String x:Key="LOCAtrioOptiFramesOptiFg">OptiFG (experimental)</sys:String>
+    <sys:String x:Key="LOCAtrioOptiOwn">Como está en el juego</sys:String>
+    <sys:String x:Key="LOCAtrioOptiOwnValue">{0} (en el juego)</sys:String>
+    <sys:String x:Key="LOCAtrioOptiSettings">Tus ajustes</sys:String>
+    <sys:String x:Key="LOCAtrioOptiSettingsHint" xml:space="preserve">Lo que has cambiado en el menú de OptiScaler dentro del juego o en OptiScaler.ini.&#10;Conservarlos: pasan a la versión nueva, hasta donde los tenga.&#10;Empezar de cero: solo lo que elijas aquí.</sys:String>
+    <sys:String x:Key="LOCAtrioOptiSettingskeep">Conservarlos</sys:String>
+    <sys:String x:Key="LOCAtrioOptiSettingsfresh">Empezar de cero</sys:String>
+    <sys:String x:Key="LOCAtrioOptiCopies">Ajustes anteriores</sys:String>
+    <sys:String x:Key="LOCAtrioOptiCopiesHint">Copias de los OptiScaler.ini que se sustituyeron o se quitaron en este juego.</sys:String>
+    <sys:String x:Key="LOCAtrioOptiBeside">Estos archivos llegaron con él y se van también: {0}</sys:String>
+    <sys:String x:Key="LOCAtrioOptiNotekept">Se han conservado tus ajustes ({0}).</sys:String>
+    <sys:String x:Key="LOCAtrioOptiNotedropped">Esta versión no tiene estos ajustes tuyos; quedan guardados para otra que los tenga: {0}</sys:String>
+    <sys:String x:Key="LOCAtrioOptiNoteframesnone">Este juego no trae con qué generar fotogramas automáticamente: se ha dejado desactivada.</sys:String>
+    <sys:String x:Key="LOCAtrioOptiNotecopy">No se han podido copiar los ajustes que había.</sys:String>
     <sys:String x:Key="LOCAtrioFreeUntil">Gratis hasta el {0}, a las {1}</sys:String>
     <sys:String x:Key="LOCAtrioFreeFrom">Gratis del {0} al {1}</sys:String>
     <sys:String x:Key="LOCAtrioFreeTitle">Gratis ahora</sys:String>

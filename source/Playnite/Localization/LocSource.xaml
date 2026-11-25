@@ -1875,9 +1875,9 @@ Open new issue on Playnite's GitHub page with a request to fix corruption in you
     <sys:String x:Key="LOCAtrioOptiOutput">Upscaler</sys:String>
     <sys:String x:Key="LOCAtrioOptiOutputHint">What produces the final image, whatever the game asks for.</sys:String>
     <sys:String x:Key="LOCAtrioOptiQuality">Quality</sys:String>
-    <sys:String x:Key="LOCAtrioOptiQualityHint">The resolution the game renders at before upscaling.</sys:String>
+    <sys:String x:Key="LOCAtrioOptiQualityHint" xml:space="preserve">The resolution the game renders at before upscaling.&#10;“Set by the game”: the game's own option decides.&#10;Any other choice overrides it. “Native” renders every pixel and costs the most.</sys:String>
     <sys:String x:Key="LOCAtrioOptiFrames">Frame generation</sys:String>
-    <sys:String x:Key="LOCAtrioOptiFramesHint">Adds frames in between. The game has to support it.</sys:String>
+    <sys:String x:Key="LOCAtrioOptiFramesHint" xml:space="preserve">Adds frames in between.&#10;“Automatic” uses what the game brings for it.&#10;OptiFG also works in games that don't bring any: with DirectX 12 and, on the nightly versions, DirectX 11 and Vulkan.</sys:String>
     <sys:String x:Key="LOCAtrioOptiMode">Multiplier</sys:String>
     <sys:String x:Key="LOCAtrioOptiModeHint">How many frames come out of each one the game renders.</sys:String>
     <sys:String x:Key="LOCAtrioOptiFsr4">FSR 4 file</sys:String>
@@ -1902,12 +1902,12 @@ Open new issue on Playnite's GitHub page with a request to fix corruption in you
     <sys:String x:Key="LOCAtrioOptiOutputXeSS">XeSS</sys:String>
     <sys:String x:Key="LOCAtrioOptiOutputDlss">DLSS</sys:String>
     <sys:String x:Key="LOCAtrioOptiQualityGameControlled">Set by the game</sys:String>
-    <sys:String x:Key="LOCAtrioOptiQualityNativeAa">Native</sys:String>
-    <sys:String x:Key="LOCAtrioOptiQualityUltraQuality">Ultra quality</sys:String>
-    <sys:String x:Key="LOCAtrioOptiQualityQuality">Quality</sys:String>
-    <sys:String x:Key="LOCAtrioOptiQualityBalanced">Balanced</sys:String>
-    <sys:String x:Key="LOCAtrioOptiQualityPerformance">Performance</sys:String>
-    <sys:String x:Key="LOCAtrioOptiQualityUltraPerformance">Ultra performance</sys:String>
+    <sys:String x:Key="LOCAtrioOptiQualityNativeAa">Native (1.00×)</sys:String>
+    <sys:String x:Key="LOCAtrioOptiQualityUltraQuality">Ultra quality (1.30×)</sys:String>
+    <sys:String x:Key="LOCAtrioOptiQualityQuality">Quality (1.50×)</sys:String>
+    <sys:String x:Key="LOCAtrioOptiQualityBalanced">Balanced (1.70×)</sys:String>
+    <sys:String x:Key="LOCAtrioOptiQualityPerformance">Performance (2.00×)</sys:String>
+    <sys:String x:Key="LOCAtrioOptiQualityUltraPerformance">Ultra performance (3.00×)</sys:String>
     <sys:String x:Key="LOCAtrioOptiQualityCustom">Custom</sys:String>
     <sys:String x:Key="LOCAtrioOptiSpoofingauto">Automatic</sys:String>
     <sys:String x:Key="LOCAtrioOptiSpoofingtrue">Yes</sys:String>
@@ -1934,7 +1934,7 @@ Open new issue on Playnite's GitHub page with a request to fix corruption in you
     <sys:String x:Key="LOCAtrioOptiStatusAs">As {0}</sys:String>
     <sys:String x:Key="LOCAtrioOptiStatusManual">Installed by hand</sys:String>
     <sys:String x:Key="LOCAtrioOptiByHand">by hand</sys:String>
-    <sys:String x:Key="LOCAtrioOptiUninstallManualAsk" xml:space="preserve">This OptiScaler was installed by hand in {0}. The files known to belong to it will be removed, but there's no backup of what was there before.&#10;&#10;Remove it?</sys:String>
+    <sys:String x:Key="LOCAtrioOptiUninstallManualAsk" xml:space="preserve">This OptiScaler was installed by hand in {0}. The files known to belong to it will be removed, but there's no backup of what was there before.{1}&#10;&#10;Remove it?</sys:String>
     <sys:String x:Key="LOCAtrioOptiUninstalledManual">OptiScaler has been removed.</sys:String>
     <sys:String x:Key="LOCAtrioOptiUsePackage">Use {0}, already downloaded</sys:String>
     <sys:String x:Key="LOCAtrioOptiErrorpackage">That file isn't one published by OptiScaler Client, or GitHub couldn't be reached to check it, so it wasn't used.</sys:String>
@@ -2035,9 +2035,25 @@ Open new issue on Playnite's GitHub page with a request to fix corruption in you
     <sys:String x:Key="LOCAtrioOptiTooLate">It was already being installed, so it was left to finish.</sys:String>
     <sys:String x:Key="LOCAtrioOptiErrornotsent">OptiScaler Client closed before starting. Nothing in the game was touched.</sys:String>
     <sys:String x:Key="LOCAtrioOptiErrorhalfpackage">An earlier install was cut short, and undoing it needs OptiScaler {0}, which couldn't be downloaded. Check your connection.</sys:String>
-    <sys:String x:Key="LOCAtrioOptiReplaceAsk">{0} has an OptiScaler that was installed by hand. It will be replaced, along with its settings, and it won't come back if you remove OptiScaler later. Continue?</sys:String>
+    <sys:String x:Key="LOCAtrioOptiReplaceAsk" xml:space="preserve">{0} has an OptiScaler that was installed by hand. It will be replaced, and it won't come back if you remove OptiScaler later.{1}&#10;&#10;Continue?</sys:String>
     <sys:String x:Key="LOCAtrioOptiStatusCut">OptiScaler was left half installed in this game</sys:String>
     <sys:String x:Key="LOCAtrioOptiErrorprofile">That profile isn't there anymore.</sys:String>
+    <sys:String x:Key="LOCAtrioOptiReplaceKeep">Your settings go along, as far as the new version has them.</sys:String>
+    <sys:String x:Key="LOCAtrioOptiReplaceFresh">Your settings don't go along, but there will be a copy of them in “Earlier settings”.</sys:String>
+    <sys:String x:Key="LOCAtrioOptiFramesOptiFg">OptiFG (experimental)</sys:String>
+    <sys:String x:Key="LOCAtrioOptiOwn">As set in the game</sys:String>
+    <sys:String x:Key="LOCAtrioOptiOwnValue">{0} (set in game)</sys:String>
+    <sys:String x:Key="LOCAtrioOptiSettings">Your settings</sys:String>
+    <sys:String x:Key="LOCAtrioOptiSettingsHint" xml:space="preserve">What you changed in OptiScaler's menu inside the game, or in OptiScaler.ini.&#10;Keep them: they go along to the new version, as far as it has them.&#10;Start over: only what you choose here.</sys:String>
+    <sys:String x:Key="LOCAtrioOptiSettingskeep">Keep them</sys:String>
+    <sys:String x:Key="LOCAtrioOptiSettingsfresh">Start over</sys:String>
+    <sys:String x:Key="LOCAtrioOptiCopies">Earlier settings</sys:String>
+    <sys:String x:Key="LOCAtrioOptiCopiesHint">Copies of the OptiScaler.ini files that were replaced or removed in this game.</sys:String>
+    <sys:String x:Key="LOCAtrioOptiBeside">These files came with it, so they go too: {0}</sys:String>
+    <sys:String x:Key="LOCAtrioOptiNotekept">Your settings have been kept ({0}).</sys:String>
+    <sys:String x:Key="LOCAtrioOptiNotedropped">This version doesn't have these settings of yours, so they're kept for one that does: {0}</sys:String>
+    <sys:String x:Key="LOCAtrioOptiNoteframesnone">This game has nothing to generate frames from automatically, so frame generation was left off.</sys:String>
+    <sys:String x:Key="LOCAtrioOptiNotecopy">The previous settings couldn't be backed up.</sys:String>
     <sys:String x:Key="LOCAtrioFreeUntil">Free until {0}, {1}</sys:String>
     <sys:String x:Key="LOCAtrioFreeFrom">Free from {0} to {1}</sys:String>
     <sys:String x:Key="LOCAtrioFreeTitle">Free now</sys:String>

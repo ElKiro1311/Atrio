@@ -279,6 +279,9 @@
                                                     <TextBlock Text="{DynamicResource LOCAtrioOptiCompatList}" VerticalAlignment="Center" />
                                                 </StackPanel>
                                             </Button>
+                                            <Button Style="{DynamicResource AtrioGhostButton}" MinHeight="36" FontSize="13" Margin="0,0,10,6"
+                                                    Content="{DynamicResource LOCAtrioOptiCopies}" ToolTip="{DynamicResource LOCAtrioOptiCopiesHint}" Command="{Binding OpenCopiesCommand}"
+                                                    Visibility="{Binding HasCopies, Converter={StaticResource BooleanToVisibilityConverter}}" />
                                         </WrapPanel>
                                     </StackPanel>
 
