@@ -170,14 +170,29 @@ namespace Playnite.DesktopApp.ViewModels
         private string GetInstallingText()
         {
             var copy = Game.Copies?.Select(a => a.Game).FirstOrDefault(a => a.IsInstalling) ?? Game.Game;
-            var percent = DirectInstallProgress.Get(copy.Id);
-            var installing = resources.GetString("LOCSetupRunning");
-            return DirectInstallProgress.GetNotice(copy.Id) ?? (percent > 0 ? $"{installing} {percent} %" : installing);
+            return DirectInstallProgress.GetNotice(copy.Id) ?? DirectInstallText.Make(
+                resources.GetString("LOCSetupRunning"),
+                resources.GetString("LOCAtrioInstallPaused"),
+                DirectInstallProgress.Get(copy.Id),
+                DirectInstallProgress.GetRate(copy.Id),
+                DirectInstallProgress.GetPaused(copy.Id),
+                Localization.ApplicationLanguageCultureInfo);
+        }
+
+        /// <summary>How far a direct install goes, to fill its button. Null when nothing is known.</summary>
+        public double? InstallPercent
+        {
+            get
+            {
+                var copy = Game?.Copies?.Select(a => a.Game).FirstOrDefault(a => a.IsInstalling) ?? Game?.Game;
+                return copy == null ? null : DirectInstallProgress.Get(copy.Id) is int percent ? percent : (double?)null;
+            }
         }
 
         private void DirectInstallProgress_Changed(object sender, Guid game)
         {
             OnPropertyChanged(nameof(ContextActionDescription));
+            OnPropertyChanged(nameof(InstallPercent));
         }
 
         /// <summary>The copy with programs running right now, whoever opened it. Null when nothing is detected.</summary>

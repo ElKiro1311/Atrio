@@ -2,7 +2,11 @@ using NUnit.Framework;
 using Playnite.Atrio;
 using System;
 using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using System.Net;
 using System.Text;
+using System.Threading.Tasks;
 
 namespace Playnite.Tests
 {
@@ -143,6 +147,182 @@ namespace Playnite.Tests
         {
             Assert.IsNull(SteamRemoteInstall.PickSession(new List<SteamClientSession>(), "KIRO-PC", true));
             Assert.IsNull(SteamRemoteInstall.PickSession(null, "KIRO-PC", true));
+        }
+
+        [Test]
+        public void TheListOfTheClientSaysHowTheDownloadGoes()
+        {
+            var list = """{"response":{"apps":[{"appid":"620","bytes_downloaded":"500","bytes_to_download":"1000","bytes_download_rate":"25000000","download_paused":false},{"appid":"570","bytes_downloaded":1}]}}""";
+            var progress = SteamClientProgress.Parse(list, "620");
+            Assert.AreEqual(500, progress.BytesDownloaded);
+            Assert.AreEqual(1000, progress.BytesToDownload);
+            Assert.AreEqual(25000000, progress.Rate);
+            Assert.IsFalse(progress.Paused);
+            Assert.AreEqual(50, progress.Percent);
+        }
+
+        [Test]
+        public void TheNumbersOfTheListCanComeAsNumbers()
+        {
+            var list = """{"response":{"apps":[{"appid":620,"bytes_downloaded":300,"bytes_to_download":400,"bytes_download_rate":5000000,"download_paused":true}]}}""";
+            var progress = SteamClientProgress.Parse(list, "620");
+            Assert.AreEqual(300, progress.BytesDownloaded);
+            Assert.AreEqual(75, progress.Percent);
+            Assert.AreEqual(5000000, progress.Rate);
+            Assert.IsTrue(progress.Paused);
+        }
+
+        [Test]
+        public void AListWithoutTheGameSaysNothing()
+        {
+            var list = """{"response":{"apps":[{"appid":"620"}]}}""";
+            Assert.IsNull(SteamClientProgress.Parse(list, "349040"));
+        }
+
+        [Test]
+        public void AnAnswerBrokenOrEmptyIsNotAProgress()
+        {
+            Assert.IsNull(SteamClientProgress.Parse(null, "620"));
+            Assert.IsNull(SteamClientProgress.Parse("", "620"));
+            Assert.IsNull(SteamClientProgress.Parse("{response", "620"));
+            Assert.IsNull(SteamClientProgress.Parse("[]", "620"));
+            Assert.IsNull(SteamClientProgress.Parse("""{"response":{}}""", "620"));
+        }
+
+        [Test]
+        public void AListThatLeavesThingsOutStillCountsWhatItHas()
+        {
+            var list = """{"response":{"apps":[{"appid":"620"}]}}""";
+            var progress = SteamClientProgress.Parse(list, "620");
+            Assert.AreEqual(0, progress.Percent);
+            Assert.AreEqual(0, progress.Rate);
+            Assert.IsFalse(progress.Paused);
+        }
+
+        [Test]
+        public void AGameWithNothingToDownloadShowsNoPercent()
+        {
+            var list = """{"response":{"apps":[{"appid":"620","bytes_to_download":"0","bytes_downloaded":"100"}]}}""";
+            Assert.AreEqual(0, SteamClientProgress.Parse(list, "620").Percent);
+        }
+
+        private class ClientList : IDisposable
+        {
+            private readonly HttpListener listener = new HttpListener();
+            private readonly Task serving;
+            private readonly string[] bodies;
+            private int asked;
+
+            public string Url { get; }
+            public List<string> Calls { get; } = new List<string>();
+
+            public ClientList(params string[] bodies)
+            {
+                this.bodies = bodies;
+                for (var tries = 0; Url == null; tries++)
+                {
+                    var port = 40000 + new Random().Next(10000);
+                    try
+                    {
+                        listener.Prefixes.Add($"http://127.0.0.1:{port}/");
+                        listener.Start();
+                        Url = $"http://127.0.0.1:{port}";
+                    }
+                    catch (HttpListenerException)
+                    {
+                        if (tries > 20)
+                        {
+                            throw;
+                        }
+                    }
+                }
+
+                serving = Task.Run(() => Serve());
+            }
+
+            private void Serve()
+            {
+                while (listener.IsListening)
+                {
+                    try
+                    {
+                        var context = listener.GetContext();
+                        Calls.Add(context.Request.Url.Query);
+                        var body = bodies[Math.Min(asked++, bodies.Length - 1)];
+                        using (var writer = new StreamWriter(context.Response.OutputStream))
+                        {
+                            writer.Write(body);
+                        }
+                    }
+                    catch (HttpListenerException)
+                    {
+                        return;
+                    }
+                }
+            }
+
+            public void Dispose()
+            {
+                listener.Stop();
+                listener.Close();
+                try
+                {
+                    serving.Wait(2000);
+                }
+                catch
+                {
+                }
+            }
+        }
+
+        private static SteamClientProgress AskProgress(string appId, string access, SteamClientSession session, string list, string other, out List<string> calls)
+        {
+            var previous = Environment.GetEnvironmentVariable("ATRIO_STEAM_API");
+            SteamClientProgress progress;
+            using (var server = new ClientList(list, other))
+            {
+                Environment.SetEnvironmentVariable("ATRIO_STEAM_API", server.Url);
+                try
+                {
+                    progress = SteamRemoteInstall.GetProgressAsync(appId, System.Threading.CancellationToken.None, access, session).GetAwaiter().GetResult();
+                }
+                finally
+                {
+                    Environment.SetEnvironmentVariable("ATRIO_STEAM_API", previous);
+                }
+
+                calls = server.Calls;
+            }
+
+            return progress;
+        }
+
+        [Test]
+        public void TheProgressOfTheListThatTheClientKeepsArrives()
+        {
+            var list = """{"response":{"apps":[{"appid":"620","bytes_downloaded":"25000000","bytes_to_download":100000000,"bytes_download_rate":"25000000"}]}}""";
+            var progress = AskProgress("620", "token", Session("77", "home"), list, list, out var calls);
+            Assert.AreEqual(25000000, progress.BytesDownloaded);
+            Assert.AreEqual(25, progress.Percent);
+            StringAssert.Contains("access_token=token", calls.Last());
+            StringAssert.Contains("filters=changing", calls.Last());
+        }
+
+        [Test]
+        public void TheListThatHidesTheDownloadIsAskedWithTheOtherFilter()
+        {
+            var list = """{"response":{"apps":[{"appid":"620","bytes_downloaded":100,"bytes_to_download":1000}]}}""";
+            var empty = """{"response":{"apps":[]}}""";
+            var progress = AskProgress("620", "token", Session("77", "home"), empty, list, out var calls);
+            Assert.AreEqual(10, progress.Percent);
+            StringAssert.Contains("filters=changing", calls[0]);
+            StringAssert.Contains("filters=downloading", calls[1]);
+        }
+
+        [Test]
+        public void AProgressWithoutItsOwnSessionIsNotAsked()
+        {
+            Assert.IsNull(SteamRemoteInstall.GetProgressAsync("620", System.Threading.CancellationToken.None, "token", null).GetAwaiter().GetResult());
         }
     }
 }

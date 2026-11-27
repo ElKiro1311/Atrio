@@ -13,6 +13,8 @@ using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 
 namespace Playnite.Atrio
 {
@@ -232,6 +234,80 @@ namespace Playnite.Atrio
         public string machine_name { get; set; }
     }
 
+    /// <summary>What the list of the Steam client says about how one game is downloading. Null when it says nothing usable.</summary>
+    public class SteamClientProgress
+    {
+        public long BytesDownloaded { get; set; }
+        public long BytesToDownload { get; set; }
+        public long Rate { get; set; }
+        public bool Paused { get; set; }
+
+        public int Percent => BytesToDownload <= 0 ? 0 : (int)Math.Min(100, BytesDownloaded * 100 / BytesToDownload);
+
+        /// <summary>
+        /// The numbers of the answer can arrive as words or as numbers, and any field can be missing:
+        /// the client is not strict. Null if the game is not in the list or the answer is broken.
+        /// </summary>
+        public static SteamClientProgress Parse(string json, string appId)
+        {
+            JToken answer;
+            try
+            {
+                answer = JToken.Parse(json ?? string.Empty);
+            }
+            catch (JsonReaderException)
+            {
+                return null;
+            }
+
+            if (appId.IsNullOrEmpty())
+            {
+                return null;
+            }
+
+            var response = (answer as JObject)?["response"] as JObject;
+            var apps = response?["apps"] as JArray;
+            if (apps == null)
+            {
+                return null;
+            }
+
+            foreach (var app in apps)
+            {
+                if (ReadWord(app["appid"]) != appId)
+                {
+                    continue;
+                }
+
+                return new SteamClientProgress
+                {
+                    BytesDownloaded = ReadNumber(app["bytes_downloaded"]),
+                    BytesToDownload = ReadNumber(app["bytes_to_download"]),
+                    Rate = ReadNumber(app["bytes_download_rate"]),
+                    Paused = ReadPaused(app["download_paused"])
+                };
+            }
+
+            return null;
+        }
+
+        private static long ReadNumber(JToken value)
+        {
+            return value?.Type == JTokenType.Integer ? (long)value :
+                value?.Type == JTokenType.String && long.TryParse((string)value, out var number) ? number : 0;
+        }
+
+        private static string ReadWord(JToken value)
+        {
+            return value?.Type == JTokenType.String ? (string)value : value?.ToString();
+        }
+
+        private static bool ReadPaused(JToken value)
+        {
+            return value?.Type == JTokenType.Boolean ? (bool)value : bool.TryParse(value?.ToString(), out var paused) && paused;
+        }
+    }
+
     /// <summary>
     /// Asks the Steam client of this computer to install a game: it's the order the Steam app for phones
     /// sends for its remote downloads. It goes with the session of the browser of Atrio, like the friends
@@ -252,6 +328,10 @@ namespace Playnite.Atrio
         private const string LogonInfoPath = "/IClientCommService/GetAllClientLogonInfo/v1/?access_token={0}";
         private const string InstallPath = "/IClientCommService/InstallClientApp/v1/";
         private const string UninstallPath = "/IClientCommService/UninstallClientApp/v1/";
+        // The whole list of fields: with the short one the client leaves out the byte counts.
+        private const string AppListPath = "/IClientCommService/GetClientAppList/v1/?access_token={0}&client_instanceid={1}&fields=all&filters={2}&include_client_info=false&language=english";
+        private const string ChangingFilter = "changing";
+        private const string DownloadingFilter = "downloading";
         private const string SuccessResult = "1";
         private const int NetBiosNameLength = 15;
 
@@ -263,6 +343,10 @@ namespace Playnite.Atrio
         private static readonly Regex accountRegex = new Regex(@"""sub""\s*:\s*""(?<id>\d+)""", RegexOptions.Compiled);
 
         private static string ApiUrl => AtrioInfo.GetTestSetting("ATRIO_STEAM_API") ?? "https://api.steampowered.com";
+
+        // The session of the last order given, to ask the progress without looking for the client again.
+        private static string chosenToken;
+        private static SteamClientSession chosenSession;
 
         /// <summary>
         /// The session of the client of this computer. An account can be open in several of them, and a
@@ -424,8 +508,58 @@ namespace Playnite.Atrio
                 }
 
                 logger.Info($"Steam client told to {what} {appId}.");
+                chosenToken = accessToken;
+                chosenSession = session;
                 return true;
             }
+        }
+
+        /// <summary>
+        /// How the client is downloading a game, from the list it keeps of its own downloads. It uses the
+        /// token and the session of the last order given, so no search repeats. Null when there is no
+        /// session, when the client says nothing about the game, or when the question fails; a null is
+        /// never a reason to stop, the file of the game keeps guiding the watch.
+        /// </summary>
+        public static async Task<SteamClientProgress> GetProgressAsync(string appId, CancellationToken token, string accessToken = null, SteamClientSession session = null)
+        {
+            accessToken ??= chosenToken;
+            session ??= chosenSession;
+            if (accessToken.IsNullOrEmpty() || session?.client_instanceid.IsNullOrEmpty() != false)
+            {
+                return null;
+            }
+
+            // The client hides what it has just started under the other filter, the list says which one it keeps.
+            foreach (var filter in new[] { ChangingFilter, DownloadingFilter })
+            {
+                var url = ApiUrl + string.Format(AppListPath, Uri.EscapeDataString(accessToken), Uri.EscapeDataString(session.client_instanceid), filter);
+                try
+                {
+                    using (var response = await client.GetAsync(url, token).ConfigureAwait(false))
+                    {
+                        if (!response.IsSuccessStatusCode)
+                        {
+                            logger.Debug($"Steam didn't tell the download progress: {(int)response.StatusCode}.");
+                            return null;
+                        }
+
+                        var content = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+                        var progress = SteamClientProgress.Parse(content, appId);
+                        if (progress != null)
+                        {
+                            return progress;
+                        }
+                    }
+                }
+                catch (Exception e) when (!(e is OperationCanceledException) || !token.IsCancellationRequested)
+                {
+                    // An answer that never comes is no trouble: the file of the game is still there.
+                    logger.Debug(e, "Failed to read the download progress of Steam.");
+                    return null;
+                }
+            }
+
+            return null;
         }
     }
 
@@ -435,6 +569,8 @@ namespace Playnite.Atrio
         // How long the client gets to show that it took the order. It's usually a second or two.
         private static readonly TimeSpan startPatience = TimeSpan.FromSeconds(15);
         private static readonly TimeSpan checkPause = TimeSpan.FromSeconds(2);
+        // The list of the client is not asked faster than this, even if the watch goes by in less.
+        private static readonly TimeSpan listPause = TimeSpan.FromSeconds(3);
 
         public SteamDirectInstallController(Game game, InstallController store) : base(game, store)
         {
@@ -451,6 +587,12 @@ namespace Playnite.Atrio
             var ordered = DateTime.Now;
             var seen = false;
             var missing = 0;
+            var nextList = DateTime.MinValue;
+            // The last word of the client's list, kept between the short checks so the text of the
+            // button doesn't blink between a poll and the next one; a failed poll clears it.
+            var listed = (int?)null;
+            var listedRate = 0L;
+            var listedPaused = false;
             while (true)
             {
                 await Task.Delay(checkPause, Cancellation);
@@ -478,19 +620,45 @@ namespace Playnite.Atrio
                         Logger.Warn($"The Steam client didn't start to install {Game.GameId}.");
                         return false;
                     }
-
-                    continue;
                 }
-
-                seen = true;
-                missing = 0;
-                if (manifest.IsInstalled)
+                else
                 {
-                    Finish(manifest.InstallPath);
-                    return true;
+                    seen = true;
+                    missing = 0;
+                    if (manifest.IsInstalled)
+                    {
+                        Finish(manifest.InstallPath);
+                        return true;
+                    }
                 }
 
-                DirectInstallProgress.Set(Game.Id, manifest.Percent);
+                // The list of the client knows how the download goes even before the file of the game
+                // exists, and its word wins while it lasts; the file only decides installed or gone.
+                if (DateTime.Now >= nextList)
+                {
+                    nextList = DateTime.Now + listPause;
+                    var progress = await SteamRemoteInstall.GetProgressAsync(Game.GameId, Cancellation);
+                    if (progress != null)
+                    {
+                        // The last bit of percent only arrives with the manifest saying installed.
+                        listed = Math.Min(progress.Percent, 99);
+                        listedRate = progress.Rate;
+                        listedPaused = progress.Paused;
+                    }
+                    else
+                    {
+                        listed = null;
+                        listedRate = 0;
+                        listedPaused = false;
+                    }
+                }
+
+                // With nothing from the client, the file says what it can, still under a hundred.
+                var percent = listed ?? (manifest == null ? (int?)null : Math.Min(manifest.Percent, 99));
+                if (percent != null)
+                {
+                    DirectInstallProgress.Set(Game.Id, percent, listedRate, listedPaused);
+                }
             }
         }
     }

@@ -46,6 +46,7 @@
     <pcon:BoolToYesNoConverter x:Key="BoolToYesNoConverter" />
     <pcon:CoversZoomToPercentageConverter x:Key="CoversZoomToPercentageConverter" />
     <pcon:DateTimeToLastPlayedConverter x:Key="DateTimeToLastPlayedConverter" />
+    <pcon:PercentToFillConverter x:Key="PercentToFillConverter" />
     <pcon:DockToStringConverter x:Key="DockToStringConverter" />
     <pcon:EnumToBooleanConverter x:Key="EnumToBooleanConverter" />
     <pcon:EnumToVisibilityConverter x:Key="EnumToVisibilityConverter" />

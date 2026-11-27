@@ -1,4 +1,4 @@
-using Playnite.SDK;
+﻿using Playnite.SDK;
 using Playnite.SDK.Models;
 using Playnite.SDK.Plugins;
 using System;
@@ -15,6 +15,8 @@ namespace Playnite.Atrio
         {
             public int? Percent;
             public string Notice;
+            public long Rate;
+            public bool Paused;
         }
 
         private static readonly ConcurrentDictionary<Guid, Status> statuses = new ConcurrentDictionary<Guid, Status>();
@@ -26,6 +28,18 @@ namespace Playnite.Atrio
             return statuses.TryGetValue(game, out var status) ? status.Percent : null;
         }
 
+        /// <summary>Bytes every second that the install is moving, zero if nothing is known.</summary>
+        public static long GetRate(Guid game)
+        {
+            return statuses.TryGetValue(game, out var status) ? status.Rate : 0;
+        }
+
+        /// <summary>The download is stopped because its client says so, not because the person did anything.</summary>
+        public static bool GetPaused(Guid game)
+        {
+            return statuses.TryGetValue(game, out var status) && status.Paused;
+        }
+
         /// <summary>What the store is waiting for from the person, if anything. Already translated.</summary>
         public static string GetNotice(Guid game)
         {
@@ -34,7 +48,12 @@ namespace Playnite.Atrio
 
         public static void Set(Guid game, int? percent)
         {
-            statuses[game] = new Status { Percent = percent };
+            Set(game, percent, 0, false);
+        }
+
+        public static void Set(Guid game, int? percent, long rate, bool paused)
+        {
+            statuses[game] = new Status { Percent = percent, Rate = rate, Paused = paused };
             Changed?.Invoke(null, game);
         }
 
@@ -48,6 +67,45 @@ namespace Playnite.Atrio
         {
             statuses.TryRemove(game, out _);
             Changed?.Invoke(null, game);
+        }
+    }
+
+    /// <summary>
+    /// The text of the install button: the word the store uses, plus the progress of a direct install
+    /// when there is one: «Installing 37 % · 24 MB/s», or that the download waits for its client.
+    /// </summary>
+    public static class DirectInstallText
+    {
+        public static string Make(string installing, string pausedWord, int? percent, long rate, bool isPaused, IFormatProvider culture)
+        {
+            if (percent is not int value || value <= 0)
+            {
+                return installing;
+            }
+
+            var text = $"{installing} {value} %";
+            if (isPaused)
+            {
+                return $"{text} · {pausedWord}";
+            }
+
+            return rate > 0 ? $"{text} · {Rate(rate, culture)}" : text;
+        }
+
+        /// <summary>A speed of bytes in the unit that reads best: B/s, KB/s, MB/s or GB/s.</summary>
+        public static string Rate(long rate, IFormatProvider culture)
+        {
+            if (rate <= 0)
+            {
+                return null;
+            }
+
+            double value = rate;
+            var unit = "B/s";
+            if (value >= 1024) { value /= 1024; unit = "KB/s"; }
+            if (value >= 1024) { value /= 1024; unit = "MB/s"; }
+            if (value >= 1024) { value /= 1024; unit = "GB/s"; }
+            return $"{Math.Round(value, MidpointRounding.AwayFromZero).ToString(culture)} {unit}";
         }
     }
 

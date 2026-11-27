@@ -245,6 +245,10 @@ namespace Playnite.DesktopApp.Controls.Views
                 BindingTools.SetBinding(ButtonContextAction,
                     Button.ContentProperty,
                     nameof(GameDetailsViewModel.ContextActionDescription));
+                // The percent fills the button: the style of the theme draws it from here.
+                BindingTools.SetBinding(ButtonContextAction,
+                    Button.TagProperty,
+                    nameof(GameDetailsViewModel.InstallPercent));
                 BindingTools.SetBinding(ButtonContextAction,
                     Button.VisibilityProperty,
                     nameof(GameDetailsViewModel.IsContextAvailable),

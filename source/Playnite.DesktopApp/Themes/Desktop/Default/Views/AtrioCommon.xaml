@@ -53,6 +53,9 @@
         <Setter Property="Padding" Value="16" />
     </Style>
 
+    <!-- A little lighter than the color of the button, over whatever color a theme gives it. -->
+    <SolidColorBrush x:Key="AtrioPlayFillBrush" Color="#FFFFFF" Opacity="0.22" />
+
     <Style x:Key="AtrioPlayButton" TargetType="Button" BasedOn="{StaticResource BaseStyle}">
         <Setter Property="Background" Value="{DynamicResource AtrioPlayBrush}" />
         <Setter Property="Foreground" Value="{DynamicResource AtrioPlayTextBrush}" />
@@ -64,20 +67,30 @@
         <Setter Property="FocusVisualStyle" Value="{x:Null}" />
         <Setter Property="Template">
             <Setter.Value>
+                <!-- The fill that tells how far an install goes comes in the Tag (0 to 100); any button
+                     without a percent leaves its Tag empty and keeps this corner of the template hidden. -->
                 <ControlTemplate TargetType="Button">
-                    <Border x:Name="Root" Background="{TemplateBinding Background}"
-                            CornerRadius="{DynamicResource AtrioCardRadius}" Padding="{TemplateBinding Padding}">
-                        <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" RecognizesAccessKey="True" />
-                    </Border>
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="{Binding Tag, RelativeSource={RelativeSource TemplatedParent}, Converter={StaticResource PercentToFillConverter}}" />
+                            <ColumnDefinition Width="{Binding Tag, RelativeSource={RelativeSource TemplatedParent}, Converter={StaticResource PercentToFillConverter}, ConverterParameter=rest}" />
+                        </Grid.ColumnDefinitions>
+                        <Border x:Name="Root" Grid.ColumnSpan="2" Background="{TemplateBinding Background}"
+                                CornerRadius="{DynamicResource AtrioCardRadius}" />
+                        <Border Background="{DynamicResource AtrioPlayFillBrush}"
+                                CornerRadius="{DynamicResource AtrioCardRadius}" />
+                        <ContentPresenter Grid.ColumnSpan="2" Margin="{TemplateBinding Padding}"
+                                          HorizontalAlignment="Center" VerticalAlignment="Center" RecognizesAccessKey="True" />
+                    </Grid>
                     <ControlTemplate.Triggers>
                         <Trigger Property="IsMouseOver" Value="True">
                             <Setter TargetName="Root" Property="Background" Value="{DynamicResource AtrioPlayHoverBrush}" />
                         </Trigger>
                         <Trigger Property="IsPressed" Value="True">
-                            <Setter TargetName="Root" Property="Opacity" Value="0.85" />
+                            <Setter Property="Opacity" Value="0.85" />
                         </Trigger>
                         <Trigger Property="IsEnabled" Value="False">
-                            <Setter TargetName="Root" Property="Opacity" Value="0.5" />
+                            <Setter Property="Opacity" Value="0.5" />
                         </Trigger>
                     </ControlTemplate.Triggers>
                 </ControlTemplate>

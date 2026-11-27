@@ -126,9 +126,13 @@ namespace Playnite.FullscreenApp.ViewModels
 
         private string GetInstallingText(Guid game)
         {
-            var percent = DirectInstallProgress.Get(game);
-            var installing = resources.GetString("LOCSetupRunning");
-            return percent > 0 ? $"{installing} {percent} %" : installing;
+            return DirectInstallText.Make(
+                resources.GetString("LOCSetupRunning"),
+                resources.GetString("LOCAtrioInstallPaused"),
+                DirectInstallProgress.Get(game),
+                DirectInstallProgress.GetRate(game),
+                DirectInstallProgress.GetPaused(game),
+                Playnite.Localization.ApplicationLanguageCultureInfo);
         }
 
         private void DirectInstallProgress_Changed(object sender, Guid game)

@@ -1,4 +1,4 @@
-using Newtonsoft.Json.Linq;
+﻿using Newtonsoft.Json.Linq;
 using NUnit.Framework;
 using Playnite.Atrio;
 using System;
@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using System.Drawing;
 using System.IO;
 using System.Linq;
+using System.Globalization;
 using System.Text;
 
 namespace Playnite.Tests
@@ -843,6 +844,52 @@ namespace Playnite.Tests
             {
                 DirectInstallProgress.Changed -= listener;
             }
+        }
+
+        [Test]
+        public void ProgressKeepsTheSpeedAndThePauseTest()
+        {
+            var game = Guid.NewGuid();
+            try
+            {
+                DirectInstallProgress.Set(game, 12, 25000000, true);
+                Assert.AreEqual(12, DirectInstallProgress.Get(game));
+                Assert.AreEqual(25000000, DirectInstallProgress.GetRate(game));
+                Assert.IsTrue(DirectInstallProgress.GetPaused(game));
+
+                // Without a speed the question says zero, like at the start.
+                DirectInstallProgress.Set(game, 80);
+                Assert.AreEqual(0, DirectInstallProgress.GetRate(game));
+                Assert.IsFalse(DirectInstallProgress.GetPaused(game));
+            }
+            finally
+            {
+                DirectInstallProgress.Clear(game);
+            }
+        }
+
+        [TestCase(null, 0, false, "Installing")]
+        [TestCase(0, 25000000, false, "Installing")]
+        [TestCase(37, 0, false, "Installing 37 %")]
+        [TestCase(37, 25000000, false, "Installing 37 % · 24 MB/s")]
+        [TestCase(37, 25000000, true, "Installing 37 % · The client waits")]
+        [TestCase(9, 512, false, "Installing 9 % · 512 B/s")]
+        [TestCase(50, 1500, false, "Installing 50 % · 1 KB/s")]
+        [TestCase(99, 1500000000, false, "Installing 99 % · 1 GB/s")]
+        public void TheInstallButtonReadsTheProgressTest(int? percent, long rate, bool paused, string text)
+        {
+            Assert.AreEqual(text, DirectInstallText.Make("Installing", "The client waits", percent, rate, paused, CultureInfo.InvariantCulture));
+        }
+
+        [TestCase(999, "999 B/s")]
+        [TestCase(1000, "1000 B/s")]
+        [TestCase(1024, "1 KB/s")]
+        [TestCase(50000, "49 KB/s")]
+        [TestCase(25000000, "24 MB/s")]
+        [TestCase(1610612736, "2 GB/s")]
+        public void TheSpeedPicksItsOwnUnitTest(long rate, string text)
+        {
+            Assert.AreEqual(text, DirectInstallText.Rate(rate, CultureInfo.InvariantCulture));
         }
     }
 }

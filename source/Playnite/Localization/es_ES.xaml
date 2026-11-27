@@ -1376,6 +1376,7 @@ Abre un nuevo problema en la página de GitHub de Playnite con una solicitud par
     <sys:String x:Key="LOCAtrioAcceptInStore">Acepta las condiciones en {0}</sys:String>
     <sys:String x:Key="LOCAtrioFinishInstaller">Termina en el instalador</sys:String>
     <sys:String x:Key="LOCAtrioFinishInStore">Termina en {0}</sys:String>
+    <sys:String x:Key="LOCAtrioInstallPaused">En pausa</sys:String>
     <sys:String x:Key="LOCAtrioUnifySummary">{0} juegos están en varias tiendas ({1} entradas repetidas ocultas).</sys:String>
     <sys:String x:Key="LOCAtrioPriorityTitle">Orden de preferencia de las tiendas</sys:String>
     <sys:String x:Key="LOCAtrioPriorityHint">Se usa cuando un juego aún no está instalado en ninguna.</sys:String>
